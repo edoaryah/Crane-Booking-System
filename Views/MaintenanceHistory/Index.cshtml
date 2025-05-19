@@ -1,0 +1,120 @@
+@model AspnetCoreMvcFull.ViewModels.MaintenanceManagement.MaintenanceListViewModel
+@{
+  ViewData["Title"] = "Maintenance History";
+  Layout = "_ContentNavbarLayout";
+
+  // Check if viewing a specific crane's history
+  bool showingCraneHistory = ViewBag.CraneName != null;
+}
+
+<h4 class="py-3 mb-4">
+  <span class="text-muted fw-light">Maintenance /</span> History
+  @if (showingCraneHistory)
+  {
+    <span class="text-muted fw-light">/ Crane @ViewBag.CraneName</span>
+  }
+</h4>
+
+<!-- Alert messages -->
+@if (!string.IsNullOrEmpty(Model.SuccessMessage))
+{
+  <div class="alert alert-success alert-dismissible" role="alert">
+    @Model.SuccessMessage
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+}
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+  <div class="alert alert-danger alert-dismissible" role="alert">
+    @Model.ErrorMessage
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+}
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">
+      @if (showingCraneHistory)
+      {
+        <text>Maintenance History for Crane @ViewBag.CraneName</text>
+      }
+      else
+      {
+        <text>All Maintenance Schedules</text>
+      }
+    </h5>
+    <div>
+      <a href="@Url.Action("Index", "Maintenance")" class="btn btn-primary">
+        <i class="bx bx-plus me-1"></i> Create New
+      </a>
+      <a href="@Url.Action("Calendar", "Maintenance")" class="btn btn-outline-secondary ms-2">
+        <i class="bx bx-calendar me-1"></i> Calendar View
+      </a>
+    </div>
+  </div>
+
+  <div class="card-body">
+    @if (Model.Schedules.Any())
+    {
+      <div class="table-responsive text-nowrap">
+        <table class="table table-striped">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Crane</th>
+              <th>Date Range</th>
+              <th>Created By</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody class="table-border-bottom-0">
+            @foreach (var schedule in Model.Schedules)
+            {
+              <tr>
+                <td><strong>@schedule.Title</strong></td>
+                <td>@schedule.CraneCode</td>
+                <td>
+                  @schedule.StartDate.ToShortDateString() - @schedule.EndDate.ToShortDateString()
+                  <span class="badge bg-label-primary">
+                    @((schedule.EndDate - schedule.StartDate).Days + 1) days
+                  </span>
+                </td>
+                <td>@schedule.CreatedBy</td>
+                <td>
+                  <a class="btn btn-sm btn-outline-primary"
+                    href="@Url.Action("Details", "MaintenanceHistory", new { documentNumber = schedule.DocumentNumber })">
+                    <i class="bx bx-show-alt me-1"></i> View
+                  </a>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+    else
+    {
+      <div class="text-center p-5">
+        <div class="mb-3">
+          <i class="bx bx-calendar-x text-primary" style="font-size: 4rem;"></i>
+        </div>
+        <h5>No maintenance schedules found</h5>
+        @if (showingCraneHistory)
+        {
+          <p class="text-muted">No maintenance schedules found for Crane @ViewBag.CraneName.</p>
+          <a href="@Url.Action("Index", "Maintenance", new { craneId = ViewBag.CraneId })" class="btn btn-primary mt-3">
+            <i class="bx bx-plus me-1"></i> Create Maintenance for this Crane
+          </a>
+        }
+        else
+        {
+          <p class="text-muted">Create a new maintenance schedule to get started.</p>
+          <a href="@Url.Action("Index", "Maintenance")" class="btn btn-primary mt-3">
+            <i class="bx bx-plus me-1"></i> Create New
+          </a>
+        }
+      </div>
+    }
+  </div>
+</div>

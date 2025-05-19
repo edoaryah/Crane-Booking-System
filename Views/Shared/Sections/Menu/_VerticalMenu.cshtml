@@ -1,0 +1,141 @@
+@{
+  TempData.Keep();
+  string? currentPage = ViewContext.HttpContext.Request.Path;
+}
+
+<style>
+  .menu-inner-shadow {
+    @* color: aqua !important;
+    background-color: aqua !important; *@
+    top: 120px !important;
+    /* Menambah jarak agar shadow tidak menutupi logo */
+  }
+</style>
+
+<!-- Menu -->
+@* ! Do this simple *@
+<aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme">
+
+  @* ! Hide app brand if navbar-full *@
+  <div
+    class='app-brand @((@ViewData["navbarFull"] != null && Convert.ToBoolean(@ViewData["navbarFull"])) ? "d-xl-none" : "")'>
+    <a asp-controller="Dashboards" asp-action="Index" class="app-brand-link">
+      <span class="app-brand-logo kpc">
+        @await Html.PartialAsync("../_Partials/_KaltimPrimaCoal")
+      </span>
+      @* <span class="app-brand-text demo menu-text fw-bold ms-2">@TempData.Peek("appName")</span> *@
+    </a>
+
+    <a href="javascript:void(0);" class="layout-menu-toggle menu-link text-large ms-auto d-block d-xl-none">
+      <i class="bx bx-chevron-left bx-sm d-flex align-items-center justify-content-center"></i>
+    </a>
+  </div>
+
+  <div class="menu-inner-shadow"></div>
+
+  @* ! Full version menu-items *@
+  <ul class="menu-inner py-1">
+
+    <!-- Menu -->
+    @* <li class="menu-header small text-uppercase"><span class="menu-header-text">Menu</span></li> *@
+
+    <!-- Dashboard -->
+    <li class='menu-item@(currentPage == "/" ? " active" : "")'>
+      <a asp-controller="Dashboards" asp-action="Index" class="menu-link">
+        <i class="menu-icon tf-icons bx bx-home-smile"></i>
+        <div class="text-truncate" data-i18n="Dashboards">Dashboards</div>
+      </a>
+    </li>
+    <li class='menu-item@(currentPage == "/Calendar" || currentPage == "/Calendar" ? " active" : "")'>
+      <a asp-controller="Calendar" asp-action="Index" class="menu-link">
+        <i class="menu-icon tf-icons bx bx-calendar"></i>
+        <div class="text-truncate" data-i18n="Cards">Calendar</div>
+      </a>
+    </li>
+    <!-- Crane Usage Button -->
+    <li class='menu-item@(currentPage == "/CraneUsage" || currentPage.StartsWith("/CraneUsage") ? " active" : "")'>
+      <a asp-controller="CraneUsage" asp-action="Index" class="menu-link">
+        <i class="menu-icon tf-icons bx bx-time-five"></i>
+        <div class="text-truncate" data-i18n="CraneUsage">Crane Usage</div>
+      </a>
+    </li>
+    <!-- Billing Menu -->
+    <li class='menu-item@(currentPage == "/Billing" || currentPage.StartsWith("/Billing") ? " active" : "")'>
+      <a asp-controller="Billing" asp-action="Index" class="menu-link">
+        <i class="menu-icon tf-icons bx bx-receipt"></i>
+        <div class="text-truncate" data-i18n="Billing">Penagihan</div>
+      </a>
+    </li>
+    @* <li class='menu-item@(currentPage == "/CraneUsage/History" ? " active" : "")'>
+      <a asp-controller="CraneUsage" asp-action="History" class="menu-link">
+        <i class="menu-icon tf-icons bx bx-time"></i>
+        <div class="text-truncate" data-i18n="Cards">Crane Usage</div>
+      </a>
+    </li> *@
+
+    <!-- Booking -->
+    <li class="menu-header small text-uppercase"><span class="menu-header-text">Booking</span></li>
+    <li class='menu-item@(currentPage == "/Booking" ? " active" : "")'>
+      <a asp-controller="Booking" asp-action="Index" class="menu-link">
+        <i class="menu-icon tf-icons bx bx-detail"></i>
+        <div class="text-truncate" data-i18n="Cards">Booking Form</div>
+      </a>
+    </li>
+    <li class='menu-item@(currentPage == "/Booking/List" ? " active" : "")'>
+      <a asp-controller="Booking" asp-action="List" class="menu-link">
+        <i class="menu-icon tf-icons bx bx-history"></i>
+        <div class="text-truncate" data-i18n="Cards">Booking History</div>
+      </a>
+    </li>
+
+    <!-- Maintenance -->
+    <li class="menu-header small text-uppercase"><span class="menu-header-text">Maintenance</span></li>
+    <li class='menu-item@(currentPage == "/Maintenance" ? " active" : "")'>
+      <a asp-controller="Maintenance" asp-action="Index" class="menu-link">
+        <i class="menu-icon tf-icons bx bx-detail"></i>
+        <div class="text-truncate" data-i18n="Cards">Maintenance Form</div>
+      </a>
+    </li>
+    <li class='menu-item@(currentPage == "/MaintenanceHistory" ? " active" : "")'>
+      <a asp-controller="MaintenanceHistory" asp-action="Index" class="menu-link">
+        <i class="menu-icon tf-icons bx bx-history"></i>
+        <div class="text-truncate" data-i18n="Cards">Maintenance History</div>
+      </a>
+    </li>
+
+    <!-- Management -->
+    <li class="menu-header small text-uppercase"><span class="menu-header-text">Management</span></li>
+    <li class='menu-item@(currentPage == "/CraneManagement" ? " active" : "")'>
+      <a asp-controller="CraneManagement" asp-action="Index" class="menu-link">
+        <i class="menu-icon tf-icons bx bx-wrench"></i>
+        <div class="text-truncate" data-i18n="Roles">Crane Management</div>
+      </a>
+    </li>
+    <li class='menu-item@(currentPage == "/ShiftManagement" ? " active" : "")'>
+      <a asp-controller="ShiftManagement" asp-action="Index" class="menu-link">
+        <i class="menu-icon tf-icons bx bx-time"></i>
+        <div class="text-truncate" data-i18n="Shifts">Shift Management</div>
+      </a>
+    </li>
+    <li class='menu-item@(currentPage == "/RoleManagement" ? " active" : "")'>
+      <a asp-controller="RoleManagement" asp-action="Index" class="menu-link">
+        <i class="menu-icon tf-icons bx bx-shield"></i>
+        <div class="text-truncate" data-i18n="Roles">Role Management</div>
+      </a>
+    </li>
+    <li class='menu-item@(currentPage == "/HazardManagement" ? " active" : "")'>
+      <a asp-controller="HazardManagement" asp-action="Index" class="menu-link">
+        <i class="menu-icon tf-icons bx bx-cog"></i>
+        <div class="text-truncate" data-i18n="Roles">Hazard Management</div>
+      </a>
+    </li>
+    <li class='menu-item@(currentPage == "/UsageManagement" ? " active" : "")'>
+      <a asp-controller="UsageManagement" asp-action="Index" class="menu-link">
+        <i class="menu-icon tf-icons bx bx-cog"></i>
+        <div class="text-truncate" data-i18n="Roles">Usage Management</div>
+      </a>
+    </li>
+  </ul>
+
+</aside>
+<!-- / Menu -->

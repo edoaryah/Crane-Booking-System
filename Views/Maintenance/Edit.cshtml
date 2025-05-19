@@ -1,0 +1,286 @@
+@model AspnetCoreMvcFull.ViewModels.MaintenanceManagement.MaintenanceScheduleUpdateViewModel
+@{
+  ViewData["Title"] = "Edit Maintenance Schedule";
+  Layout = "_ContentNavbarLayout";
+
+  // Get the document number from ViewBag
+  string documentNumber = ViewBag.DocumentNumber;
+  int scheduleId = ViewBag.ScheduleId;
+}
+
+<h4 class="py-3 mb-4">
+  <span class="text-muted fw-light">Maintenance /</span> Edit Schedule
+</h4>
+
+<!-- Alert for validation errors -->
+@if (!ViewData.ModelState.IsValid)
+{
+  <div class="alert alert-danger alert-dismissible" role="alert">
+    <h6 class="alert-heading fw-bold mb-1">Error</h6>
+    <div asp-validation-summary="All" class="mb-0"></div>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+}
+
+<div class="row">
+  <div class="col-12">
+    <div class="card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Edit Maintenance Schedule</h5>
+        <div>
+          <a href="@Url.Action("Details", "Maintenance", new { documentNumber = documentNumber })"
+            class="btn btn-outline-secondary">
+            <i class="bx bx-arrow-back me-1"></i> Back to Details
+          </a>
+        </div>
+      </div>
+      <div class="card-body">
+        <form id="maintenanceForm" action="@Url.Action("Edit", "Maintenance", new { id = scheduleId })" method="post">
+          @Html.AntiForgeryToken()
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label" for="craneId">Crane</label>
+              <select class="form-select" id="craneId" name="CraneId" required>
+                <option value="">-- Select Crane --</option>
+                @foreach (var crane in ViewBag.Cranes)
+                {
+                  <option value="@crane.Id" selected="@(crane.Id == Model.CraneId)">@crane.Code (@crane.Capacity ton)
+                  </option>
+                }
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="title">Title</label>
+              <input type="text" class="form-control" id="title" name="Title" value="@Model.Title" required />
+            </div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label" for="startDate">Start Date</label>
+              <input type="date" class="form-control" id="startDate" name="StartDate"
+                value="@Model.StartDate.ToString("yyyy-MM-dd")" required />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="endDate">End Date</label>
+              <input type="date" class="form-control" id="endDate" name="EndDate"
+                value="@Model.EndDate.ToString("yyyy-MM-dd")" required />
+            </div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-12">
+              <label class="form-label" for="description">Description</label>
+              <textarea class="form-control" id="description" name="Description" rows="3">@Model.Description</textarea>
+            </div>
+          </div>
+
+          <!-- Shift Selection Section -->
+          <div class="row mt-4">
+            <div class="col-12">
+              <h6 class="mb-3">Shift Selection</h6>
+              <div class="alert alert-info" role="alert">
+                <i class="bx bx-info-circle me-1"></i>
+                Please select shifts for each day in the maintenance period.
+              </div>
+              <div id="shiftSelectionContainer" class="mb-3">
+                <p id="dateRangeMessage" class="text-muted mb-3" style="display: none;">
+                  Select date range to display shift selection
+                </p>
+                <div id="shiftSelectionTable">
+                  <!-- Will be filled dynamically -->
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row mt-4">
+            <div class="col-12 d-flex justify-content-end">
+              <a href="@Url.Action("Details", "Maintenance", new { documentNumber = documentNumber })"
+                class="btn btn-outline-secondary me-3">
+                <i class="bx bx-x me-1"></i> Cancel
+              </a>
+              <button type="submit" class="btn btn-primary">
+                <i class="bx bx-save me-1"></i> Update Maintenance Schedule
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+@section PageScripts {
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const startDateInput = document.getElementById('startDate');
+      const endDateInput = document.getElementById('endDate');
+      const shiftSelectionTable = document.getElementById('shiftSelectionTable');
+      const dateRangeMessage = document.getElementById('dateRangeMessage');
+      const maintenanceForm = document.getElementById('maintenanceForm');
+
+      // Initialize shift definitions
+      const shiftDefinitions = @Html.Raw(Json.Serialize(ViewBag.ShiftDefinitions));
+
+      // Initialize existing shift selections
+      const existingSelections = @Html.Raw(Json.Serialize(Model.ShiftSelections));
+
+      // Convert selection dates to JS Date objects for comparison
+      const existingDates = {};
+      existingSelections.forEach(selection => {
+        const dateKey = new Date(selection.date).toISOString().split('T')[0];
+        existingDates[dateKey] = selection.selectedShiftIds;
+      });
+
+      // Event listeners for date changes
+      startDateInput.addEventListener('change', updateShiftSelectionTable);
+      endDateInput.addEventListener('change', updateShiftSelectionTable);
+
+      // Form submission handler
+      maintenanceForm.addEventListener('submit', validateForm);
+
+      // Initialize the shift selection table
+      updateShiftSelectionTable();
+
+      // Function to update the shift selection table
+      function updateShiftSelectionTable() {
+        const startDate = new Date(startDateInput.value);
+        const endDate = new Date(endDateInput.value);
+
+        // Validate date range
+        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+          dateRangeMessage.style.display = 'block';
+          dateRangeMessage.textContent = 'Please select valid dates';
+          shiftSelectionTable.innerHTML = '';
+          return;
+        }
+
+        if (startDate > endDate) {
+          dateRangeMessage.style.display = 'block';
+          dateRangeMessage.textContent = 'Start date must be before or equal to end date';
+          shiftSelectionTable.innerHTML = '';
+          return;
+        }
+
+        // Hide message
+        dateRangeMessage.style.display = 'none';
+
+        // Create date range
+        const dateRange = [];
+        let currentDate = new Date(startDate);
+        while (currentDate <= endDate) {
+          dateRange.push(new Date(currentDate));
+          currentDate.setDate(currentDate.getDate() + 1);
+        }
+
+        // Create table HTML
+        let tableHtml = `
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Day</th>
+                                        <th>Shifts</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `;
+
+        // Create rows for each date
+        dateRange.forEach((date, index) => {
+          const formattedDate = date.toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          });
+          const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'long' });
+          const dateString = formatDateForInput(date);
+
+          // Check if we have existing selections for this date
+          const dateKey = dateString;
+          const selectedShifts = existingDates[dateKey] || [];
+
+          tableHtml += `
+                            <tr>
+                                <td>${formattedDate}</td>
+                                <td>${dayOfWeek}</td>
+                                <td>
+                                    <input type="hidden" name="ShiftSelections[${index}].Date" value="${dateString}">
+                                    <div class="row">
+                        `;
+
+          // Create checkboxes for each shift
+          shiftDefinitions.forEach(shift => {
+            const isChecked = selectedShifts.includes(shift.id);
+
+            tableHtml += `
+                                <div class="col-md-4 mb-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox"
+                                            id="shift_${index}_${shift.id}"
+                                            name="ShiftSelections[${index}].SelectedShiftIds"
+                                            value="${shift.id}"
+                                            ${isChecked ? 'checked' : ''}>
+                                        <label class="form-check-label" for="shift_${index}_${shift.id}">
+                                            ${shift.name} (${shift.formattedStartTime} - ${shift.formattedEndTime})
+                                        </label>
+                                    </div>
+                                </div>
+                            `;
+          });
+
+          tableHtml += `
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+        });
+
+        tableHtml += `
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+
+        // Add table to DOM
+        shiftSelectionTable.innerHTML = tableHtml;
+      }
+
+      // Function to format date for input field
+      function formatDateForInput(date) {
+        const year = date.getFullYear();
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const day = date.getDate().toString().padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      }
+
+      // Function to validate form before submission
+      function validateForm(event) {
+        // Get all date rows
+        const dateRows = document.querySelectorAll('#shiftSelectionTable tbody tr');
+        let valid = true;
+
+        // Check each date has at least one shift selected
+        dateRows.forEach((row, index) => {
+          const checkboxes = row.querySelectorAll('input[type="checkbox"]:checked');
+          if (checkboxes.length === 0) {
+            valid = false;
+            // Mark row as error
+            row.classList.add('table-danger');
+          } else {
+            row.classList.remove('table-danger');
+          }
+        });
+
+        if (!valid) {
+          event.preventDefault();
+          alert('Please select at least one shift for each day in the maintenance period');
+        }
+      }
+
+      // Set the initial selected crane
+      document.querySelector(`#craneId [value="${@Model.CraneId}"]`).selected = true;
+    });
+  </script>
+}

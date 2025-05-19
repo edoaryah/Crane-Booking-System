@@ -1,0 +1,123 @@
+@model AspnetCoreMvcFull.ViewModels.UsageManagement.UsageSubcategoryViewModel
+@{
+  ViewData["Title"] = "Delete Usage Subcategory";
+  Layout = "_ContentNavbarLayout";
+}
+
+<div id="alertContainer">
+  @if (ViewBag.ErrorMessage != null)
+  {
+    <div class="alert alert-danger alert-dismissible fade show auto-close-alert" role="alert">
+      @ViewBag.ErrorMessage
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  }
+
+  @if (ViewBag.SuccessMessage != null)
+  {
+    <div class="alert alert-success alert-dismissible fade show auto-close-alert" role="alert">
+      @ViewBag.SuccessMessage
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  }
+</div>
+
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">Hapus Subkategori Penggunaan</h5>
+  </div>
+  <div class="card-body">
+    <div class="alert alert-warning mb-3" role="alert">
+      <h6 class="alert-heading mb-1">Konfirmasi Penghapusan</h6>
+      <p class="mb-0">Apakah Anda yakin ingin menghapus subkategori penggunaan ini? Tindakan ini tidak dapat dibatalkan.
+      </p>
+    </div>
+
+    <div class="table-responsive mb-3">
+      <table class="table">
+        <tbody>
+          <tr>
+            <th style="width: 30%; text-align: left; font-weight: 500; position: relative;">
+              <span style="display: inline-block; width: calc(100% - 15px);">Kategori</span><span
+                style="position: absolute; right: 15px;">:</span>
+            </th>
+            <td>
+              <span class="badge" style="background-color: @GetCategoryColor(Model.Category)">
+                @Model.CategoryName
+              </span>
+            </td>
+          </tr>
+          <tr>
+            <th style="text-align: left; font-weight: 500; position: relative;">
+              <span style="display: inline-block; width: calc(100% - 15px);">Aktifitas</span><span
+                style="position: absolute; right: 15px;">:</span>
+            </th>
+            <td>@Model.Name</td>
+          </tr>
+          <tr>
+            <th style="text-align: left; font-weight: 500; position: relative;">
+              <span style="display: inline-block; width: calc(100% - 15px);">Deskripsi</span><span
+                style="position: absolute; right: 15px;">:</span>
+            </th>
+            <td>@(string.IsNullOrEmpty(Model.Description) ? "-" : Model.Description)</td>
+          </tr>
+          <tr>
+            <th style="text-align: left; font-weight: 500; position: relative;">
+              <span style="display: inline-block; width: calc(100% - 15px);">Status</span><span
+                style="position: absolute; right: 15px;">:</span>
+            </th>
+            <td>
+              @if (Model.IsActive)
+              {
+                <span class="badge bg-success">Active</span>
+              }
+              else
+              {
+                <span class="badge bg-secondary">Inactive</span>
+              }
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <form asp-action="Delete" method="post" class="mt-4">
+      <div class="d-flex justify-content-between">
+        <a asp-action="Index" class="btn btn-outline-secondary">
+          <i class="bx bx-arrow-back me-1"></i>Kembali ke Daftar
+        </a>
+        <button type="submit" class="btn btn-danger">
+          <i class="bx bx-trash me-1"></i>Hapus
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+@functions {
+  public string GetCategoryColor(UsageCategory category)
+  {
+    return category switch
+    {
+      UsageCategory.Operating => "#28a745", // Green
+      UsageCategory.Delay => "#ffc107", // Yellow
+      UsageCategory.Standby => "#6c757d", // Gray
+      UsageCategory.Service => "#17a2b8", // Cyan
+      UsageCategory.Breakdown => "#dc3545", // Red
+      _ => "#6c757d" // Default Gray
+    };
+  }
+}
+
+@section PageScripts {
+  <script>
+    // Script untuk menghilangkan alert secara otomatis setelah 5 detik
+    $(document).ready(function () {
+      setTimeout(function () {
+        $('.auto-close-alert').fadeOut('slow', function () {
+          $(this).remove();
+        });
+      }, 5000); // 5000 milliseconds = 5 detik
+    });
+  </script>
+}

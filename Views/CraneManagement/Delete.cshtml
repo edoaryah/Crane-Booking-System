@@ -1,0 +1,63 @@
+<!-- Views/CraneManagement/Delete.cshtml -->
+@model AspnetCoreMvcFull.ViewModels.CraneManagement.CraneDetailViewModel
+@{
+  ViewData["Title"] = "Delete Crane";
+  Layout = "_ContentNavbarLayout";
+}
+
+<div class="row">
+  <div class="col-12">
+    <div class="card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Delete Crane</h5>
+        <a href="@Url.Action("Index")" class="btn btn-outline-secondary">
+          <i class="bx bx-arrow-back me-1"></i> Back to List
+        </a>
+      </div>
+      <div class="card-body">
+        <div class="alert alert-danger">
+          <h5 class="alert-heading mb-2">Are you sure you want to delete this crane?</h5>
+          <p>This action cannot be undone. All associated breakdown records will also be deleted.</p>
+        </div>
+
+        <div class="row">
+          <div class="col-md-6">
+            <div class="mb-3">
+              <label class="form-label">Crane Code</label>
+              <input type="text" class="form-control" value="@Model.Code" readonly />
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Capacity (ton)</label>
+              <input type="number" class="form-control" value="@Model.Capacity" readonly />
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Status</label>
+              <input type="text" class="form-control" value="@Model.Status" readonly />
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Ownership</label>
+              <input type="text" class="form-control" value="@Model.Ownership" readonly />
+            </div>
+          </div>
+          <div class="col-md-6">
+            @if (!string.IsNullOrEmpty(Model.ImagePath))
+            {
+              <div class="text-center mb-3">
+                <img src="@Model.ImagePath" alt="@Model.Code" class="img-fluid img-thumbnail"
+                  style="max-height: 200px;" />
+              </div>
+            }
+          </div>
+        </div>
+
+        <form asp-action="Delete" method="post">
+          @Html.AntiForgeryToken()
+          <div class="mt-4">
+            <button type="submit" class="btn btn-danger">Delete</button>
+            <a href="@Url.Action("Index")" class="btn btn-outline-secondary ms-2">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>

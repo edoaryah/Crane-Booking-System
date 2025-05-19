@@ -1,0 +1,35 @@
+@model AspnetCoreMvcFull.ViewModels.HazardManagement.HazardCreateViewModel
+@{
+  ViewData["Title"] = "Create Hazard";
+  Layout = "_ContentNavbarLayout";
+}
+
+<div class="row">
+  <div class="col-xl-6">
+    <div class="card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Create New Hazard</h5>
+      </div>
+      <div class="card-body">
+        <form asp-action="Create" method="post">
+          <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+          <div class="mb-3">
+            <label asp-for="Name" class="form-label"></label>
+            <input asp-for="Name" class="form-control" placeholder="Enter hazard name" />
+            <span asp-validation-for="Name" class="text-danger"></span>
+          </div>
+
+          <div class="d-flex justify-content-between">
+            <a asp-action="Index" class="btn btn-outline-secondary">Back to List</a>
+            <button type="submit" class="btn btn-primary">Create</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+@section PageScripts {
+  <partial name="_ValidationScriptsPartial" />
+}

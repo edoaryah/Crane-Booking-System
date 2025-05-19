@@ -1,0 +1,784 @@
+@model AspnetCoreMvcFull.ViewModels.BookingManagement.BookingDetailViewModel
+@using AspnetCoreMvcFull.Models
+@{
+  ViewData["Title"] = "Booking Details";
+  Layout = "_ContentNavbarLayout";
+
+  // Get the current user's info from ViewData passed from controller
+  var currentUserLdap = User.FindFirst("ldapuser")?.Value ?? "";
+  bool isPic = ViewData["IsPicRole"] is bool picRole && picRole;
+  bool isAdmin = ViewData["IsAdminRole"] is bool adminRole && adminRole;
+  bool isBookingCreator = ViewData["IsBookingCreator"] is bool creator && creator;
+
+  // Token anti-pemalsuan untuk form POST
+  string? antiForgeryToken = Html.AntiForgeryToken()?.ToString();
+}
+
+@section PageStyles
+{
+  <style>
+    .required-label:after {
+      content: " *";
+      color: red;
+    }
+
+    .hazard-checkbox {
+      margin-right: 5px;
+    }
+
+    .form-section {
+      margin-bottom: 2rem;
+    }
+
+    .form-section-title {
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid #ddd;
+    }
+
+    #itemsTableContainer .table th:not(:first-child),
+    #itemsTableContainer .table td:not(:first-child) {
+      text-align: center;
+    }
+
+    #itemsTableContainer {
+      box-shadow: none !important;
+      border: 1px solid rgba(0, 0, 0, 0.125);
+    }
+
+    #itemsTableContainer .card-header {
+      background-color: #f8f9fa;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+    }
+
+    #itemsTableContainer .table th,
+    #itemsTableContainer .table td {
+      border-color: rgba(0, 0, 0, 0.125);
+    }
+
+    #shiftTableContainer {
+      box-shadow: none !important;
+      border: 1px solid rgba(0, 0, 0, 0.125);
+    }
+
+    #shiftTableContainer .card-header {
+      background-color: #f8f9fa;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+    }
+
+    #shiftTableContainer .table th,
+    #shiftTableContainer .table td {
+      border-color: rgba(0, 0, 0, 0.125);
+    }
+
+    #shiftTableContainer .table th:not(:first-child),
+    #shiftTableContainer .table td:not(:first-child) {
+      text-align: center;
+    }
+
+    #shiftTableContainer .form-check {
+      display: flex;
+      justify-content: center;
+      margin: 0;
+    }
+
+    #hazardsCardContainer {
+      box-shadow: none !important;
+      border: 1px solid rgba(0, 0, 0, 0.125);
+      padding: 20px;
+    }
+
+    .hazard-checkbox {
+      margin-right: 5px;
+    }
+
+    #hazardsContainer .col-md-4 {
+      margin-bottom: 10px;
+    }
+
+    .form-control[readonly] {
+      background-color: #f8f9fa;
+      opacity: 1;
+    }
+
+    .hazard-badge {
+      display: inline-block;
+      margin-right: 8px;
+      margin-bottom: 8px;
+      background-color: #f0f0f0;
+      border-radius: 0.375rem;
+      padding: 5px 12px;
+    }
+
+    .shift-indicator {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      line-height: 20px;
+      text-align: center;
+      border-radius: 50%;
+      color: white;
+      font-weight: bold;
+      font-size: 14px;
+    }
+
+    .shift-indicator.checked {
+      background-color: #696cff;
+    }
+
+    .shift-indicator.unchecked {
+      background-color: #d9d9d9;
+    }
+
+    .timeline {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      position: relative;
+    }
+
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 1.25rem;
+      top: 0;
+      height: 100%;
+      width: 2px;
+      background-color: #e0e0e0;
+    }
+
+    .timeline-item {
+      position: relative;
+      padding-left: 3rem;
+    }
+
+    .timeline-indicator {
+      position: absolute;
+      left: 0;
+      top: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 2.5rem;
+      height: 2.5rem;
+      border-radius: 50%;
+      color: #fff;
+    }
+
+    .timeline-event {
+      position: relative;
+      padding: 0.5rem 0;
+    }
+
+    .timeline-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+    }
+
+    .timeline-body {
+      margin-bottom: 0.5rem;
+    }
+  </style>
+}
+
+<div class="row">
+  <div class="col-12">
+    <div class="card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+          <h5 class="mb-0">Booking Details</h5>
+          <span class="text-muted">@Model.BookingNumber</span>
+        </div>
+      </div>
+
+      <div class="card-body">
+        @if (Model == null)
+        {
+          <div class="alert alert-danger">
+            Failed to load booking details. Please try again or go back to history.
+          </div>
+        }
+        else
+        {
+          <form>
+            <!-- Approval Status Section -->
+            <div class="form-section">
+              <h6 class="form-section-title">Status Approval</h6>
+              <div class="row mb-3">
+                <div class="col-12">
+                  @{
+                    string statusClass = "";
+                    string statusText = "";
+
+                    switch (Model.Status)
+                    {
+                      case BookingStatus.PendingApproval:
+                        statusClass = "bg-warning text-white";
+                        statusText = "Menunggu Persetujuan";
+                        break;
+                      case BookingStatus.ManagerApproved:
+                        statusClass = "bg-info text-white";
+                        statusText = "Disetujui Manager, Menunggu Persetujuan PIC Crane";
+                        break;
+                      case BookingStatus.PICApproved:
+                        statusClass = "bg-success text-white";
+                        statusText = "Disetujui, Menunggu Penyelesaian";
+                        break;
+                      case BookingStatus.ManagerRejected:
+                        statusClass = "bg-danger text-white";
+                        statusText = "Ditolak oleh Manager";
+                        break;
+                      case BookingStatus.PICRejected:
+                        statusClass = "bg-danger text-white";
+                        statusText = "Ditolak oleh PIC Crane";
+                        break;
+                      case BookingStatus.Cancelled:
+                        statusClass = "bg-secondary text-white";
+                        statusText = "Dibatalkan";
+                        break;
+                      case BookingStatus.Done:
+                        statusClass = "bg-dark text-white";
+                        statusText = "Selesai";
+                        break;
+                    }
+                  }
+
+                  <div class="card @statusClass">
+                    <div class="card-body">
+                      <h5 class="card-title text-white">Status: @statusText</h5>
+
+                      @if (Model.Status == BookingStatus.Cancelled)
+                      {
+                        <div class="mt-2">
+                          <p class="mb-0 text-white">
+                            <strong>Dibatalkan oleh:</strong> @Model.CancelledByName <br />
+                            <strong>Waktu pembatalan:</strong> @Model.CancelledAt?.ToString("dd/MM/yyyy HH:mm") <br />
+                            <strong>Alasan pembatalan:</strong> @Model.CancelledReason
+                          </p>
+                        </div>
+                      }
+
+                      @if (Model.RevisionCount > 0)
+                      {
+                        <div class="mt-2">
+                          <p class="mb-0 text-white">
+                            <strong>Jumlah revisi:</strong> @Model.RevisionCount <br />
+                            <strong>Terakhir diubah oleh:</strong> @Model.LastModifiedBy <br />
+                            <strong>Terakhir diubah pada:</strong> @Model.LastModifiedAt.ToString("dd/MM/yyyy HH:mm")
+                          </p>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Action Buttons Section -->
+              <div class="row mb-4">
+                <div class="col-12">
+                  <!-- Buttons for users who created the booking -->
+                  @if (isBookingCreator && !isPic && !isAdmin) // Tambahkan kondisi !isPic dan !isAdmin
+                  {
+                    @if (Model.Status == BookingStatus.ManagerRejected || Model.Status == BookingStatus.PICRejected)
+                    {
+                      <a href="@Url.Action("Edit", "Booking", new { documentNumber = Model.DocumentNumber })" class="btn btn-warning me-2">
+                        <i class="bx bx-edit me-1"></i> Edit Booking
+                      </a>
+                    }
+
+                    @if (Model.Status != BookingStatus.Cancelled && Model.Status != BookingStatus.Done)
+                    {
+                      <a href="@Url.Action("Cancel", "BookingAction", new { documentNumber = Model.DocumentNumber })" class="btn btn-danger me-2">
+                        <i class="bx bx-x-circle me-1"></i> Batalkan Booking
+                      </a>
+                    }
+                  }
+
+                  <!-- Buttons for PIC role -->
+                  @if (isPic || isAdmin)
+                  {
+                    @if (Model.Status == BookingStatus.ManagerApproved)
+                    {
+                      <button type="button" class="btn btn-success me-2" data-bs-toggle="modal"
+                        data-bs-target="#approveModal">
+                        <i class="bx bx-check me-1"></i> Setujui
+                      </button>
+
+                      <button type="button" class="btn btn-danger me-2" data-bs-toggle="modal" data-bs-target="#rejectModal">
+                        <i class="bx bx-x me-1"></i> Tolak
+                      </button>
+                    }
+
+                    @if (Model.Status == BookingStatus.PICApproved)
+                    {
+                      <button type="button" class="btn btn-success me-2" data-bs-toggle="modal"
+                        data-bs-target="#markDoneModal">
+                        <i class="bx bx-check-double me-1"></i> Tandai Selesai
+                      </button>
+                    }
+
+                    @if (Model.Status != BookingStatus.Cancelled && Model.Status != BookingStatus.Done)
+                    {
+                      <a href="@Url.Action("Cancel", "BookingAction", new { documentNumber = Model.DocumentNumber })" class="btn btn-danger me-2">
+                        <i class="bx bx-x-circle me-1"></i> Batalkan Booking
+                      </a>
+                    }
+                  }
+
+                  <!-- Jika user adalah pembuat booking sekaligus PIC/admin, tampilkan tombol edit jika ditolak -->
+                  @if (isBookingCreator && (isPic || isAdmin) && (Model.Status == BookingStatus.ManagerRejected ||
+                                  Model.Status == BookingStatus.PICRejected))
+                  {
+                    <a href="@Url.Action("Edit", "Booking", new { documentNumber = Model.DocumentNumber })" class="btn btn-warning me-2">
+                      <i class="bx bx-edit me-1"></i> Edit Booking
+                    </a>
+                  }
+
+                  <!-- Back button for everyone -->
+                  <a href="@Url.Action("List", "Booking")" class="btn btn-outline-secondary">
+                    <i class="bx bx-arrow-back me-1"></i> Kembali
+                  </a>
+                </div>
+              </div>
+
+              <!--Approval Timeline-->
+              <div class="row mb-3">
+                <div class="col-12">
+                  <div class="card">
+                    <div class="card-header">
+                      <h6 class="mb-0">Riwayat Approval</h6>
+                    </div>
+                    <div class="card-body">
+                      <ul class="timeline mt-3">
+                        <!--Submission-->
+                        <li class="timeline-item mb-4">
+                          <span class="timeline-indicator bg-primary">
+                            <i class="bx bx-send"></i>
+                          </span>
+                          <div class="timeline-event">
+                            <div class="timeline-header">
+                              <h6 class="mb-0">Booking Diajukan</h6>
+                              <small class="text-muted">@Model.SubmitTime.ToString("dd/MM/yyyy HH:mm")</small>
+                            </div>
+                            <div class="timeline-body">
+                              <p>Booking diajukan oleh @Model.Name</p>
+                            </div>
+                          </div>
+                        </li>
+
+                        <!-- Manager Approval -->
+                        @if (!string.IsNullOrEmpty(Model.ManagerName))
+                        {
+                          string managerIcon = Model.Status == BookingStatus.ManagerRejected ? "bx-x" : "bx-check";
+                          string managerClass = Model.Status == BookingStatus.ManagerRejected ? "bg-danger" : "bg-success";
+
+                          <li class="timeline-item mb-4">
+                            <span class="timeline-indicator @managerClass">
+                              <i class="bx @managerIcon"></i>
+                            </span>
+                            <div class="timeline-event">
+                              <div class="timeline-header">
+                                <h6 class="mb-0">@(Model.Status == BookingStatus.ManagerRejected ? "Ditolak oleh Manager" :
+                                                                "Disetujui oleh Manager")</h6>
+                            <small class="text-muted">@Model.ManagerApprovalTime?.ToString("dd/MM/yyyy HH:mm")</small>
+                          </div>
+                          <div class="timeline-body">
+                            <p>@Model.ManagerName</p>
+                            @if (Model.Status == BookingStatus.ManagerRejected &&
+                                                        !string.IsNullOrEmpty(Model.ManagerRejectReason))
+                                {
+                                  <p class="text-danger">Alasan: @Model.ManagerRejectReason</p>
+                                }
+                              </div>
+                            </div>
+                          </li>
+                        }
+
+                        <!--PIC Approval-->
+                        @if (!string.IsNullOrEmpty(Model.ApprovedByPIC))
+                        {
+                          string picIcon = Model.Status == BookingStatus.PICRejected ? "bx-x" :
+                          (Model.Status == BookingStatus.Done ? "bx-check-double" : "bx-check");
+                          string picClass = Model.Status == BookingStatus.PICRejected ? "bg-danger" : "bg-success";
+
+                          <li class="timeline-item mb-4">
+                            <span class="timeline-indicator @picClass">
+                              <i class="bx @picIcon"></i>
+                            </span>
+                            <div class="timeline-event">
+                              <div class="timeline-header">
+                                <h6 class="mb-0">
+                                  @if (Model.Status == BookingStatus.PICRejected)
+                                  {
+                                    <span>Ditolak oleh PIC Crane</span>
+                                  }
+                                  else
+                                  {
+                                    <span>Disetujui oleh PIC Crane</span>
+                                  }
+                                </h6>
+                                <small class="text-muted">@Model.ApprovedAtByPIC?.ToString("dd/MM/yyyy HH:mm")</small>
+                              </div>
+                              <div class="timeline-body">
+                                <p>@Model.ApprovedByPIC</p>
+                                @if (Model.Status == BookingStatus.PICRejected &&
+                                                            !string.IsNullOrEmpty(Model.PICRejectReason))
+                                {
+                                  <p class="text-danger">Alasan: @Model.PICRejectReason</p>
+                                }
+                              </div>
+                            </div>
+                          </li>
+                        }
+
+                        <!-- Done Status -->
+                        @if (Model.Status == BookingStatus.Done && !string.IsNullOrEmpty(Model.DoneByPIC))
+                        {
+                          <li class="timeline-item mb-4">
+                            <span class="timeline-indicator bg-dark">
+                              <i class="bx bx-check-double"></i>
+                            </span>
+                            <div class="timeline-event">
+                              <div class="timeline-header">
+                                <h6 class="mb-0">Ditandai Selesai</h6>
+                                <small class="text-muted">@Model.DoneAt?.ToString("dd/MM/yyyy HH:mm")</small>
+                              </div>
+                              <div class="timeline-body">
+                                <p>Booking ditandai selesai oleh @Model.DoneByPIC</p>
+                              </div>
+                            </div>
+                          </li>
+                        }
+
+                        <!-- Cancelled Status -->
+                        @if (Model.Status == BookingStatus.Cancelled && !string.IsNullOrEmpty(Model.CancelledByName))
+                        {
+                          <li class="timeline-item mb-4">
+                            <span class="timeline-indicator bg-secondary">
+                              <i class="bx bx-x-circle"></i>
+                            </span>
+                            <div class="timeline-event">
+                              <div class="timeline-header">
+                                <h6 class="mb-0">Dibatalkan</h6>
+                                <small class="text-muted">@Model.CancelledAt?.ToString("dd/MM/yyyy HH:mm")</small>
+                              </div>
+                              <div class="timeline-body">
+                                <p>
+                                  @if (Model.CancelledBy == BookingCancelledBy.User)
+                                  {
+                                    <span>Booking dibatalkan oleh pengguna: @Model.CancelledByName</span>
+                                  }
+                                  else if (Model.CancelledBy == BookingCancelledBy.PIC)
+                                  {
+                                    <span>Booking dibatalkan oleh PIC: @Model.CancelledByName</span>
+                                  }
+                                </p>
+                                @if (!string.IsNullOrEmpty(Model.CancelledReason))
+                                {
+                                  <p>Alasan: @Model.CancelledReason</p>
+                                }
+                              </div>
+                            </div>
+                          </li>
+                        }
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!--Requestor Information Section-->
+            <div class="form-section">
+              <h6 class="form-section-title">Requestor Information</h6>
+              <div class="row mb-3">
+                <div class="col-md-6 mb-3 mb-md-0">
+                  <label class="form-label">Requestor Name</label>
+                  <input class="form-control" value="@Model.Name" readonly />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Department Name</label>
+                  <input class="form-control" value="@Model.Department" readonly />
+                </div>
+              </div>
+
+              <div class="row mb-3">
+                <div class="col-md-6 mb-3 mb-md-0">
+                  <label class="form-label">Supervisor Name</label>
+                  <input class="form-control" value="@Model.ProjectSupervisor" readonly />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Phone Number</label>
+                  <input class="form-control" value="@Model.PhoneNumber" readonly />
+                </div>
+              </div>
+
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label class="form-label">Cost Code</label>
+                  <input class="form-control" value="@Model.CostCode" readonly />
+                </div>
+              </div>
+            </div>
+
+            <!--Booking Details Section-->
+            <div class="form-section">
+              <h6 class="form-section-title">Booking Details</h6>
+              <div class="row mb-3">
+                <div class="col-md-6 mb-3 mb-md-0">
+                  <label class="form-label">Start Date</label>
+                  <input type="date" class="form-control" value="@Model.StartDate.ToString("yyyy-MM-dd")" readonly />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">End Date</label>
+                  <input type="date" class="form-control" value="@Model.EndDate.ToString("yyyy-MM-dd")" readonly />
+                </div>
+              </div>
+
+              <div class="row mb-3">
+                <div class="col-md-6 mb-3 mb-md-0">
+                  <label class="form-label">Crane</label>
+                  <input class="form-control" value="@Model.CraneCode" readonly />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Location</label>
+                  <input class="form-control" value="@Model.Location" readonly />
+                </div>
+              </div>
+
+              <!--Shift Selection Table-->
+              <div class="row mb-3">
+                <div class="col-12">
+                  <label class="form-label">Shift Selections</label>
+                  <div id="shiftTableContainer" class="card">
+                    <div class="table-responsive text-nowrap">
+                      @if (Model.Shifts != null && Model.Shifts.Any())
+                      {
+                        <!-- Group shifts by date -->
+                        var shiftsByDate = Model.Shifts
+                        .GroupBy(s => s.Date.Date)
+                        .OrderBy(g => g.Key)
+                        .ToList();
+
+                        <!-- Get all unique shift definitions -->
+                        var shiftDefinitions = Model.Shifts
+                        .GroupBy(s => s.ShiftDefinitionId)
+                        .Select(g => g.First())
+                        .OrderBy(s => s.StartTime)
+                        .ToList();
+
+                        <table class="table table-hover mb-0">
+                          <thead class="table-border-top-0">
+                            <tr>
+                              <th>Date</th>
+                              @foreach (var shift in shiftDefinitions)
+                              {
+                                <th>@shift.ShiftName</th>
+                              }
+                            </tr>
+                          </thead>
+                          <tbody class="table-border-bottom-0">
+                            @foreach (var dateGroup in shiftsByDate)
+                            {
+                              <tr>
+                                <td>@dateGroup.Key.ToString("dd-MM-yyyy")</td>
+                                @foreach (var shiftDef in shiftDefinitions)
+                                {
+                                  bool isSelected = dateGroup.Any(s => s.ShiftDefinitionId == shiftDef.ShiftDefinitionId);
+                                  <td>
+                                    <span class="shift-indicator @(isSelected ? "checked" : "unchecked")">
+                                      @(isSelected ? "✓" : "")
+                                    </span>
+                                  </td>
+                                }
+                              </tr>
+                            }
+                          </tbody>
+                        </table>
+                      }
+                      else
+                      {
+                        <div class="p-3">
+                          <p class="text-muted mb-0">No shift information available</p>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Job Details Section -->
+            <div class="form-section">
+              <h6 class="form-section-title">Job Details</h6>
+              <div class="row mb-3">
+                <div class="col-12">
+                  <label class="form-label">Job Description</label>
+                  <textarea class="form-control" rows="3" readonly>@Model.Description</textarea>
+                </div>
+              </div>
+
+              <!--Items to be Lifted Table-->
+              <div class="row mb-3">
+                <div class="col-12">
+                  <label class="form-label">Items to be Lifted</label>
+                  <div id="itemsTableContainer" class="card">
+                    <div class="table-responsive text-nowrap">
+                      <table class="table table-hover mb-0">
+                        <thead class="table-border-top-0">
+                          <tr>
+                            <th style="width: 40%; min-width: 220px; padding-right: 5px;">Item Name (p x l x t)</th>
+                            <th style="width: 15%; min-width: 140px; padding-right: 5px;">Height of Lifting (m)</th>
+                            <th style="width: 15%; min-width: 140px; padding-right: 5px;">Weight (ton)</th>
+                            <th style="width: 15%; min-width: 140px; padding-right: 5px;">Quantity</th>
+                          </tr>
+                        </thead>
+                        <tbody class="table-border-bottom-0">
+                          @if (Model.Items != null && Model.Items.Any())
+                          {
+                            @foreach (var item in Model.Items)
+                            {
+                              <tr>
+                                <td>@item.ItemName</td>
+                                <td>@item.Height</td>
+                                <td>@item.Weight</td>
+                                <td>@item.Quantity</td>
+                              </tr>
+                            }
+                          }
+                          else
+                          {
+                            <tr>
+                              <td colspan="4" class="text-center text-muted">No items specified</td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Hazards Section -->
+              <div class="row mb-3">
+                <div class="col-12 mb-6">
+                  <label class="form-label">Potential Hazards</label>
+                  <div id="hazardsCardContainer" class="card">
+                    <div class="table-responsive">
+                      <div class="row">
+                        @if (Model.SelectedHazards != null && Model.SelectedHazards.Any())
+                        {
+                          @foreach (var hazard in Model.SelectedHazards)
+                          {
+                            <div class="col-md-4 mb-2">
+                              <span class="hazard-badge">@hazard.Name</span>
+                            </div>
+                          }
+                        }
+                        else
+                        {
+                          <div class="col-12">
+                            <p class="text-muted">No hazards specified</p>
+                          </div>
+                        }
+                      </div>
+
+                      @if (!string.IsNullOrEmpty(Model.CustomHazard))
+                      {
+                        <div class="mt-3">
+                          <strong>Custom Hazard:</strong>
+                          <p>@Model.CustomHazard</p>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </form>
+        }
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modals for PIC actions -->
+@if (isPic)
+{
+  <!-- Approve Modal -->
+  <div class="modal fade" id="approveModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <form method="post" action="@Url.Action("ApproveByPic", "Approval")">
+          @Html.AntiForgeryToken()
+          <input type="hidden" name="bookingId" value="@(Model?.Id ?? 0)" />
+          <input type="hidden" name="picName" value="@(User.Identity?.Name ?? "")" />
+          <div class="modal-header">
+            <h5 class="modal-title">Konfirmasi Persetujuan</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <p>Apakah Anda yakin ingin menyetujui booking ini?</p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+            <button type="submit" class="btn btn-success">Setujui</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reject Modal -->
+  <div class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <form method="post" action="@Url.Action("RejectByPic", "Approval")">
+          @Html.AntiForgeryToken()
+          <input type="hidden" name="bookingId" value="@(Model?.Id ?? 0)" />
+          <input type="hidden" name="picName" value="@(User.Identity?.Name ?? "")" />
+          <div class="modal-header">
+            <h5 class="modal-title">Konfirmasi Penolakan</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <label for="rejectReason" class="form-label">Alasan Penolakan</label>
+              <textarea name="rejectReason" id="rejectReason" class="form-control" required></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+            <button type="submit" class="btn btn-danger">Tolak</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mark Done Modal -->
+  <div class="modal fade" id="markDoneModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <form method="post" action="@Url.Action("MarkAsDone", "Approval")">
+          @Html.AntiForgeryToken()
+          <input type="hidden" name="bookingId" value="@(Model?.Id ?? 0)" />
+          <input type="hidden" name="picName" value="@(User.Identity?.Name ?? "")" />
+          <div class="modal-header">
+            <h5 class="modal-title">Konfirmasi</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <p>Apakah Anda yakin ingin menandai booking ini sebagai selesai?</p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+            <button type="submit" class="btn btn-success">Tandai Selesai</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+}

@@ -1,0 +1,462 @@
+@model AspnetCoreMvcFull.ViewModels.BookingManagement.CalendarResponseViewModel
+@{
+  ViewData["Title"] = "Crane Schedule";
+  Layout = "_ContentNavbarLayout";
+}
+
+<!-- Card Calendar -->
+<div class="card">
+  <div class="card-header">
+    <!--On large screens: 2 columns with justify-content-between -->
+    <!-- On small screens: Stack vertically -->
+    <div class="d-flex flex-column flex-md-row justify-content-between w-100">
+      <!--Column 1: Date Range Text -->
+      <div class="mb-3 mb-md-0">
+        <h5 class="card-title mb-0" id="dateRangeText">
+          @{
+            var startDate = DateTime.Parse(Model.WeekRange.StartDate);
+            var endDate = DateTime.Parse(Model.WeekRange.EndDate);
+            var formattedStartDate = startDate.ToString("MMMM d");
+            var formattedEndDate = endDate.ToString("MMMM d, yyyy");
+          }
+          @formattedStartDate - @formattedEndDate
+        </h5>
+      </div>
+
+      <!--Column 2: Contains buttons -->
+      <div class="d-flex flex-row justify-content-between align-items-center">
+        <!--New Booking button -->
+        <div>
+          <a href="/Booking" class="btn btn-primary">
+            <i class="bx bx-plus me-1"></i> New Booking
+          </a>
+        </div>
+
+        <!--Prev / Next buttons -->
+        <div class="ms-2">
+          <div class="btn-group">
+            <a asp-action="Calendar" asp-route-startDate="@startDate.AddDays(-7).ToString("yyyy-MM-dd")"
+              class="btn btn-icon btn-outline-primary @(startDate <= DateTime.Today ? "disabled" : "")">
+              <span class="tf-icons bx bx-chevron-left"></span>
+            </a>
+            <a asp-action="Calendar" asp-route-startDate="@startDate.AddDays(7).ToString("yyyy-MM-dd")"
+              class="btn btn-icon btn-outline-primary">
+              <span class="tf-icons bx bx-chevron-right"></span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Calendar Content Wrapper with Horizontal Scroll -->
+  <div id="calendarContent" class="calendar-scroll-container">
+    <!-- Section 2: Crane Data (Sticky Column) -->
+    <div class="crane-data-column">
+      <div class="crane-header">
+        <div class="p-2">
+          <div class="text-uppercase fw-bold">Crane ID</div>
+          <div class="text-muted text-uppercase">Capacity</div>
+        </div>
+      </div>
+      <div class="crane-list">
+        @foreach (var crane in Model.Cranes)
+        {
+          <div class="crane-item" data-crane-id="@crane.CraneId">
+            <div class="p-2">
+              <div class="fw-bold">@crane.CraneId</div>
+              <div class="text-muted">@crane.Capacity TON</div>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Section 3: Schedule Table -->
+    <div class="schedule-table-container">
+      <div class="date-headers-row">
+        @for (int i = 0; i < 7; i++)
+        {
+          var currentDate = startDate.AddDays(i);
+          <div class="date-header-cell">
+            <div class="date-header p-2">
+              <div class="day-name">@currentDate.ToString("ddd")</div>
+              <div class="day-number">@currentDate.Day</div>
+            </div>
+          </div>
+        }
+      </div>
+
+      <div class="schedule-rows">
+        @foreach (var crane in Model.Cranes)
+        {
+          <div class="schedule-row" data-crane-id="@crane.CraneId">
+            @for (int i = 0; i < 7; i++)
+            {
+              var currentDate = startDate.AddDays(i);
+              <div class="schedule-cell" data-date="@currentDate.ToString("yyyy-MM-dd")">
+                <div class="shift-container">
+                  @{
+                    // Ambil daftar shift definition dari ViewBag
+                    var shiftDefinitions = ViewBag.ShiftDefinitions as
+                    IEnumerable<AspnetCoreMvcFull.ViewModels.ShiftManagement.ShiftViewModel>;
+                    if (shiftDefinitions != null && shiftDefinitions.Any())
+                    {
+                      foreach (var shift in shiftDefinitions)
+                      {
+                        <div class="shift-slot" data-shift-id="@shift.Id" style="height: @(100 / shiftDefinitions.Count())%">
+                          @{
+                            // Cari booking untuk shift ini
+                            var bookingsForDate = crane.Bookings.Where(b => b.Date.Date == currentDate.Date).ToList();
+                            foreach (var booking in bookingsForDate)
+                            {
+                              var shiftsForBooking = booking.Shifts.Where(s => s.ShiftDefinitionId == shift.Id).ToList();
+                              foreach (var bookingShift in shiftsForBooking)
+                              {
+                                string deptClass = "dept-default";
+                                if (booking.Department.ToLower().Contains("stores") ||
+                                booking.Department.ToLower().Contains("inventory"))
+                                {
+                                  deptClass = "dept-stores";
+                                }
+                                <div class="booking-card @deptClass" data-booking-id="@booking.Id"
+                                  data-booking-number="@booking.BookingNumber" data-department="@booking.Department"
+                                  data-shift-name="@bookingShift.ShiftName" data-start-time="@bookingShift.StartTime"
+                                  data-end-time="@bookingShift.EndTime">
+                                  <div class="booking-card-content">
+                                    @booking.Department
+                                  </div>
+                                </div>
+                              }
+                            }
+
+                            // Cari maintenance untuk shift ini
+                            var maintenanceForDate = crane.MaintenanceSchedules.Where(m => m.Date.Date ==
+                            currentDate.Date).ToList();
+                            foreach (var maintenance in maintenanceForDate)
+                            {
+                              var shiftsForMaintenance = maintenance.Shifts.Where(s => s.ShiftDefinitionId == shift.Id).ToList();
+                              foreach (var maintenanceShift in shiftsForMaintenance)
+                              {
+                                <div class="maintenance-card" data-maintenance-id="@maintenance.Id"
+                                  data-maintenance-title="@maintenance.Title" data-shift-name="@maintenanceShift.ShiftName"
+                                  data-start-time="@maintenanceShift.StartTime" data-end-time="@maintenanceShift.EndTime">
+                                  <div class="maintenance-title">
+                                    @maintenance.Title
+                                  </div>
+                                </div>
+                              }
+                            }
+                          }
+                        </div>
+                      }
+                    }
+                    else
+                    {
+                      <div class="shift-slot" style="height: 100%">
+                        <!-- Fallback jika tidak ada definisi shift -->
+                      </div>
+                    }
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+</div>
+
+@section PageStyles {
+  <style>
+    /* Calendar Layout Styles */
+    .calendar-scroll-container {
+      display: flex;
+      overflow-x: auto;
+      position: relative;
+      max-width: 100%;
+    }
+
+    /* Crane Data Column (Sticky) */
+    .crane-data-column {
+      position: sticky;
+      left: 0;
+      z-index: 10;
+      width: 150px;
+      flex-shrink: 0;
+      background-color: #fff;
+      box-shadow: 4px 0 5px -2px rgba(0, 0, 0, 0.05);
+    }
+
+    .crane-header {
+      height: 60px;
+      background-color: #f5f5f9;
+      border-bottom: 1px solid #dbdade;
+      border-right: 1px solid #dbdade;
+      border-top: 1px solid #dbdade;
+    }
+
+    .crane-item {
+      height: 180px;
+      /* Adjusted for more flexible shift rows */
+      border-bottom: 1px solid #dbdade;
+      border-right: 1px solid #dbdade;
+      background-color: #f5f5f9;
+    }
+
+    .crane-list .crane-item:last-child {
+      border-bottom-left-radius: 0.375rem;
+    }
+
+    /* Schedule Table */
+    .schedule-table-container {
+      flex: 1;
+      min-width: 700px;
+      background-color: #fff;
+    }
+
+    .date-headers-row {
+      display: flex;
+      height: 60px;
+      background-color: #f5f5f9;
+    }
+
+    .date-header-cell {
+      flex: 1;
+      min-width: 180px;
+      border-right: 1px solid #dbdade;
+      border-top: 1px solid #dbdade;
+      border-bottom: 1px solid #dbdade;
+      background-color: #f5f5f9;
+    }
+
+    .date-header-cell:last-child {
+      border-right: none;
+    }
+
+    .schedule-rows {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .schedule-row {
+      display: flex;
+      height: 180px;
+      /* Adjusted for more flexible shift rows */
+    }
+
+    .schedule-cell {
+      flex: 1;
+      min-width: 180px;
+      border-right: 1px solid #dbdade;
+      border-bottom: 1px solid #dbdade;
+      position: relative;
+    }
+
+    .schedule-row .schedule-cell:last-child {
+      border-right: none;
+    }
+
+    /* Shift Container Styles */
+    .shift-container {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .shift-slot {
+      border-bottom: 1px dashed #dbdade;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .shift-slot:last-child {
+      border-bottom: none;
+    }
+
+    .booking-card {
+      margin: 0;
+      padding: 6px 8px;
+      border-radius: 0;
+      font-size: 14px;
+      overflow: hidden;
+      height: 100%;
+      position: relative;
+      font-weight: 500;
+    }
+
+    .booking-card-content {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 100%;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
+
+    /* Department-based styling */
+    .booking-card.dept-stores {
+      background-color: rgba(113, 221, 55, 0.1);
+      border-left: 5px solid #71dd37;
+      color: #71dd37;
+    }
+
+    .booking-card.dept-default {
+      background-color: rgba(133, 146, 163, 0.1);
+      border-left: 5px solid #8592a3;
+      color: #8592a3;
+    }
+
+    /* Maintenance Card Styles */
+    .maintenance-card {
+      background-color: rgba(255, 62, 29, 0.1);
+      border-left: 5px solid #ff3e1d;
+      color: #ff3e1d;
+      z-index: 1;
+      height: 100%;
+      padding: 6px 8px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .maintenance-title {
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+
+    /* Date Header Styles */
+    .date-header {
+      text-align: left;
+      padding: 8px;
+    }
+
+    .date-header .day-name {
+      font-size: 0.875rem;
+      color: #566a7f;
+      font-weight: 500;
+      margin-bottom: 2px;
+    }
+
+    .date-header .day-number {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #566a7f;
+    }
+
+    /* Cell sizing */
+    .date-header-cell {
+      min-width: 150px;
+    }
+
+    .schedule-cell {
+      min-width: 150px;
+    }
+
+    /* Tooltip styles */
+    .calendar-tooltip {
+      position: absolute;
+      z-index: 100;
+      background-color: #fff;
+      border: 1px solid #dbdade;
+      border-radius: 4px;
+      padding: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      font-size: 12px;
+      max-width: 250px;
+      display: none;
+    }
+
+    .calendar-tooltip-title {
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+
+    .calendar-tooltip-content {
+      color: #566a7f;
+    }
+  </style>
+}
+
+@section PageScripts
+{
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      // Inisialisasi tooltip container
+      if (!document.getElementById('calendar-tooltip')) {
+        const tooltip = document.createElement('div');
+        tooltip.id = 'calendar-tooltip';
+        tooltip.className = 'calendar-tooltip';
+        document.body.appendChild(tooltip);
+      }
+
+      // Setup tooltips untuk booking cards
+      setupTooltips();
+    });
+
+    // Fungsi untuk mengatur tooltips
+    function setupTooltips() {
+      const tooltip = document.getElementById('calendar-tooltip');
+
+      // Add event listeners to booking cards
+      document.querySelectorAll('.booking-card').forEach(card => {
+        card.addEventListener('mouseenter', function (e) {
+          const bookingNumber = this.dataset.bookingNumber;
+          const department = this.dataset.department;
+          const shiftName = this.dataset.shiftName;
+          const startTime = this.dataset.startTime ? this.dataset.startTime.substring(0, 5) : ''; // Format HH:MM
+          const endTime = this.dataset.endTime ? this.dataset.endTime.substring(0, 5) : ''; // Format HH:MM
+
+          tooltip.innerHTML = `
+                              <div class="calendar-tooltip-title">${bookingNumber}</div>
+                              <div class="calendar-tooltip-content">
+                                  <div>Department: ${department}</div>
+                                  <div>Shift: ${shiftName}</div>
+                                  <div>Time: ${startTime} - ${endTime}</div>
+                              </div>
+                          `;
+
+          // Position tooltip near the cursor
+          tooltip.style.left = (e.pageX + 10) + 'px';
+          tooltip.style.top = (e.pageY + 10) + 'px';
+          tooltip.style.display = 'block';
+        });
+
+        card.addEventListener('mouseleave', function () {
+          tooltip.style.display = 'none';
+        });
+      });
+
+      // Add event listeners to maintenance cards
+      document.querySelectorAll('.maintenance-card').forEach(card => {
+        card.addEventListener('mouseenter', function (e) {
+          const title = this.dataset.maintenanceTitle;
+          const shiftName = this.dataset.shiftName;
+          const startTime = this.dataset.startTime ? this.dataset.startTime.substring(0, 5) : ''; // Format HH:MM
+          const endTime = this.dataset.endTime ? this.dataset.endTime.substring(0, 5) : ''; // Format HH:MM
+
+          tooltip.innerHTML = `
+                              <div class="calendar-tooltip-title">Maintenance</div>
+                              <div class="calendar-tooltip-content">
+                                  <div>Title: ${title}</div>
+                                  <div>Shift: ${shiftName}</div>
+                                  <div>Time: ${startTime} - ${endTime}</div>
+                              </div>
+                          `;
+
+          // Position tooltip near the cursor
+          tooltip.style.left = (e.pageX + 10) + 'px';
+          tooltip.style.top = (e.pageY + 10) + 'px';
+          tooltip.style.display = 'block';
+        });
+
+        card.addEventListener('mouseleave', function () {
+          tooltip.style.display = 'none';
+        });
+      });
+    }
+  </script>
+}

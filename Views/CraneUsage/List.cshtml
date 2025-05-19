@@ -1,0 +1,105 @@
+<!-- Views/CraneUsage/List.cshtml -->
+@model List<AspnetCoreMvcFull.ViewModels.BookingManagement.BookingViewModel>
+@{
+  ViewData["Title"] = "Daftar Booking untuk Input Penggunaan";
+  Layout = "_ContentNavbarLayout";
+}
+
+@if (ViewBag.SuccessMessage != null)
+{
+  <div class="alert alert-success alert-dismissible fade show" role="alert">
+    @ViewBag.SuccessMessage
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+}
+@if (ViewBag.ErrorMessage != null)
+{
+  <div class="alert alert-danger alert-dismissible fade show" role="alert">
+    @ViewBag.ErrorMessage
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+}
+
+<h1>Daftar Booking untuk Input Penggunaan</h1>
+<p class="lead">Booking dengan status selesai atau dibatalkan yang dapat diinput penggunaannya</p>
+
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <div>
+      <i class="fas fa-table me-1"></i>
+      Daftar Booking
+    </div>
+    <div>
+      <a asp-action="Index" class="btn btn-secondary">
+        <i class="fas fa-arrow-left me-1"></i> Kembali ke Daftar Penggunaan
+      </a>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-bordered table-hover" id="bookingTable">
+        <thead class="table-light">
+          <tr>
+            <th>No. Booking</th>
+            <th>Crane</th>
+            <th>Periode</th>
+            <th>Departemen</th>
+            <th>Lokasi</th>
+            <th>Status</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (Model != null && Model.Any())
+          {
+            @foreach (var item in Model)
+            {
+              <tr>
+                <td>@item.BookingNumber</td>
+                <td>@item.CraneCode</td>
+                <td>@item.StartDate.ToString("dd/MM/yyyy") - @item.EndDate.ToString("dd/MM/yyyy")</td>
+                <td>@item.Department</td>
+                <td>@item.Location</td>
+                <td>
+                  @if (item.Status == BookingStatus.Done)
+                  {
+                    <span class="badge bg-success">Selesai</span>
+                  }
+                  else if (item.Status == BookingStatus.Cancelled)
+                  {
+                    <span class="badge bg-danger">Dibatalkan</span>
+                  }
+                </td>
+                <td>
+                  <a asp-action="BookingForm" asp-route-bookingId="@item.Id" class="btn btn-sm btn-primary">
+                    <i class="fas fa-plus me-1"></i> Input Penggunaan
+                  </a>
+                </td>
+              </tr>
+            }
+          }
+          else
+          {
+            <tr>
+              <td colspan="7" class="text-center">Tidak ada booking yang tersedia.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+@section PageScripts {
+  <script>
+    $(document).ready(function () {
+      $('#bookingTable').DataTable({
+        language: {
+          url: '/lib/datatables/Indonesian.json'
+        },
+        order: [[0, 'desc']], // Sort by booking number desc
+        responsive: true
+      });
+    });
+  </script>
+}

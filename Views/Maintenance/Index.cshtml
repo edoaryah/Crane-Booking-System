@@ -1,0 +1,301 @@
+@model AspnetCoreMvcFull.ViewModels.MaintenanceManagement.MaintenanceFormViewModel
+@using System.Security.Claims
+@{
+  ViewData["Title"] = "Maintenance Schedule";
+  Layout = "_ContentNavbarLayout";
+
+  var userName = User.FindFirst(ClaimTypes.Name)?.Value ?? "User";
+  var userDepartment = User.FindFirst("department")?.Value ?? "";
+}
+
+<h4 class="py-3 mb-4"><span class="text-muted fw-light">Maintenance /</span> Schedule Form</h4>
+
+@if (TempData["MaintenanceSuccessMessage"] != null)
+{
+  <div class="alert alert-success alert-dismissible" role="alert">
+    @TempData["MaintenanceSuccessMessage"]
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+}
+@if (TempData["MaintenanceErrorMessage"] != null)
+{
+  <div class="alert alert-danger alert-dismissible" role="alert">
+    @TempData["MaintenanceErrorMessage"]
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+}
+
+<div class="row">
+  <div class="col-12">
+    <div class="card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Create Maintenance Schedule</h5>
+        <div>
+          <a href="@Url.Action("List", "Maintenance")" class="btn btn-outline-secondary me-2">
+            <i class="bx bx-list-ul me-1"></i> View All
+          </a>
+          <a href="@Url.Action("Calendar", "Maintenance")" class="btn btn-primary">
+            <i class="bx bx-calendar me-1"></i> Calendar View
+          </a>
+        </div>
+      </div>
+      <div class="card-body">
+        <form id="maintenanceForm" action="@Url.Action("Create", "Maintenance")" method="post">
+          @Html.AntiForgeryToken()
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label required-label">Requestor Name</label>
+              <input id="createdBy" name="createdBy" class="form-control" value="@userName" required readonly />
+              <small class="text-muted">Automatically filled based on your login information</small>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label required-label">Department Name</label>
+              <input id="department" name="department" class="form-control" value="@userDepartment" required readonly />
+              <small class="text-muted">Automatically filled based on your login information</small>
+            </div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label" for="craneId">Crane</label>
+              <select class="form-select" id="craneId" name="CraneId" required>
+                <option value="">-- Select Crane --</option>
+                @foreach (var crane in Model.AvailableCranes)
+                {
+                  <option value="@crane.Id">@crane.Code (@crane.Capacity ton)</option>
+                }
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="title">Title</label>
+              <input type="text" class="form-control" id="title" name="Title" placeholder="e.g. Monthly Maintenance"
+                required />
+            </div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label" for="startDate">Start Date</label>
+              <input type="date" class="form-control" id="startDate" name="StartDate" required />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="endDate">End Date</label>
+              <input type="date" class="form-control" id="endDate" name="EndDate" required />
+            </div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-12">
+              <label class="form-label" for="description">Description</label>
+              <textarea class="form-control" id="description" name="Description" rows="3"
+                placeholder="Optional description"></textarea>
+            </div>
+          </div>
+
+          <!-- Shift Selection Section -->
+          <div class="row mt-4">
+            <div class="col-12">
+              <h6 class="mb-3">Shift Selection</h6>
+              <div class="alert alert-info" role="alert">
+                <i class="bx bx-info-circle me-1"></i>
+                Please select shifts for each day in the maintenance period.
+              </div>
+              <div id="shiftSelectionContainer" class="mb-3">
+                <p id="dateRangeMessage" class="text-muted mb-3">
+                  Select date range to display shift selection
+                </p>
+                <div id="shiftSelectionTable" style="display: none;">
+                  <!-- Will be filled dynamically -->
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row mt-4">
+            <div class="col-12 d-flex justify-content-end">
+              <button type="button" id="resetFormBtn" class="btn btn-outline-secondary me-3">
+                <i class="bx bx-reset me-1"></i> Reset
+              </button>
+              <button type="submit" class="btn btn-primary">
+                <i class="bx bx-save me-1"></i> Create Maintenance Schedule
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+@section PageScripts {
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const startDateInput = document.getElementById('startDate');
+      const endDateInput = document.getElementById('endDate');
+      const shiftSelectionTable = document.getElementById('shiftSelectionTable');
+      const dateRangeMessage = document.getElementById('dateRangeMessage');
+      const resetFormBtn = document.getElementById('resetFormBtn');
+      const maintenanceForm = document.getElementById('maintenanceForm');
+
+      // Set default dates (today and tomorrow)
+      const today = new Date();
+      startDateInput.value = formatDateForInput(today);
+      endDateInput.value = formatDateForInput(new Date(today.getTime() + 24 * 60 * 60 * 1000)); // tomorrow
+
+      // Initialize shift definitions
+      const shiftDefinitions = @Html.Raw(Json.Serialize(Model.ShiftDefinitions));
+
+      // Event listeners for date changes
+      startDateInput.addEventListener('change', updateShiftSelectionTable);
+      endDateInput.addEventListener('change', updateShiftSelectionTable);
+
+      // Reset form event handler
+      resetFormBtn.addEventListener('click', resetForm);
+
+      // Form submission handler
+      maintenanceForm.addEventListener('submit', validateForm);
+
+      // Initialize the shift selection table
+      updateShiftSelectionTable();
+
+      // Function to format date for input field
+      function formatDateForInput(date) {
+        const year = date.getFullYear();
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const day = date.getDate().toString().padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      }
+
+      // Function to update the shift selection table
+      function updateShiftSelectionTable() {
+        const startDate = new Date(startDateInput.value);
+        const endDate = new Date(endDateInput.value);
+
+        // Validate date range
+        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+          dateRangeMessage.textContent = 'Please select valid dates';
+          shiftSelectionTable.style.display = 'none';
+          return;
+        }
+
+        if (startDate > endDate) {
+          dateRangeMessage.textContent = 'Start date must be before or equal to end date';
+          shiftSelectionTable.style.display = 'none';
+          return;
+        }
+
+        // Create date range
+        const dateRange = [];
+        let currentDate = new Date(startDate);
+        while (currentDate <= endDate) {
+          dateRange.push(new Date(currentDate));
+          currentDate.setDate(currentDate.getDate() + 1);
+        }
+
+        // Hide message and show table
+        dateRangeMessage.style.display = 'none';
+        shiftSelectionTable.style.display = 'block';
+
+        // Create table HTML
+        let tableHtml = `
+                                      <div class="table-responsive">
+                                          <table class="table table-bordered">
+                                              <thead>
+                                                  <tr>
+                                                      <th>Date</th>
+                                                      <th>Day</th>
+                                                      <th>Shifts</th>
+                                                  </tr>
+                                              </thead>
+                                              <tbody>
+                                  `;
+
+        // Create rows for each date
+        dateRange.forEach((date, index) => {
+          const formattedDate = date.toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          });
+          const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'long' });
+          const dateString = formatDateForInput(date);
+
+          tableHtml += `
+                                          <tr>
+                                              <td>${formattedDate}</td>
+                                              <td>${dayOfWeek}</td>
+                                              <td>
+                                                  <input type="hidden" name="ShiftSelections[${index}].Date" value="${dateString}">
+                                                  <div class="row">
+                                      `;
+
+          // Create checkboxes for each shift
+          shiftDefinitions.forEach(shift => {
+            tableHtml += `
+                                              <div class="col-md-4 mb-2">
+                                                  <div class="form-check">
+                                                      <input class="form-check-input" type="checkbox"
+                                                          id="shift_${index}_${shift.id}"
+                                                          name="ShiftSelections[${index}].SelectedShiftIds"
+                                                          value="${shift.id}">
+                                                      <label class="form-check-label" for="shift_${index}_${shift.id}">
+                                                          ${shift.name} (${shift.formattedStartTime} - ${shift.formattedEndTime})
+                                                      </label>
+                                                  </div>
+                                              </div>
+                                          `;
+          });
+
+          tableHtml += `
+                                                  </div>
+                                              </td>
+                                          </tr>
+                                      `;
+        });
+
+        tableHtml += `
+                                              </tbody>
+                                          </table>
+                                      </div>
+                                  `;
+
+        // Add table to DOM
+        shiftSelectionTable.innerHTML = tableHtml;
+      }
+
+      // Function to reset the form
+      function resetForm() {
+        maintenanceForm.reset();
+
+        // Reset date inputs to default values
+        startDateInput.value = formatDateForInput(new Date());
+        endDateInput.value = formatDateForInput(new Date(new Date().getTime() + 24 * 60 * 60 * 1000));
+
+        // Update shift selection table
+        updateShiftSelectionTable();
+      }
+
+      // Function to validate form before submission
+      function validateForm(event) {
+        // Get all date rows
+        const dateRows = document.querySelectorAll('#shiftSelectionTable tbody tr');
+        let valid = true;
+
+        // Check each date has at least one shift selected
+        dateRows.forEach((row, index) => {
+          const checkboxes = row.querySelectorAll('input[type="checkbox"]:checked');
+          if (checkboxes.length === 0) {
+            valid = false;
+            // Mark row as error
+            row.classList.add('table-danger');
+          } else {
+            row.classList.remove('table-danger');
+          }
+        });
+
+        if (!valid) {
+          event.preventDefault();
+          alert('Please select at least one shift for each day in the maintenance period');
+        }
+      }
+    });
+  </script>
+}

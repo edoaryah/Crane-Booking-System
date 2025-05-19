@@ -1,0 +1,150 @@
+@model AspnetCoreMvcFull.ViewModels.MaintenanceManagement.MaintenanceCalendarViewModel
+@{
+  ViewData["Title"] = "Maintenance Calendar";
+  Layout = "_ContentNavbarLayout";
+
+  // Calculate the days of the week for the date range
+  List<DateTime> days = new List<DateTime>();
+  DateTime currentDate = Model.StartDate;
+  while (currentDate <= Model.EndDate)
+  {
+    days.Add(currentDate);
+    currentDate = currentDate.AddDays(1);
+  }
+
+  // Get the previous and next week dates
+  DateTime prevWeekStart = Model.StartDate.AddDays(-7);
+  DateTime nextWeekStart = Model.StartDate.AddDays(7);
+}
+
+<h4 class="py-3 mb-4">
+  <span class="text-muted fw-light">Maintenance /</span> Calendar View
+</h4>
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">Maintenance Calendar</h5>
+    <div>
+      <a href="@Url.Action("Index", "Maintenance")" class="btn btn-primary me-2">
+        <i class="bx bx-plus me-1"></i> Create New
+      </a>
+      <a href="@Url.Action("List", "Maintenance")" class="btn btn-outline-secondary">
+        <i class="bx bx-list-ul me-1"></i> List View
+      </a>
+    </div>
+  </div>
+  <div class="card-body">
+    <!-- Calendar Navigation -->
+    <div class="row mb-4">
+      <div class="col-12 d-flex justify-content-between align-items-center">
+        <div>
+          <a href="@Url.Action("Calendar", "Maintenance", new { start = prevWeekStart })"
+            class="btn btn-outline-primary">
+            <i class="bx bx-chevron-left me-1"></i> Previous Week
+          </a>
+        </div>
+        <div class="text-center">
+          <h6 class="mb-0">@Model.StartDate.ToString("MMMM d, yyyy") - @Model.EndDate.ToString("MMMM d, yyyy")</h6>
+        </div>
+        <div>
+          <a href="@Url.Action("Calendar", "Maintenance", new { start = nextWeekStart })"
+            class="btn btn-outline-primary">
+            Next Week <i class="bx bx-chevron-right ms-1"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Calendar Legend -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="d-flex flex-wrap gap-3">
+          @foreach (var shift in Model.ShiftDefinitions)
+          {
+            <div class="d-flex align-items-center">
+              <span class="badge bg-primary me-1">&nbsp;</span>
+              <small>@shift.Name (@shift.FormattedStartTime - @shift.FormattedEndTime)</small>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Calendar Table -->
+    <div class="table-responsive">
+      <table class="table table-bordered">
+        <thead>
+          <tr>
+            <th style="width: 150px;">Crane</th>
+            @foreach (var day in days)
+            {
+              <th
+                class="text-center @(day.DayOfWeek == DayOfWeek.Saturday || day.DayOfWeek == DayOfWeek.Sunday ? "bg-light" : "")">
+                <div>@day.ToString("ddd")</div>
+                <div>@day.ToString("MMM d")</div>
+              </th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          @foreach (var crane in Model.Cranes)
+          {
+            <tr>
+              <td class="align-middle">
+                <strong>@crane.Code</strong>
+                <div class="small text-muted">@crane.Capacity ton</div>
+              </td>
+
+              @foreach (var day in days)
+              {
+                <td class="@(day.DayOfWeek == DayOfWeek.Saturday || day.DayOfWeek == DayOfWeek.Sunday ? "bg-light" : "")">
+                  @{
+                    // Find maintenance schedules for this crane and date
+                    var schedulesForDay = Model.Schedules
+                    .Where(s => s.CraneId == crane.Id &&
+                    day >= s.StartDate.Date &&
+                    day <= s.EndDate.Date)
+                    .ToList();
+                  }
+
+                  @if (schedulesForDay.Any())
+                  {
+                    @foreach (var schedule in schedulesForDay)
+                    {
+                      <div class="maintenance-event mb-1">
+                        <a href="@Url.Action("Details", "Maintenance", new { documentNumber = schedule.DocumentNumber })"
+                          class="btn btn-sm btn-primary w-100 text-start">
+                          <i class="bx bx-wrench me-1"></i>
+                          <span class="small d-inline-block text-truncate" style="max-width: 120px;">
+                            @schedule.Title
+                          </span>
+                        </a>
+                      </div>
+                    }
+                  }
+                  else
+                  {
+                    <div class="text-center py-1">
+                      <a href="@Url.Action("Index", "Maintenance", new { craneId = crane.Id, startDate = day.ToString("yyyy-MM-dd") })"
+                        class="btn btn-sm btn-outline-primary btn-icon">
+                        <i class="bx bx-plus"></i>
+                      </a>
+                    </div>
+                  }
+                </td>
+              }
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+@section PageStyles {
+  <style>
+    .maintenance-event .btn {
+      white-space: normal;
+    }
+  </style>
+}

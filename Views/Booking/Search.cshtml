@@ -1,0 +1,92 @@
+@model AspnetCoreMvcFull.ViewModels.BookingManagement.BookingSearchViewModel
+@{
+  ViewData["Title"] = "Search Results";
+}
+
+<h4 class="fw-bold py-3 mb-4">
+  <span class="text-muted fw-light">Booking /</span> Search Results
+</h4>
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">Search Results for: "@Model.SearchTerm"</h5>
+  </div>
+
+  <!-- Alert messages -->
+  @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+  {
+    <div class="alert alert-success alert-dismissible" role="alert">
+      @Model.SuccessMessage
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  }
+
+  @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+  {
+    <div class="alert alert-danger alert-dismissible" role="alert">
+      @Model.ErrorMessage
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  }
+
+  <div class="card-body">
+    @if (!Model.Bookings.Any())
+    {
+      <div class="text-center my-4">
+        <h6 class="text-muted">No bookings found matching the search term.</h6>
+      </div>
+    }
+    else
+    {
+      <div class="table-responsive">
+        <table class="table table-bordered table-hover">
+          <thead>
+            <tr>
+              <th>Booking #</th>
+              <th>Crane</th>
+              <th>Name</th>
+              <th>Department</th>
+              <th>Date Range</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @foreach (var booking in Model.Bookings)
+            {
+              <tr>
+                <td>@booking.BookingNumber</td>
+                <td>@booking.CraneCode</td>
+                <td>@booking.Name</td>
+                <td>@booking.Department</td>
+                <td>@booking.StartDate.ToString("dd MMM yyyy") - @booking.EndDate.ToString("dd MMM yyyy")</td>
+                <td>
+                  @{
+                    string badgeClass = booking.Status switch
+                    {
+                      AspnetCoreMvcFull.Models.BookingStatus.PendingApproval => "bg-label-warning",
+                      AspnetCoreMvcFull.Models.BookingStatus.ManagerApproved => "bg-label-info",
+                      AspnetCoreMvcFull.Models.BookingStatus.ManagerRejected => "bg-label-danger",
+                      AspnetCoreMvcFull.Models.BookingStatus.PICApproved => "bg-label-success",
+                      AspnetCoreMvcFull.Models.BookingStatus.PICRejected => "bg-label-danger",
+                      AspnetCoreMvcFull.Models.BookingStatus.Cancelled => "bg-label-secondary",
+                      AspnetCoreMvcFull.Models.BookingStatus.Done => "bg-label-primary",
+                      _ => "bg-label-secondary"
+                    };
+                  }
+                  <span class="badge @badgeClass">@booking.Status</span>
+                </td>
+                <td>
+                  <a href="@Url.Action("Details", "Booking", new { documentNumber = booking.DocumentNumber })"
+                    class="btn btn-sm btn-info">
+                    <i class="bx bx-detail me-1"></i> Details
+                  </a>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</div>

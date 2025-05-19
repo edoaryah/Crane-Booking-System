@@ -1,0 +1,56 @@
+@model AspnetCoreMvcFull.ViewModels.BookingCancellationViewModel
+@{
+  ViewData["Title"] = "Batalkan Booking";
+  Layout = "_ContentNavbarLayout";
+}
+
+@* <div class="container-xxl flex-grow-1 container-p-y"> *@
+<h4 class="fw-bold py-3 mb-4">
+  <span class="text-muted fw-light">Booking History /</span> Batalkan Booking
+</h4>
+
+<div class="row">
+  <div class="col-md-12">
+    <div class="card mb-4">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <h5 class="mb-0">Konfirmasi Pembatalan Booking</h5>
+      </div>
+      <div class="card-body">
+        <div class="alert alert-warning">
+          <h6 class="alert-heading fw-bold mb-1">Perhatian!</h6>
+          <p class="mb-0">Pembatalan booking tidak dapat dibatalkan. Anda yakin ingin membatalkan booking ini?</p>
+        </div>
+
+        <form asp-action="ConfirmCancel" method="post">
+          <input type="hidden" asp-for="BookingId" />
+          <input type="hidden" asp-for="BookingNumber" />
+
+          <div class="mb-3">
+            <label class="form-label">Nomor Booking</label>
+            <input type="text" class="form-control" value="@Model.BookingNumber" readonly />
+          </div>
+
+          <div class="mb-3">
+            <label asp-for="CancelReason" class="form-label"></label>
+            <textarea asp-for="CancelReason" class="form-control" rows="3"
+              placeholder="Berikan alasan pembatalan booking ini"></textarea>
+            <span asp-validation-for="CancelReason" class="text-danger"></span>
+          </div>
+
+          <div class="mb-3">
+            <button type="submit" class="btn btn-danger me-2">Batalkan Booking</button>
+            <a asp-controller="Booking" asp-action="Details" asp-route-documentNumber="@Model.DocumentNumber"
+              class="btn btn-outline-secondary">Kembali</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+@* </div> *@
+
+@* @section Scripts {
+  @{
+    await Html.RenderPartialAsync("_ValidationScriptsPartial");
+  }
+} *@

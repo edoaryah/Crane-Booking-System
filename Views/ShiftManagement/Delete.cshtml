@@ -1,0 +1,73 @@
+@model AspnetCoreMvcFull.ViewModels.ShiftManagement.ShiftViewModel
+@{
+  ViewData["Title"] = "Delete Shift";
+  Layout = "_ContentNavbarLayout";
+}
+
+<div class="row">
+  <div class="col-12">
+    <div class="card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Delete Shift</h5>
+        <a href="@Url.Action("Index")" class="btn btn-outline-secondary">
+          <i class="bx bx-arrow-back me-1"></i> Back to List
+        </a>
+      </div>
+      <div class="card-body">
+        @if (TempData["ErrorMessage"] != null)
+        {
+          <div class="alert alert-danger" role="alert">
+            @TempData["ErrorMessage"]
+          </div>
+        }
+
+        <div class="alert alert-danger">
+          <h5 class="alert-heading mb-2">Are you sure you want to delete this shift?</h5>
+          <p>This action cannot be undone.</p>
+        </div>
+
+        <div class="row">
+          <div class="col-md-6">
+            <div class="mb-3">
+              <label class="form-label">Shift Name</label>
+              <input type="text" class="form-control" value="@Model.Name" readonly />
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Start Time</label>
+              <input type="text" class="form-control" value="@Model.FormattedStartTime" readonly />
+            </div>
+            <div class="mb-3">
+              <label class="form-label">End Time</label>
+              <input type="text" class="form-control" value="@Model.FormattedEndTime" readonly />
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Status</label>
+              <div>
+                @if (Model.IsActive)
+                {
+                  <span class="badge bg-success">Active</span>
+                }
+                else
+                {
+                  <span class="badge bg-secondary">Inactive</span>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <form asp-action="Delete" method="post">
+          @Html.AntiForgeryToken()
+          <div class="mt-4">
+            <button type="submit" class="btn btn-danger">Delete</button>
+            <a href="@Url.Action("Index")" class="btn btn-outline-secondary ms-2">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+@section PageScripts {
+  <!-- No additional scripts needed for Delete view -->
+}

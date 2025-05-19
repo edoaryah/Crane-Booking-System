@@ -1,0 +1,94 @@
+<!-- Views/BreakdownHistory/Index.cshtml -->
+@model IEnumerable<AspnetCoreMvcFull.ViewModels.CraneManagement.BreakdownHistoryViewModel>
+@{
+  ViewData["Title"] = "Breakdown History";
+  Layout = "_ContentNavbarLayout";
+
+  int? craneId = ViewData["CraneId"] as int?;
+}
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">
+      @if (craneId.HasValue)
+      {
+        <span>Breakdown History for Crane ID: @craneId</span>
+      }
+      else
+      {
+        <span>All Breakdown History</span>
+      }
+    </h5>
+    <div>
+      @if (craneId.HasValue)
+      {
+        <a href="@Url.Action("Details", "CraneManagement", new { id = craneId })" class="btn btn-outline-secondary me-2">
+          <i class="bx bx-arrow-back me-1"></i> Back to Crane
+        </a>
+      }
+      <a href="@Url.Action("Index", "CraneManagement")" class="btn btn-outline-primary">
+        <i class="bx bx-list-ul me-1"></i> All Cranes
+      </a>
+    </div>
+  </div>
+
+  <div class="table-responsive text-nowrap">
+    <table class="table table-hover">
+      <thead>
+        <tr>
+          <th>Crane Code</th>
+          <th>Capacity</th>
+          <th>Start Time</th>
+          <th>End Time</th>
+          <th>Actual End Time</th>
+          <th>Duration</th>
+          <th>Reason</th>
+        </tr>
+      </thead>
+      <tbody class="table-border-bottom-0">
+        @if (Model.Any())
+        {
+          @foreach (var breakdown in Model)
+          {
+            var planned = (breakdown.UrgentEndTime - breakdown.UrgentStartTime).ToString(@"d\.hh\:mm");
+            var actual = breakdown.ActualUrgentEndTime.HasValue
+            ? (breakdown.ActualUrgentEndTime.Value - breakdown.UrgentStartTime).ToString(@"d\.hh\:mm")
+            : "Not completed";
+
+            <tr>
+              <td>
+                <a href="@Url.Action("Details", "CraneManagement", new { id = breakdown.CraneId })">
+                  @breakdown.CraneCode
+                </a>
+              </td>
+              <td>@breakdown.CraneCapacity ton</td>
+              <td>@breakdown.UrgentStartTime.ToString("dd/MM/yyyy HH:mm")</td>
+              <td>@breakdown.UrgentEndTime.ToString("dd/MM/yyyy HH:mm")</td>
+              <td>
+                @if (breakdown.ActualUrgentEndTime.HasValue)
+                {
+                  @breakdown.ActualUrgentEndTime.Value.ToString("dd/MM/yyyy HH:mm")
+                }
+                else
+                {
+                  <span class="badge bg-warning">Not completed</span>
+                }
+              </td>
+              <td>
+                <span class="badge bg-primary">Planned: @planned</span><br />
+                <span class="badge bg-info">Actual: @actual</span>
+              </td>
+              <td>@breakdown.Reasons</td>
+            </tr>
+          }
+        }
+        else
+        {
+          <tr>
+            <td colspan="7" class="text-center">No breakdown records found</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>

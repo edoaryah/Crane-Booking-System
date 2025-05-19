@@ -1,0 +1,22 @@
+<!-- Views/Approval/Success.cshtml -->
+@{
+  ViewData["Title"] = "Persetujuan Berhasil";
+  Layout = "_BlankLayout";
+}
+
+<div class="container-xxl flex-grow-1 container-p-y">
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body">
+          <div class="text-center mb-4">
+            <i class="bx bx-check-circle text-success" style="font-size: 6rem;"></i>
+            <h2 class="mt-3">Tindakan Berhasil</h2>
+            <p class="mb-4">@TempData["SuccessMessage"]</p>
+            <a href="/" class="btn btn-primary">Kembali ke Beranda</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

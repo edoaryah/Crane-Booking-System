@@ -1,0 +1,619 @@
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@using System.Web
+@using System.Globalization
+@model AspnetCoreMvcFull.ViewModels.Role.RoleUsersViewModel
+@{
+  // Fungsi untuk mengubah teks menjadi Title Case
+  string ToTitleCase(string text)
+  {
+    if (string.IsNullOrEmpty(text))
+      return text;
+
+    // Menggunakan TextInfo dari culture saat ini untuk mengubah ke Title Case
+    return CultureInfo.CurrentCulture.TextInfo.ToTitleCase(text.ToLower());
+  }
+
+  // Ubah role name ke Title Case
+  string formattedRoleName = ToTitleCase(Model.RoleName);
+
+  // Gunakan formattedRoleName di ViewData["Title"]
+  ViewData["Title"] = $"Users in {System.Web.HttpUtility.HtmlEncode(formattedRoleName)} Role";
+  Layout = "_ContentNavbarLayout";
+}
+
+@section PageStyles {
+  <style>
+    .table th,
+    .table td {
+      vertical-align: middle;
+    }
+
+    .user-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background-color: #696cff;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 500;
+      margin-right: 0.75rem;
+    }
+
+    .action-buttons .btn {
+      margin-right: 0.25rem;
+      width: 38px;
+      height: 38px;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .action-buttons .btn:last-child {
+      margin-right: 0;
+    }
+
+    .action-buttons .btn i {
+      font-size: 1.25rem;
+    }
+  </style>
+}
+
+<div id="alertContainer">
+  @if (ViewBag.ErrorMessage != null)
+  {
+    <div class="alert alert-danger alert-dismissible fade show auto-close-alert" role="alert">
+      @ViewBag.ErrorMessage
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  }
+
+  @if (ViewBag.SuccessMessage != null)
+  {
+    <div class="alert alert-success alert-dismissible fade show auto-close-alert" role="alert">
+      @ViewBag.SuccessMessage
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  }
+</div>
+
+<!-- Content wrapper -->
+<div class="row">
+  <div class="col-12">
+    <!-- Users with Role -->
+    <div class="card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+          <h5 class="mb-0" id="roleTitle">Role @System.Web.HttpUtility.HtmlEncode(formattedRoleName)</h5>
+          <span class="text-muted" id="roleDescription"></span>
+        </div>
+        <div>
+          <a href="/RoleManagement" class="btn btn-outline-secondary me-2">
+            <i class="bx bx-arrow-back me-1"></i> Back to Roles
+          </a>
+          <button type="button" class="btn btn-primary" id="addUserBtn">
+            <i class="bx bx-plus me-1"></i> Add User
+          </button>
+        </div>
+      </div>
+
+      <!-- User table -->
+      <div class="table-responsive text-nowrap" id="userTableContainer" style="display: none;">
+        <table class="table table-hover" id="usersTable">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Department</th>
+              <th>Position</th>
+              <th>Notes</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody class="table-border-bottom-0">
+            @foreach (var user in Model.Users)
+            {
+              string initials = "";
+              if (!string.IsNullOrEmpty(user.EmployeeName))
+              {
+                var parts = user.EmployeeName.Split(' ');
+                foreach (var part in parts)
+                {
+                  if (!string.IsNullOrEmpty(part) && initials.Length < 2)
+                  {
+                    initials += part[0];
+                  }
+                }
+                initials = initials.ToUpper();
+              }
+              <tr data-id="@user.Id">
+                <td>
+                  <div class="d-flex align-items-center">
+                    <div class="user-avatar">@initials</div>
+                    <div>
+                      <strong>@System.Web.HttpUtility.HtmlEncode(user.EmployeeName)</strong>
+                      <div class="text-muted small">@System.Web.HttpUtility.HtmlEncode(user.LdapUser)</div>
+                    </div>
+                  </div>
+                </td>
+                <td>@user.Department</td>
+                <td>@user.Position</td>
+                <td>@(string.IsNullOrEmpty(user.Notes) ? "-" : user.Notes)</td>
+                <td>
+                  <div class="action-buttons">
+                    <button type="button" class="btn btn-sm btn-outline-primary edit-user-btn" data-id="@user.Id"
+                      title="Edit">
+                      <i class="bx bx-edit-alt"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger delete-user-btn" data-id="@user.Id"
+                      data-name="@System.Web.HttpUtility.HtmlAttributeEncode(user.EmployeeName ?? "")" title="Delete">
+                      <i class="bx bx-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- No data message -->
+      <div id="noDataMessage" class="text-center py-5" style="display: none;">
+        <i class="bx bx-user-x text-secondary mb-2" style="font-size: 3rem;"></i>
+        <p class="mb-0">No users found with this role</p>
+        <p class="text-muted">Start by adding a user to this role</p>
+      </div>
+
+      <!-- Error message -->
+      <div id="errorMessage" class="alert alert-danger mx-4 mb-4" style="display: none;">
+        An error occurred while loading users. Please try again later.
+      </div>
+    </div>
+  </div>
+
+  <!-- Add User Modal -->
+  <div class="modal fade" id="addUserModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Add User to @System.Web.HttpUtility.HtmlEncode(Model.RoleName) Role</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="addUserForm">
+            @Html.AntiForgeryToken()
+            <div class="mb-3">
+              <label class="form-label" for="departmentFilter">Department</label>
+              <select id="departmentFilter" class="form-select" required>
+                <option value="">Pilih Departemen</option>
+                <!-- Departments will be populated dynamically -->
+              </select>
+              <div class="invalid-feedback">Silakan pilih departemen.</div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="userSelect">User</label>
+              <select id="userSelect" name="LdapUser" class="form-select" required disabled>
+                <option value="">Pilih Departemen Terlebih Dahulu</option>
+              </select>
+              <div class="invalid-feedback">Silakan pilih pengguna.</div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="userNotes">Notes</label>
+              <textarea id="userNotes" name="Notes" class="form-control" rows="3"></textarea>
+            </div>
+            <input type="hidden" name="RoleName" value="@System.Web.HttpUtility.HtmlAttributeEncode(Model.RoleName)" />
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+          <button type="button" class="btn btn-primary" id="saveUserBtn">Simpan</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit User Modal -->
+  <div class="modal fade" id="editUserModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Edit User Role</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="editUserForm">
+            @Html.AntiForgeryToken()
+            <div class="mb-3">
+              <label class="form-label" for="editUserNotes">Notes</label>
+              <textarea id="editUserNotes" name="Notes" class="form-control" rows="3"></textarea>
+            </div>
+            <input type="hidden" id="editUserId" name="Id" value="" />
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+          <button type="button" class="btn btn-primary" id="updateUserBtn">Simpan Perubahan</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div class="modal fade" id="deleteUserModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Confirm Deletion</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>Are you sure you want to remove <span id="deleteUserName"></span> from the
+            @System.Web.HttpUtility.HtmlEncode(Model.RoleName) role?</p>
+          <form id="deleteUserForm">
+            @Html.AntiForgeryToken()
+            <input type="hidden" id="deleteUserId" value="" />
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+          <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Hapus</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+@section PageScripts {
+  <script>
+    // Script untuk menghilangkan alert secara otomatis setelah 5 detik
+    $(document).ready(function () {
+      setTimeout(function () {
+        $('.auto-close-alert').fadeOut('slow', function () {
+          $(this).remove();
+        });
+      }, 5000); // 5000 milliseconds = 5 detik
+    });
+
+    // Global variables
+    const roleName = '@System.Web.HttpUtility.JavaScriptStringEncode(Model.RoleName)';
+
+    $(document).ready(function () {
+      // Initialize necessary scripts
+      loadDepartments();
+      setupEventHandlers();
+
+      // Check if we need to show the user table or no data message
+      updateTableVisibility();
+    });
+
+    function updateTableVisibility() {
+      const hasUsers = $('#usersTable tbody tr').length > 0;
+
+      if (hasUsers) {
+        $('#userTableContainer').show();
+        $('#noDataMessage').hide();
+      } else {
+        $('#userTableContainer').hide();
+        $('#noDataMessage').show();
+      }
+    }
+
+    function setupEventHandlers() {
+      // Department filter change event
+      $('#departmentFilter').on('change', function () {
+        const department = $(this).val();
+
+        if (department) {
+          $('#departmentFilter').removeClass('is-invalid');
+          $('#userSelect').prop('disabled', true);
+          $('#userSelect').html('<option value="">Memuat data pengguna...</option>');
+
+          // Load users for the selected department
+          loadUsersForDepartment(department);
+        } else {
+          $('#userSelect').prop('disabled', true);
+          $('#userSelect').html('<option value="">Pilih Departemen Terlebih Dahulu</option>');
+        }
+      });
+
+      // Add user button click
+      $('#addUserBtn').on('click', function () {
+        // Reset the form
+        $('#departmentFilter').val('');
+        $('#userSelect').prop('disabled', true);
+        $('#userSelect').html('<option value="">Pilih Departemen Terlebih Dahulu</option>');
+        $('#userNotes').val('');
+
+        $('#addUserModal').modal('show');
+      });
+
+      // Add user event
+      $('#saveUserBtn').on('click', function () {
+        addUser();
+      });
+
+      // Setup delegated event handlers for dynamically created elements
+      $(document).on('click', '.edit-user-btn', function () {
+        const id = $(this).data('id');
+
+        // Dapatkan notes langsung dari kolom tabel yang sudah ter-decode
+        const notes = $(`tr[data-id="${id}"]`).find('td:eq(3)').text();
+        const notesText = notes === '-' ? '' : notes;
+
+        $('#editUserId').val(id);
+        $('#editUserNotes').val(notesText);
+        $('#editUserModal').modal('show');
+      });
+
+      // Update user event
+      $('#updateUserBtn').on('click', function () {
+        updateUser();
+      });
+
+      // Setup delegated event handler for delete buttons
+      $(document).on('click', '.delete-user-btn', function () {
+        const id = $(this).data('id');
+        const name = $(this).data('name') || 'pengguna ini';
+        $('#deleteUserId').val(id);
+        $('#deleteUserName').text(name);
+        $('#deleteUserModal').modal('show');
+      });
+
+      // Confirm delete event
+      $('#confirmDeleteBtn').on('click', function () {
+        deleteUser();
+      });
+    }
+
+    function loadDepartments() {
+      // Show loading
+      $('#departmentFilter').prop('disabled', true);
+      $('#departmentFilter').html('<option value="">Memuat departemen...</option>');
+
+      // Make AJAX request to get all departments
+      $.ajax({
+        url: '@Url.Action("GetDepartments", "RoleManagement")',
+        type: 'GET',
+        success: function (response) {
+          if (response && response.success) {
+            const departments = response.departments || [];
+
+            // Populate department filter
+            const deptSelect = $('#departmentFilter');
+            deptSelect.html('<option value="">Pilih Departemen</option>');
+
+            departments.forEach(function (dept) {
+              if (dept) {
+                deptSelect.append($('<option></option>').val(dept).text(dept));
+              }
+            });
+          } else {
+            showAlert('danger', (response && response.message) || 'Gagal memuat data departemen.');
+          }
+        },
+        error: function () {
+          showAlert('danger', 'Gagal memuat data departemen. Silakan coba lagi.');
+        },
+        complete: function () {
+          $('#departmentFilter').prop('disabled', false);
+        }
+      });
+    }
+
+    function loadUsersForDepartment(department) {
+      // Make AJAX request
+      $.ajax({
+        url: '@Url.Action("GetAvailableEmployees")',
+        type: 'GET',
+        data: {
+          roleName: roleName,
+          department: department
+        },
+        success: function (response) {
+          if (response && response.success) {
+            const employees = response.employees || [];
+            populateUserSelect(employees);
+          } else {
+            showAlert('danger', (response && response.message) || 'Gagal memuat data pengguna untuk departemen yang dipilih.');
+            $('#userSelect').html('<option value="">Error memuat data pengguna</option>');
+          }
+        },
+        error: function () {
+          showAlert('danger', 'Gagal memuat data pengguna. Silakan coba lagi.');
+          $('#userSelect').html('<option value="">Error memuat data pengguna</option>');
+        },
+        complete: function () {
+          $('#userSelect').prop('disabled', false);
+        }
+      });
+    }
+
+    function populateUserSelect(employees) {
+      const userSelect = $('#userSelect');
+      userSelect.html('<option value="">Pilih Pengguna</option>');
+
+      if (!employees || employees.length === 0) {
+        userSelect.append('<option value="" disabled>Tidak ada karyawan tersedia di departemen ini</option>');
+        return;
+      }
+
+      // Sort employees by name
+      employees.sort((a, b) => {
+        if (!a || !a.name) return 1;
+        if (!b || !b.name) return -1;
+        return a.name.localeCompare(b.name);
+      });
+
+      employees.forEach(function (employee) {
+        if (employee && employee.ldapUser && employee.name) {
+          const empId = employee.empId || '';
+          userSelect.append($('<option></option>').val(employee.ldapUser).text(`${employee.name} (${empId})`));
+        }
+      });
+    }
+
+    function addUser() {
+      const department = $('#departmentFilter').val();
+      const ldapUser = $('#userSelect').val();
+      const notes = $('#userNotes').val();
+
+      // Validate required fields
+      let isValid = true;
+
+      if (!department) {
+        $('#departmentFilter').addClass('is-invalid');
+        isValid = false;
+      } else {
+        $('#departmentFilter').removeClass('is-invalid');
+      }
+
+      if (!ldapUser) {
+        $('#userSelect').addClass('is-invalid');
+        isValid = false;
+      } else {
+        $('#userSelect').removeClass('is-invalid');
+      }
+
+      if (!isValid) return;
+
+      $('#saveUserBtn').prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Menyimpan...');
+
+      // Make AJAX request
+      $.ajax({
+        url: '@Url.Action("AddUser")',
+        type: 'POST',
+        data: {
+          LdapUser: ldapUser,
+          RoleName: roleName,
+          Notes: notes,
+          __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').first().val()
+        },
+        success: function (response) {
+          if (response && response.success) {
+            $('#addUserModal').modal('hide');
+            showAlert('success', response.message || 'Pengguna berhasil ditambahkan.');
+            // Reload page after short delay
+            setTimeout(function () {
+              window.location.reload();
+            }, 1000);
+          } else {
+            showAlert('danger', (response && response.message) || 'Gagal menambahkan pengguna.');
+            $('#saveUserBtn').prop('disabled', false).text('Simpan');
+          }
+        },
+        error: function () {
+          showAlert('danger', 'Gagal menambahkan pengguna. Silakan coba lagi.');
+          $('#saveUserBtn').prop('disabled', false).text('Simpan');
+        }
+      });
+    }
+
+    function updateUser() {
+      const id = $('#editUserId').val();
+      const notes = $('#editUserNotes').val();
+
+      if (!id) {
+        showAlert('danger', 'ID pengguna tidak valid.');
+        return;
+      }
+
+      $('#updateUserBtn').prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Menyimpan...');
+
+      // Make AJAX request
+      $.ajax({
+        url: '@Url.Action("UpdateUser")',
+        type: 'POST',
+        data: {
+          Id: id,
+          Notes: notes,
+          __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').first().val()
+        },
+        success: function (response) {
+          if (response && response.success) {
+            $('#editUserModal').modal('hide');
+            showAlert('success', response.message || 'Pengguna berhasil diperbarui.');
+
+            // Update the row
+            const row = $(`tr[data-id="${id}"]`);
+            if (row.length) {
+              row.find('td:eq(3)').text(notes || '-'); // 4th column is Notes (0-based index)
+            }
+          } else {
+            showAlert('danger', (response && response.message) || 'Gagal memperbarui pengguna.');
+          }
+        },
+        error: function () {
+          showAlert('danger', 'Gagal memperbarui pengguna. Silakan coba lagi.');
+        },
+        complete: function () {
+          $('#updateUserBtn').prop('disabled', false).text('Simpan Perubahan');
+        }
+      });
+    }
+
+    function deleteUser() {
+      const id = $('#deleteUserId').val();
+
+      if (!id) {
+        showAlert('danger', 'ID pengguna tidak valid.');
+        return;
+      }
+
+      $('#confirmDeleteBtn').prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Menghapus...');
+
+      // Make AJAX request
+      $.ajax({
+        url: '@Url.Action("RemoveUser")',
+        type: 'POST',
+        data: {
+          id: id,
+          __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').first().val()
+        },
+        success: function (response) {
+          if (response && response.success) {
+            $('#deleteUserModal').modal('hide');
+            showAlert('success', response.message || 'Pengguna berhasil dihapus dari role.');
+
+            // Remove the row
+            $(`tr[data-id="${id}"]`).fadeOut(400, function () {
+              $(this).remove();
+              updateTableVisibility();
+            });
+          } else {
+            showAlert('danger', (response && response.message) || 'Gagal menghapus pengguna.');
+          }
+        },
+        error: function () {
+          showAlert('danger', 'Gagal menghapus pengguna. Silakan coba lagi.');
+        },
+        complete: function () {
+          $('#confirmDeleteBtn').prop('disabled', false).text('Hapus');
+        }
+      });
+    }
+
+    function showAlert(type, message) {
+      // Create new alert element
+      const alertEl = $(`
+                      <div class="alert alert-${type} alert-dismissible fade show auto-close-alert" role="alert">
+                        ${message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                      </div>
+                    `);
+
+      // Add to container without removing existing alerts
+      $('#alertContainer').append(alertEl);
+
+      // Auto dismiss after 5 seconds
+      setTimeout(function () {
+        alertEl.alert('close');
+      }, 5000);
+
+      // Scroll to alert
+      $('html, body').animate({
+        scrollTop: $('#alertContainer').offset().top - 100
+      }, 200);
+    }
+  </script>
+}

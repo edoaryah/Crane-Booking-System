@@ -1,0 +1,117 @@
+@model AspnetCoreMvcFull.ViewModels.HazardManagement.HazardListViewModel
+@{
+  ViewData["Title"] = "Hazard Management";
+  Layout = "_ContentNavbarLayout";
+}
+
+@section PageStyles {
+  <style>
+    .action-buttons .btn {
+      margin-right: 0.25rem;
+      width: 38px;
+      height: 38px;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .action-buttons .btn:last-child {
+      margin-right: 0;
+    }
+
+    .action-buttons .btn i {
+      font-size: 1.25rem;
+    }
+  </style>
+}
+
+@section PageScripts {
+  <script>
+    // Script untuk menghilangkan alert secara otomatis setelah 5 detik
+    $(document).ready(function () {
+      setTimeout(function () {
+        $('.auto-close-alert').fadeOut('slow', function () {
+          $(this).remove();
+        });
+      }, 5000); // 5000 milliseconds = 5 detik
+    });
+  </script>
+}
+
+<div id="alertContainer">
+  @if (ViewBag.SuccessMessage != null)
+  {
+    <div class="alert alert-success alert-dismissible fade show auto-close-alert" role="alert">
+      @ViewBag.SuccessMessage
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  }
+
+  @if (ViewBag.ErrorMessage != null)
+  {
+    <div class="alert alert-danger alert-dismissible fade show auto-close-alert" role="alert">
+      @ViewBag.ErrorMessage
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  }
+</div>
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">Hazard Management</h5>
+    <a href="@Url.Action("Create", "HazardManagement")" class="btn btn-primary">
+      <i class="bx bx-plus me-1"></i> Add New Hazard
+    </a>
+  </div>
+
+  <div class="table-responsive text-nowrap">
+    <table class="table table-hover">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Name</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody class="table-border-bottom-0">
+        @{
+          int rowNumber = 1;
+        }
+        @foreach (var hazard in Model.Hazards)
+        {
+          <tr style="cursor: pointer;"
+            onclick="window.location='@Url.Action("Edit", "HazardManagement", new { id = hazard.Id })'">
+            <td><strong>@(rowNumber++)</strong></td>
+            <td>@hazard.Name</td>
+            <td onclick="event.stopPropagation();">
+              <div class="action-buttons">
+                <button type="button" class="btn btn-sm btn-outline-primary edit-btn"
+                  onclick="window.location='@Url.Action("Edit", "HazardManagement", new { id = hazard.Id })'"
+                  data-id="@hazard.Id" title="Edit">
+                  <i class="bx bx-edit-alt"></i>
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-danger delete-btn"
+                  onclick="window.location='@Url.Action("Delete", "HazardManagement", new { id = hazard.Id })'"
+                  data-id="@hazard.Id" data-name="@System.Web.HttpUtility.HtmlAttributeEncode(hazard.Name)"
+                  title="Delete">
+                  <i class="bx bx-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>
+
+@functions {
+  public string TruncateText(string text, int maxLength)
+  {
+    if (string.IsNullOrEmpty(text) || text.Length <= maxLength)
+      return text;
+
+    return text.Substring(0, maxLength) + "...";
+  }
+}

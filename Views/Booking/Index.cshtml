@@ -1,0 +1,925 @@
+@model AspnetCoreMvcFull.ViewModels.BookingManagement.BookingFormViewModel
+@using System.Security.Claims
+@{
+  ViewData["Title"] = "Crane Booking Form";
+  Layout = "_ContentNavbarLayout";
+
+  var userName = User.FindFirst(ClaimTypes.Name)?.Value ?? "User";
+  var userDepartment = User.FindFirst("department")?.Value ?? "";
+}
+
+@section PageStyles {
+  <style>
+    .required-label:after {
+      content: " *";
+      color: red;
+    }
+
+    .hazard-checkbox {
+      margin-right: 5px;
+    }
+
+    .form-section {
+      margin-bottom: 2rem;
+    }
+
+    .form-section-title {
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid #ddd;
+    }
+
+    /* CSS untuk menjadikan kolom tombol trash fit content */
+    #itemsTableContainer .table th:last-child,
+    #itemsTableContainer .table td:last-child {
+      white-space: nowrap !important;
+      padding-right: 20px;
+    }
+
+    #itemsTableContainer {
+      box-shadow: none !important;
+      border: 1px solid rgba(0, 0, 0, 0.125);
+    }
+
+    #itemsTableContainer .card-header {
+      background-color: #f8f9fa;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+    }
+
+    /* Pastikan semua sel tabel memiliki border yang konsisten */
+    #itemsTableContainer .table th,
+    #itemsTableContainer .table td {
+      border-color: rgba(0, 0, 0, 0.125);
+    }
+
+    /* CSS untuk Shift Selection table - mirip dengan items table */
+    #shiftTableContainer {
+      box-shadow: none !important;
+      border: 1px solid rgba(0, 0, 0, 0.125);
+    }
+
+    #shiftTableContainer .card-header {
+      background-color: #f8f9fa;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+    }
+
+    /* Pastikan semua sel tabel memiliki border yang konsisten */
+    #shiftTableContainer .table th,
+    #shiftTableContainer .table td {
+      border-color: rgba(0, 0, 0, 0.125);
+    }
+
+    /* Menambahkan CSS untuk center align kolom shift */
+    #shiftTableContainer .table th:not(:first-child),
+    #shiftTableContainer .table td:not(:first-child) {
+      text-align: center;
+    }
+
+    /* Memastikan checkbox dalam tabel juga di tengah */
+    #shiftTableContainer .form-check {
+      display: flex;
+      justify-content: center;
+      margin: 0;
+    }
+
+    /* CSS for Hazards Card - matching Items Table style */
+    #hazardsCardContainer {
+      box-shadow: none !important;
+      border: 1px solid rgba(0, 0, 0, 0.125);
+      padding: 20px;
+    }
+
+    /* Add some better spacing for hazard checkboxes */
+    .hazard-checkbox {
+      margin-right: 5px;
+    }
+
+    /* Add some breathing room between rows of checkboxes */
+    #hazardsContainer .col-md-4 {
+      margin-bottom: 10px;
+    }
+
+    /* Status indikator untuk shift availability */
+    .shift-status {
+      display: block;
+      font-size: 0.75rem;
+      margin-top: 4px;
+    }
+
+    .shift-status.available {
+      color: #198754;
+      /* Bootstrap success color */
+    }
+
+    .shift-status.booked {
+      color: #dc3545;
+      /* Bootstrap danger color */
+    }
+
+    /* Tambahkan style untuk maintenance */
+    .shift-status.maintenance {
+      color: #fd7e14;
+      /* Bootstrap warning color */
+    }
+  </style>
+}
+
+<div class="row">
+  <div class="col-12">
+    <div class="card mb-4">
+      <!-- Replace your current card-header with this -->
+      <div class="card-header">
+        <div class="d-flex flex-column flex-md-row justify-content-md-between align-items-md-center">
+          <h5 class="mb-0">Crane Booking Form</h5>
+          <small class="text-muted mt-1 mt-md-0">All fields marked with * are required</small>
+        </div>
+      </div>
+      <div class="card-body">
+        <form id="craneBookingForm" asp-controller="Booking" asp-action="Create" method="post">
+          @Html.AntiForgeryToken()
+
+          <input type="hidden" id="shiftDefinitionsData"
+            value="@System.Text.Json.JsonSerializer.Serialize(Model.ShiftDefinitions)" />
+          <input type="hidden" id="bookedShiftsData"
+            value="@System.Text.Json.JsonSerializer.Serialize(Model.BookedShifts)" />
+
+          <!-- Requestor Information Section -->
+          <div class="form-section">
+            <h6 class="form-section-title">Requestor Information</h6>
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label class="form-label required-label">Requestor Name</label>
+                <input id="name" name="name" class="form-control" value="@userName" required readonly />
+                <small class="text-muted">Automatically filled based on your login information</small>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label required-label">Department Name</label>
+                <input id="department" name="department" class="form-control" value="@userDepartment" required
+                  readonly />
+                <small class="text-muted">Automatically filled based on your login information</small>
+              </div>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label class="form-label required-label">Supervisor Name</label>
+                <input id="projectSupervisor" name="projectSupervisor" class="form-control" required />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label required-label">Phone Number</label>
+                <input id="phoneNumber" name="phoneNumber" class="form-control" placeholder="e.g. 081242005757" required
+                  type="tel" pattern="[0-9]*" inputmode="numeric"
+                  oninput="this.value = this.value.replace(/[^0-9]/g, '');" />
+              </div>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label class="form-label required-label">Cost Code</label>
+                <input id="costCode" name="costCode" class="form-control" required />
+              </div>
+            </div>
+          </div>
+
+          <!-- Booking Details Section -->
+          <div class="form-section">
+            <h6 class="form-section-title">Booking Details</h6>
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="startDate" class="form-label required-label">Start Date</label>
+                <input type="date" id="startDate" name="startDate" class="form-control" required />
+                <span class="text-danger" id="startDateError"></span>
+              </div>
+              <div class="col-md-6">
+                <label for="endDate" class="form-label required-label">End Date</label>
+                <input type="date" id="endDate" name="endDate" class="form-control" required />
+                <span class="text-danger" id="endDateError"></span>
+              </div>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label class="form-label required-label">Crane</label>
+                <select id="craneId" name="craneId" class="form-select" required>
+                  <option value="">Select a Crane</option>
+                  @foreach (var crane in Model.AvailableCranes)
+                  {
+                    if (crane.Status == AspnetCoreMvcFull.Models.CraneStatus.Available)
+                    {
+                      <option value="@crane.Id">@crane.Code (@crane.Capacity ton)</option>
+                    }
+                    else
+                    {
+                      <option value="@crane.Id" disabled>@crane.Code (@crane.Capacity ton) - Under Maintenance</option>
+                    }
+                  }
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label required-label">Location</label>
+                <input id="location" name="location" class="form-control" required />
+              </div>
+            </div>
+
+            <!-- Shift Selection Table - Using newer template -->
+            <div class="row mb-3">
+              <div class="col-12">
+                <label id="shiftLabel" class="form-label required-label" style="display: none;">Shift Selections</label>
+                <div id="shiftTableContainer" class="card" style="display: none;">
+                  <div class="table-responsive text-nowrap">
+                    <table class="table table-hover">
+                      <thead class="table-border-top-0">
+                        <tr>
+                          <th>Date</th>
+                          @foreach (var shift in Model.ShiftDefinitions.Where(s => s.IsActive).OrderBy(s =>
+                                                    s.StartTime))
+                          {
+                            <th data-shift-id="@shift.Id" data-shift-name="@shift.Name"
+                              data-shift-start="@shift.FormattedStartTime" data-shift-end="@shift.FormattedEndTime"
+                              data-shift-is-active="@shift.IsActive.ToString().ToLower()">
+                              @shift.Name<br /><small class="text-muted">@shift.TimeRange</small>
+                            </th>
+                          }
+                        </tr>
+                      </thead>
+                      <tbody class="table-border-bottom-0" id="shiftTableBody">
+                        <!-- Shift rows will be added dynamically -->
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                <span class="text-danger" id="shiftTableError"></span>
+              </div>
+            </div>
+            <!-- Spacer div that shows when shift table is hidden -->
+            <div id="spacerDiv" class="mb-3" style="display: block;"></div>
+          </div>
+
+          <!-- Job Details Section -->
+          <div class="form-section">
+            <h6 class="form-section-title">Job Details</h6>
+            <div class="row mb-3">
+              <div class="col-12">
+                <label class="form-label required-label">Job Description</label>
+                <textarea id="description" name="description" class="form-control" rows="3" required></textarea>
+              </div>
+            </div>
+
+            <!-- Items to be Lifted Table - Kolom tombol trash fit content -->
+            <div class="row mb-3">
+              <div class="col-12">
+                <label class="form-label required-label">Items to be Lifted</label>
+                <div id="itemsTableContainer" class="card">
+                  <div class="table-responsive text-nowrap">
+                    <table class="table table-hover">
+                      <thead class="table-border-top-0">
+                        <tr>
+                          <th style="width: 40%; min-width: 220px; padding-right: 5px;">Item Name (p x l x t)</th>
+                          <th style="width: 15%; min-width: 140px; padding-right: 5px;">Height of Lifting (m)</th>
+                          <th style="width: 15%; min-width: 140px; padding-right: 5px;">Weight (ton)</th>
+                          <th style="width: 15%; min-width: 140px; padding-right: 5px;">Quantity</th>
+                          <th style="width: 1%; white-space: nowrap;"></th>
+                        </tr>
+                      </thead>
+                      <tbody id="liftedItemsBody">
+                        <!-- The rows will be added by JavaScript on page load -->
+                      </tbody>
+                      <tfoot class="table-border-bottom-0">
+                        <tr>
+                          <th>
+                            <button type="button" id="addItemBtn" class="btn btn-outline-primary btn-sm">
+                              <i class="bx bx-plus"></i> Add Another Item
+                            </button>
+                          </th>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                </div>
+                <span class="text-danger" id="liftedItemsError"></span>
+              </div>
+            </div>
+
+            <!-- Replace the current hazards section with this code -->
+            <div class="row mb-3">
+              <div class="col-12 mb-6">
+                <label class="form-label required-label">Potential Hazards</label>
+                <div id="hazardsCardContainer" class="card">
+                  <div class="table-responsive">
+                    <div id="hazardsContainer" class="row">
+                      <!-- Hazards will be loaded dynamically -->
+                      @foreach (var hazard in Model.AvailableHazards)
+                      {
+                        <div class="col-md-4 mb-2">
+                          <div class="form-check">
+                            <input class="form-check-input hazard-checkbox" type="checkbox" name="hazardIds[]"
+                              id="hazard-@hazard.Id" value="@hazard.Id" />
+                            <label class="form-check-label" for="hazard-@hazard.Id">
+                              @hazard.Name
+                            </label>
+                          </div>
+                        </div>
+                      }
+                    </div>
+
+                    <div class="custom-hazard">
+                      <label class="form-label">Custom Hazard (Optional)</label>
+                      <input id="customHazard" name="customHazard" class="form-control"
+                        placeholder="Specify any other hazards not listed above" />
+                    </div>
+                  </div>
+                </div>
+                <span class="text-danger" id="hazardsError"></span>
+              </div>
+            </div>
+
+            <!-- Terms and Submission Section -->
+            <div class="form-section">
+              <h6 class="form-section-title">Requirements</h6>
+              <div class="row mb-6">
+                <div class="col-12">
+                  <div class="form-check mb-2">
+                    <input id="termsAgreement1" class="form-check-input" type="checkbox" required />
+                    <label class="form-check-label required-label" for="termsAgreement1">
+                      Pengguna harus menyiapkan akses yang aman ke area kerja dan tempat kerja yang aman. Untuk bekerja
+                      pada malam hari, pengguna harus menyediakan penerangan yang cukup memadahi.
+                    </label>
+                  </div>
+                  <div class="form-check mb-2">
+                    <input id="termsAgreement2" class="form-check-input" type="checkbox" required />
+                    <label class="form-check-label required-label" for="termsAgreement2">
+                      Penguna harus melengkapi izin yang sudah disetujui. Misalnya izin bekerja di dekat saluran
+                      listrik,
+                      Akses PIT dll dan pengguna harus memandu bila diperlukan untuk ke lokasi pekerjaan dan
+                      membantu mengawasi pekerjaan yang sedang berlangsung dan juga pengguna harus menginformasikan
+                      secara
+                      tertulis jika ada perubahan akses atau jalur yang akan dilalui.
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input id="termsAgreement3" class="form-check-input" type="checkbox" required />
+                    <label class="form-check-label required-label" for="termsAgreement3">
+                      Hanya pekerjaan yang sesuai denga persyaratan yang akan diproses.
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="col-12 d-flex justify-content-between">
+                  <a href="/Booking/Calendar" class="btn btn-secondary">Cancel</a>
+                  <button type="submit" id="submitButton" class="btn btn-primary">Submit Booking</button>
+                </div>
+              </div>
+            </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Success modal -->
+<div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true"
+  data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="successModalLabel">Booking Successful</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        Your crane booking has been submitted successfully!
+      </div>
+      <div class="modal-footer">
+        <a href="@(TempData["BookingDocumentNumber"] != null ? $"/Booking/Details?documentNumber={TempData["BookingDocumentNumber"]}" : "/Booking/Calendar")"
+          class="btn btn-primary">Go to Booking Detail</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Error modal -->
+<div class="modal fade" id="errorModal" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title" id="errorModalLabel">Booking Error</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="errorModalBody">
+        @if (ViewData["ErrorMessage"] != null)
+        {
+          @ViewData["ErrorMessage"]
+        }
+        else
+        {
+          <text>An error occurred while submitting your booking.</text>
+        }
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+@section PageScripts {
+  <script>
+    let shiftDefinitions = [];
+    let bookedShifts = [];
+    let maintenanceShifts = [];
+
+    const startDateInput = document.getElementById('startDate');
+    const endDateInput = document.getElementById('endDate');
+    const shiftTableContainer = document.getElementById('shiftTableContainer');
+    const shiftTableBody = document.getElementById('shiftTableBody');
+    const submitButton = document.getElementById('submitButton');
+    const craneIdSelect = document.getElementById('craneId');
+    const hazardsContainer = document.getElementById('hazardsContainer');
+    const addItemBtn = document.getElementById('addItemBtn');
+    const shiftLabel = document.getElementById('shiftLabel');
+    const spacerDiv = document.getElementById('spacerDiv');
+    const bookingForm = document.getElementById('craneBookingForm');
+
+    const today = new Date();
+    const formattedToday = today.toISOString().split('T')[0];
+
+    if (startDateInput) {
+      startDateInput.min = formattedToday;
+      startDateInput.addEventListener('change', generateShiftTable);
+    }
+
+    if (endDateInput) {
+      endDateInput.min = formattedToday;
+      endDateInput.addEventListener('change', generateShiftTable);
+    }
+
+    if (craneIdSelect) {
+      craneIdSelect.addEventListener('change', generateShiftTable);
+    }
+
+    function loadShiftDefinitions() {
+      try {
+        const shiftDefinitionsInput = document.getElementById('shiftDefinitionsData');
+        if (shiftDefinitionsInput && shiftDefinitionsInput.value) {
+          shiftDefinitions = JSON.parse(shiftDefinitionsInput.value);
+          return true;
+        }
+
+        const shiftHeaders = document.querySelectorAll('#shiftTableContainer thead th[data-shift-id]');
+
+        if (shiftHeaders && shiftHeaders.length > 0) {
+          shiftDefinitions = Array.from(shiftHeaders).map(header => {
+            return {
+              id: parseInt(header.dataset.shiftId),
+              name: header.dataset.shiftName,
+              formattedStartTime: header.dataset.shiftStart,
+              formattedEndTime: header.dataset.shiftEnd,
+              timeRange: `${header.dataset.shiftStart} - ${header.dataset.shiftEnd}`,
+              isActive: header.dataset.shiftIsActive === 'true'
+            };
+          });
+          return true;
+        }
+        return false;
+      } catch (error) {
+        return false;
+      }
+    }
+
+    function loadBookedShifts() {
+      try {
+        const bookedShiftsInput = document.getElementById('bookedShiftsData');
+        if (bookedShiftsInput && bookedShiftsInput.value) {
+          bookedShifts = JSON.parse(bookedShiftsInput.value);
+          return true;
+        }
+        return false;
+      } catch (error) {
+        return false;
+      }
+    }
+
+    function isShiftBooked(craneId, date, shiftId) {
+      if (!bookedShifts || !bookedShifts.length || !craneId) return false;
+
+      const dateStr = new Date(date).toISOString().split('T')[0];
+
+      return bookedShifts.some(booking =>
+        booking.craneId === parseInt(craneId) &&
+        booking.date.split('T')[0] === dateStr &&
+        booking.shiftDefinitionId === shiftId
+      );
+    }
+
+    function isShiftMaintenance(craneId, date, shiftId) {
+      if (!maintenanceShifts || !maintenanceShifts.length || !craneId) return false;
+
+      const dateStr = new Date(date).toISOString().split('T')[0];
+
+      return maintenanceShifts.some(maintenance =>
+        maintenance.craneId === parseInt(craneId) &&
+        maintenance.date.split('T')[0] === dateStr &&
+        maintenance.shiftDefinitionId === shiftId
+      );
+    }
+
+    function validateDates() {
+      if (!startDateInput || !endDateInput) {
+        return false;
+      }
+
+      const startDate = new Date(startDateInput.value);
+      const endDate = new Date(endDateInput.value);
+      const startDateError = document.getElementById('startDateError');
+      const endDateError = document.getElementById('endDateError');
+
+      if (startDateError) startDateError.textContent = '';
+      if (endDateError) endDateError.textContent = '';
+
+      if (!startDateInput.value) {
+        if (startDateError) startDateError.textContent = 'Start date is required';
+        return false;
+      }
+
+      if (!endDateInput.value) {
+        if (endDateError) endDateError.textContent = 'End date is required';
+        return false;
+      }
+
+      if (startDate > endDate) {
+        if (endDateError) endDateError.textContent = 'End date cannot be before start date';
+        return false;
+      }
+
+      return true;
+    }
+
+    async function generateShiftTable() {
+      if (!shiftTableContainer || !shiftLabel || !spacerDiv || !startDateInput || !endDateInput || !craneIdSelect) {
+        return;
+      }
+
+      const startDate = startDateInput.value;
+      const endDate = endDateInput.value;
+      const craneId = craneIdSelect.value;
+
+      if (!startDate || !endDate || !craneId) {
+        shiftTableContainer.style.display = 'none';
+        shiftLabel.style.display = 'none';
+        spacerDiv.style.display = 'block';
+        return;
+      }
+
+      if (!validateDates()) {
+        shiftTableContainer.style.display = 'none';
+        shiftLabel.style.display = 'none';
+        spacerDiv.style.display = 'block';
+        return;
+      }
+
+      if (!shiftDefinitions || shiftDefinitions.length === 0) {
+        if (!loadShiftDefinitions()) {
+          return;
+        }
+      }
+
+      try {
+        const response = await fetch(`/Booking/GetBookedShifts?craneId=${craneId}&startDate=${startDate}&endDate=${endDate}`);
+        if (response.ok) {
+          bookedShifts = await response.json();
+        } else {
+          bookedShifts = [];
+        }
+
+        const maintenanceResponse = await fetch(`/Booking/GetMaintenanceShifts?craneId=${craneId}&startDate=${startDate}&endDate=${endDate}`);
+        if (maintenanceResponse.ok) {
+          maintenanceShifts = await maintenanceResponse.json();
+        } else {
+          maintenanceShifts = [];
+        }
+      } catch (error) {
+        bookedShifts = [];
+        maintenanceShifts = [];
+      }
+
+      const activeShifts = shiftDefinitions.filter(s =>
+        s.IsActive === true || s.isActive === true
+      );
+
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      const dateArray = [];
+
+      let currentDate = new Date(start);
+      while (currentDate <= end) {
+        dateArray.push({
+          date: new Date(currentDate).toISOString().split('T')[0],
+          selectedShiftIds: []
+        });
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+
+      shiftTableContainer.style.display = 'block';
+      shiftLabel.style.display = 'block';
+      spacerDiv.style.display = 'none';
+
+      renderShiftTableBody(dateArray, craneId);
+    }
+
+    function renderShiftTableBody(shiftTable, craneId) {
+      if (!shiftTableBody) {
+        return;
+      }
+
+      shiftTableBody.innerHTML = '';
+
+      const activeShifts = shiftDefinitions.filter(s =>
+        s.IsActive === true || s.isActive === true
+      );
+
+      shiftTable.forEach((dayShift, index) => {
+        const dateObj = new Date(dayShift.date);
+        const formattedDate = dateObj.toLocaleDateString('en-US', {
+          weekday: 'short',
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        });
+
+        const row = document.createElement('tr');
+        row.dataset.date = dayShift.date;
+
+        const dateCell = document.createElement('td');
+        dateCell.textContent = formattedDate;
+        row.appendChild(dateCell);
+
+        activeShifts.forEach(shift => {
+          const shiftId = shift.Id || shift.id;
+          const isSelected = dayShift.selectedShiftIds.includes(shiftId);
+
+          const isBooked = isShiftBooked(craneId, dayShift.date, shiftId);
+          const isMaintenance = isShiftMaintenance(craneId, dayShift.date, shiftId);
+
+          let statusText = "Available";
+          let statusClass = "available";
+          let isDisabled = false;
+
+          if (isBooked) {
+            statusText = "Booked";
+            statusClass = "booked";
+            isDisabled = true;
+          } else if (isMaintenance) {
+            statusText = "Maintenance";
+            statusClass = "maintenance";
+            isDisabled = true;
+          }
+
+          const cell = document.createElement('td');
+          cell.innerHTML = `
+              <div class="form-check d-flex justify-content-center flex-column align-items-center">
+                <input type="checkbox" class="form-check-input shift-checkbox"
+                  id="shift-${shiftId}-${dayShift.date}"
+                  name="shiftSelections[${index}].selectedShiftIds[]"
+                  value="${shiftId}"
+                  data-date="${dayShift.date}"
+                  data-shift-id="${shiftId}"
+                  ${isSelected ? 'checked' : ''}
+                  ${isDisabled ? 'disabled' : ''} />
+                <span class="shift-status ${statusClass}">
+                  ${statusText}
+                </span>
+                <input type="hidden" name="shiftSelections[${index}].date" value="${dayShift.date}" />
+              </div>
+            `;
+
+          row.appendChild(cell);
+        });
+
+        shiftTableBody.appendChild(row);
+      });
+    }
+
+    function initLiftedItemsTable() {
+      const tbody = document.getElementById('liftedItemsBody');
+      if (!tbody) {
+        return;
+      }
+
+      tbody.innerHTML = '';
+      addLiftedItemRow();
+    }
+
+    function addLiftedItemRow() {
+      const tbody = document.getElementById('liftedItemsBody');
+      if (!tbody) {
+        return;
+      }
+
+      const rowIndex = tbody.rows.length;
+      const row = document.createElement('tr');
+
+      row.innerHTML = `
+          <td style="min-width: 220px; padding-right: 5px;">
+            <input type="text" class="form-control item-name"
+                  name="items[${rowIndex}].itemName" required />
+          </td>
+          <td style="min-width: 140px; padding-right: 5px;">
+            <input type="number" class="form-control item-height"
+                  name="items[${rowIndex}].height"
+                  min="0.01" step="0.01" required />
+          </td>
+          <td style="min-width: 140px; padding-right: 5px;">
+            <input type="number" class="form-control item-weight"
+                  name="items[${rowIndex}].weight"
+                  min="0.01" step="0.01" required />
+          </td>
+          <td style="min-width: 140px; padding-right: 5px;">
+            <input type="number" class="form-control item-quantity"
+                  name="items[${rowIndex}].quantity"
+                  min="1" step="1" value="1" required />
+          </td>
+          <td style="width: 1%; white-space: nowrap;">
+            <button type="button" class="btn btn-outline-danger btn-sm remove-item-btn">
+              <i class="bx bx-trash"></i>
+            </button>
+          </td>
+        `;
+
+      const removeBtn = row.querySelector('.remove-item-btn');
+      removeBtn.addEventListener('click', function () {
+        if (tbody.rows.length > 1) {
+          row.remove();
+          updateItemsIndexes();
+        } else {
+          alert('At least one item is required.');
+        }
+      });
+
+      tbody.appendChild(row);
+    }
+
+    function updateItemsIndexes() {
+      const tbody = document.getElementById('liftedItemsBody');
+      if (!tbody) return;
+
+      const rows = tbody.querySelectorAll('tr');
+
+      rows.forEach((row, index) => {
+        row.querySelectorAll('input').forEach(input => {
+          const name = input.getAttribute('name');
+          if (name) {
+            input.setAttribute('name', name.replace(/items\[\d+\]/, `items[${index}]`));
+          }
+        });
+      });
+    }
+
+    function validateForm() {
+      let isValid = true;
+      const shiftTableError = document.getElementById('shiftTableError');
+      const hazardsError = document.getElementById('hazardsError');
+      const liftedItemsError = document.getElementById('liftedItemsError');
+
+      if (shiftTableError) shiftTableError.textContent = '';
+      if (hazardsError) hazardsError.textContent = '';
+      if (liftedItemsError) liftedItemsError.textContent = '';
+
+      if (!validateDates()) {
+        isValid = false;
+      }
+
+      if (!document.getElementById('craneId')?.value) {
+        isValid = false;
+      }
+
+      if (shiftTableContainer && shiftTableContainer.style.display === 'none') {
+        if (shiftTableError) shiftTableError.textContent = 'Please select start and end dates to generate shifts';
+        isValid = false;
+      } else {
+        const selectedShifts = document.querySelectorAll('.shift-checkbox:checked');
+        if (selectedShifts.length === 0) {
+          if (shiftTableError) shiftTableError.textContent = 'Please select at least one shift';
+          isValid = false;
+        }
+      }
+
+      const items = document.querySelectorAll('#liftedItemsBody tr');
+      let hasValidItem = false;
+
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        const nameInput = item.querySelector('.item-name');
+        const heightInput = item.querySelector('.item-height');
+        const weightInput = item.querySelector('.item-weight');
+        const quantityInput = item.querySelector('.item-quantity');
+
+        if (nameInput?.value && heightInput?.value && weightInput?.value && quantityInput?.value) {
+          hasValidItem = true;
+          break;
+        }
+      }
+
+      if (!hasValidItem) {
+        if (liftedItemsError) liftedItemsError.textContent = 'Please provide at least one item to be lifted';
+        isValid = false;
+      }
+
+      const selectedHazards = document.querySelectorAll('.hazard-checkbox:checked');
+      if (selectedHazards.length === 0) {
+        if (hazardsError) hazardsError.textContent = 'Please select at least one potential hazard';
+        isValid = false;
+      }
+
+      const termsAgreement1 = document.getElementById('termsAgreement1');
+      const termsAgreement2 = document.getElementById('termsAgreement2');
+      const termsAgreement3 = document.getElementById('termsAgreement3');
+
+      if (!termsAgreement1?.checked || !termsAgreement2?.checked || !termsAgreement3?.checked) {
+        isValid = false;
+      }
+
+      return isValid;
+    }
+
+    document.addEventListener('DOMContentLoaded', async function () {
+      loadShiftDefinitions();
+      loadBookedShifts();
+      initLiftedItemsTable();
+
+      if (startDateInput) {
+        startDateInput.value = formattedToday;
+      }
+
+      if (endDateInput) {
+        const tomorrow = new Date();
+        tomorrow.setDate(today.getDate() + 1);
+        endDateInput.value = tomorrow.toISOString().split('T')[0];
+      }
+
+      setTimeout(() => {
+        generateShiftTable();
+      }, 100);
+
+      if (bookingForm) {
+        bookingForm.addEventListener('submit', function (event) {
+          if (!validateForm()) {
+            event.preventDefault();
+            const firstError = document.querySelector('.text-danger:not(:empty)');
+            if (firstError) {
+              firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }
+        });
+      }
+
+      if (addItemBtn) {
+        addItemBtn.addEventListener('click', addLiftedItemRow);
+      }
+
+      @if (TempData["BookingFormSuccessMessage"] != null)
+        {
+          <text>
+            const successModal = new bootstrap.Modal(document.getElementById('successModal'), {
+              backdrop: 'static',
+            keyboard: false
+            });
+            successModal.show();
+
+            document.querySelector('#successModal .btn-close').addEventListener('click', function() {
+              window.location.href = '@(TempData["BookingDocumentNumber"] != null ? $"/Booking/Details?documentNumber={TempData["BookingDocumentNumber"]}" : "/Booking/Calendar")';
+            });
+
+            fetch('/Booking/ClearTempData', {
+              method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('input[name="__RequestVerificationToken"]').value
+              }
+            });
+          </text>
+      }
+
+        @if (ViewData["CleanTempData"] != null && ViewData["CleanTempData"] as bool? == true)
+        {
+          <text>
+            fetch('/Booking/ClearTempData', {
+              method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('input[name="__RequestVerificationToken"]').value
+              }
+            });
+          </text>
+      }
+
+        @if (TempData["BookingFormErrorMessage"] != null || ViewData["BookingFormErrorMessage"] != null)
+        {
+          <text>
+            const errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
+            errorModal.show();
+          </text>
+      }
+      });
+  </script>
+}

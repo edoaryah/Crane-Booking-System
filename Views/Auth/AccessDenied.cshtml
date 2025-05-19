@@ -1,0 +1,54 @@
+@{
+  Layout = "_BlankLayout";
+  ViewData["Title"] = "Akses Ditolak - Crane Booking";
+}
+
+@section PageStyles {
+  <link rel="stylesheet" href="~/vendor/css/pages/page-auth.css">
+  <style>
+    .mb-4 {
+      display: flex !important;
+      justify-content: center !important;
+      align-items: center !important;
+    }
+
+    .avatar-xl {
+      margin: 0 auto !important;
+    }
+  </style>
+}
+
+@* ************** Content ************** *@
+
+<div class="container-xxl">
+  <div class="authentication-wrapper authentication-basic container-p-y">
+    <div class="authentication-inner">
+      <div class="card px-sm-6 px-0">
+        <div class="card-body text-center p-4">
+          <div class="mb-4">
+            <div class="avatar avatar-xl">
+              <div class="avatar-initial rounded-circle bg-danger">
+                <i class="bx bx-lock-alt fs-2"></i>
+              </div>
+            </div>
+          </div>
+          @* <h2 class="mb-2 text-danger fw-bold">Akses Ditolak</h2> *@
+          <p class="mb-4">
+            Anda tidak memiliki izin untuk mengakses halaman ini.<br>
+            Hubungi administrator sistem jika Anda memerlukan akses.
+          </p>
+          <div class="d-flex justify-content-center gap-2">
+            <a href="javascript:history.back()" class="btn btn-outline-secondary">
+              <i class="bx bx-arrow-back me-1"></i>
+              Kembali
+            </a>
+            <a href="/" class="btn btn-primary">
+              <i class="bx bx-home me-1"></i>
+              Beranda
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

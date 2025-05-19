@@ -1,0 +1,283 @@
+@model AspnetCoreMvcFull.ViewModels.ShiftManagement.ShiftListViewModel
+@using Newtonsoft.Json
+@{
+  ViewData["Title"] = "Shift Management";
+  Layout = "_ContentNavbarLayout";
+
+  // Ekstrak data shift untuk JavaScript dalam format yang aman
+  var jsShiftData = new List<object>();
+  foreach (var shift in Model.Shifts)
+  {
+    if (shift.IsActive)
+    {
+      jsShiftData.Add(new
+      {
+        id = shift.Id,
+        name = shift.Name,
+        startHour = shift.StartTime.Hours,
+        startMinute = shift.StartTime.Minutes,
+        endHour = shift.EndTime.Hours,
+        endMinute = shift.EndTime.Minutes
+      });
+    }
+  }
+
+  // Konversi ke JSON untuk digunakan di JavaScript
+  var shiftsJson = JsonConvert.SerializeObject(jsShiftData);
+}
+
+<!-- Timeline Card -->
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">24-Hour Shift Timeline</h5>
+  </div>
+  <div class="card-body">
+    <div id="shift-timeline" style="height: 120px;"></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">Shift Management</h5>
+    <a href="@Url.Action("Create")" class="btn btn-primary">
+      <i class="bx bx-plus me-1"></i> Add New Shift
+    </a>
+  </div>
+
+  <div class="table-responsive text-nowrap">
+    <table id="shiftsTable" class="table table-hover">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Start Time</th>
+          <th>End Time</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody class="table-border-bottom-0">
+        @foreach (var shift in Model.Shifts)
+        {
+          <tr>
+            <td><strong>@shift.Name</strong></td>
+            <td>@shift.FormattedStartTime</td>
+            <td>@shift.FormattedEndTime</td>
+            <td>
+              @if (shift.IsActive)
+              {
+                <span class="badge bg-success">Active</span>
+              }
+              else
+              {
+                <span class="badge bg-secondary">Inactive</span>
+              }
+            </td>
+            <td>
+              <div class="dropdown">
+                <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                  <i class="bx bx-dots-vertical-rounded"></i>
+                </button>
+                <div class="dropdown-menu">
+                  <a class="dropdown-item" href="@Url.Action("Details", new { id = shift.Id })">
+                    <i class="bx bx-show-alt me-1"></i> View
+                  </a>
+                  <a class="dropdown-item" href="@Url.Action("Edit", new { id = shift.Id })">
+                    <i class="bx bx-edit-alt me-1"></i> Edit
+                  </a>
+                  <a class="dropdown-item" href="@Url.Action("Delete", new { id = shift.Id })">
+                    <i class="bx bx-trash me-1"></i> Delete
+                  </a>
+                </div>
+              </div>
+            </td>
+          </tr>
+        }
+
+        @if (!Model.Shifts.Any())
+        {
+          <tr>
+            <td colspan="5" class="text-center">No shifts found. Click "Add New Shift" to create one.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>
+
+@section PageScripts {
+  <script src="~/vendor/libs/jquery/jquery.js"></script>
+  <link href="~/vendor/libs/vis/vis.min.css" rel="stylesheet" type="text/css" />
+  <script src="~/vendor/libs/vis/vis.min.js"></script>
+
+  <script>
+    // Panggil hanya sekali - flag untuk mencegah inisialisasi duplikat
+    var timelineInitialized = false;
+
+    $(document).ready(function () {
+      // Initialize only if not already done
+      if (!timelineInitialized) {
+        console.log('Initializing timeline for the first time');
+        initializeTimeline();
+        timelineInitialized = true;
+      }
+    });
+
+    function initializeTimeline() {
+      // Cek container
+      const container = document.getElementById('shift-timeline');
+      if (!container) {
+        console.error('Timeline container not found!');
+        return;
+      }
+
+      // Cek library Vis.js
+      if (typeof vis === 'undefined') {
+        console.error('Vis.js library not loaded!');
+        container.innerHTML = '<div class="alert alert-danger">Timeline visualization failed: Vis.js library not available</div>';
+        return;
+      }
+
+      try {
+        // Buat array untuk menyimpan data shift
+        const shiftData = [];
+
+        // Dapatkan data shift dari JSON yang disiapkan di server
+        const shifts = @Html.Raw(shiftsJson);
+
+        if (shifts && shifts.length > 0) {
+          // Optimized: Use for loop instead of forEach for better performance
+          for (let i = 0; i < shifts.length; i++) {
+            const shift = shifts[i];
+
+            const startDate = new Date();
+            startDate.setHours(shift.startHour, shift.startMinute, 0, 0);
+
+            const endDate = new Date();
+            endDate.setHours(shift.endHour, shift.endMinute, 0, 0);
+
+            // Menangani kasus shift yang melewati tengah malam
+            if (shift.endHour < shift.startHour) {
+              endDate.setDate(endDate.getDate() + 1);
+            }
+
+            shiftData.push({
+              id: shift.id,
+              content: shift.name,
+              start: startDate,
+              end: endDate,
+              className: 'shift-' + (shift.id % 5 + 1)
+            });
+          }
+        } else {
+          // Jika tidak ada shift, berikan pesan
+          container.innerHTML = '<div class="alert alert-info">No active shifts found.</div>';
+          return;
+        }
+
+        // Membuat dataset - lebih efisien dengan instansiasi sekali
+        const items = new vis.DataSet(shiftData);
+
+        // Membuat rentang timeline 24 jam
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        // Setelah perubahan - DIREKOMENDASIKAN
+        const options = {
+          start: today,
+          end: tomorrow,
+          timeAxis: { scale: 'hour', step: 1 },
+          format: {
+            minorLabels: {
+              hour: 'H',
+              minute: 'H:mm'
+            }
+          },
+          orientation: 'top',
+          stack: false,
+          zoomable: false,
+          moveable: false,
+          showCurrentTime: true,
+          height: '100px',
+          // Hapus opsi throttleRedraw
+          // Hapus atau ganti maxItems
+          verticalScroll: false,
+          horizontalScroll: false,
+          showTooltips: false
+        };
+
+        // Membuat timeline
+        const timeline = new vis.Timeline(container, items, options);
+
+        // Event listener untuk klik item
+        timeline.on('click', function (properties) {
+          if (properties.item) {
+            const shiftId = properties.item;
+            window.location.href = '@Url.Action("Details")/' + shiftId;
+          }
+        });
+
+      } catch (e) {
+        console.error('Error creating timeline:', e);
+        container.innerHTML = '<div class="alert alert-danger">Timeline visualization failed: ' + e.message + '</div>';
+      }
+    }
+  </script>
+
+  <style>
+    /* Shift timeline custom styles */
+    .vis-item {
+      border-width: 1px;
+      border-radius: 4px;
+      font-size: 12px;
+      padding: 2px 8px;
+    }
+
+    /* Shift color classes */
+    .shift-1 {
+      background-color: #4CAF50 !important;
+      /* Green */
+      border-color: #388E3C !important;
+      color: white !important;
+    }
+
+    .shift-2 {
+      background-color: #2196F3 !important;
+      /* Blue */
+      border-color: #1976D2 !important;
+      color: white !important;
+    }
+
+    .shift-3 {
+      background-color: #9C27B0 !important;
+      /* Purple */
+      border-color: #7B1FA2 !important;
+      color: white !important;
+    }
+
+    .shift-4 {
+      background-color: #FF9800 !important;
+      /* Orange */
+      border-color: #F57C00 !important;
+      color: white !important;
+    }
+
+    .shift-5 {
+      background-color: #F44336 !important;
+      /* Red */
+      border-color: #D32F2F !important;
+      color: white !important;
+    }
+
+    /* Timeline customization */
+    .vis-timeline {
+      border: none;
+    }
+
+    .vis-time-axis .vis-text {
+      font-size: 10px;
+      color: #666;
+    }
+  </style>
+}

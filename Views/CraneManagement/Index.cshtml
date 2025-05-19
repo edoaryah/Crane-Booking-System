@@ -1,0 +1,82 @@
+<!-- Views/CraneManagement/Index.cshtml -->
+@model IEnumerable<AspnetCoreMvcFull.ViewModels.CraneManagement.CraneViewModel>
+@{
+    ViewData["Title"] = "Crane Management";
+    Layout = "_ContentNavbarLayout";
+}
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Crane Management</h5>
+        <a href="@Url.Action("Create")" class="btn btn-primary">
+            <i class="bx bx-plus me-1"></i> Add New Crane
+        </a>
+    </div>
+
+    <div class="table-responsive text-nowrap">
+        <table id="cranesTable" class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Capacity (ton)</th>
+                    <th>Status</th>
+                    <th>Ownership</th>
+                    <th>Image</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody class="table-border-bottom-0">
+                @foreach (var crane in Model)
+                {
+                    <tr>
+                        <td><strong>@crane.Code</strong></td>
+                        <td>@crane.Capacity</td>
+                        <td>
+                            @if (crane.Status == AspnetCoreMvcFull.Models.CraneStatus.Available)
+                            {
+                                <span class="badge bg-success">Available</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-danger">Maintenance</span>
+                            }
+                        </td>
+                        <td>@crane.Ownership</td>
+                        <td>
+                            @if (!string.IsNullOrEmpty(crane.ImagePath))
+                            {
+                                <img src="@crane.ImagePath" alt="@crane.Code" height="50" class="img-thumbnail" />
+                            }
+                            else
+                            {
+                                <span class="text-muted">No image</span>
+                            }
+                        </td>
+                        <td>
+                            <div class="dropdown">
+                                <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                                    <i class="bx bx-dots-vertical-rounded"></i>
+                                </button>
+                                <div class="dropdown-menu">
+                                    <a class="dropdown-item" href="@Url.Action("Details", new { id = crane.Id })">
+                                        <i class="bx bx-show-alt me-1"></i> View
+                                    </a>
+                                    <a class="dropdown-item" href="@Url.Action("Edit", new { id = crane.Id })">
+                                        <i class="bx bx-edit-alt me-1"></i> Edit
+                                    </a>
+                                    <a class="dropdown-item" href="@Url.Action("Delete", new { id = crane.Id })">
+                                        <i class="bx bx-trash me-1"></i> Delete
+                                    </a>
+                                    <div class="dropdown-divider"></div>
+                                    <a class="dropdown-item" href="@Url.Action("Index", "BreakdownHistory", new { craneId = crane.Id })">
+                                        <i class="bx bx-history me-1"></i> Breakdown History
+                                    </a>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

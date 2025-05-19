@@ -1,0 +1,640 @@
+@model AspnetCoreMvcFull.ViewModels.CraneUsage.CraneUsageMinuteVisualizationViewModel
+
+@{
+  ViewData["Title"] = "Visualisasi Detail Penggunaan Crane";
+  Layout = "_ContentNavbarLayout";
+}
+
+@section VendorStyles {
+  <style>
+    .minute-chart-container {
+      position: relative;
+      height: 550px;
+      margin-top: 10px;
+      margin-bottom: 10px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .legend-color {
+      width: 18px;
+      height: 18px;
+      margin-right: 8px;
+      border-radius: 3px;
+    }
+
+    .detail-segment {
+      border-left: 3px solid #696cff;
+      padding-left: 12px;
+      margin-bottom: 12px;
+    }
+
+    .detail-category {
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+
+    .detail-time {
+      font-size: 1.1rem;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+
+    .detail-info {
+      margin-bottom: 0;
+      color: #6c757d;
+    }
+
+    /* D3 specific styles */
+    .segment:hover {
+      stroke: #000;
+      stroke-width: 1px;
+      cursor: pointer;
+    }
+
+    .tick line {
+      stroke: #ddd;
+    }
+
+    .domain {
+      stroke: #aaa;
+    }
+
+    .hour-label {
+      font-size: 10px;
+      fill: #666;
+    }
+
+    .tooltip {
+      position: absolute;
+      background-color: rgba(255, 255, 255, 0.95);
+      padding: 8px;
+      border-radius: 4px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+      pointer-events: none;
+      font-size: 12px;
+      z-index: 1000;
+    }
+  </style>
+}
+
+@if (ViewBag.SuccessMessage != null)
+{
+  <div class="alert alert-success alert-dismissible fade show" role="alert">
+    @ViewBag.SuccessMessage
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+}
+@if (ViewBag.ErrorMessage != null)
+{
+  <div class="alert alert-danger alert-dismissible fade show" role="alert">
+    @ViewBag.ErrorMessage
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+}
+
+<div class="card mb-4">
+  <div class="card-header">
+    <i class="bx bx-filter me-1"></i>
+    Filter
+  </div>
+  <div class="card-body">
+    <form asp-action="MinuteVisualization" method="get" id="filterForm">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label asp-for="CraneId" class="form-label">Crane</label>
+          <select asp-for="CraneId" asp-items="Model.CraneList" class="form-select" required>
+            <option value="">-- Pilih Crane --</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label asp-for="Date" class="form-label">Tanggal</label>
+          <input asp-for="Date" class="form-control" type="date" required />
+        </div>
+        <div class="col-md-4 d-flex align-items-end">
+          <button type="submit" class="btn btn-primary">
+            <i class="bx bx-search me-1"></i> Tampilkan
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-md-8">
+    <div class="card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+          <i class="bx bx-bar-chart-alt me-1"></i>
+          Penggunaan Crane <strong>@Model.CraneName</strong> pada <strong>@Model.Date.ToString("dd MMMM yyyy")</strong>
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="minute-chart-container">
+          <div id="minuteVisualizationChart"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card mb-4">
+      <div class="card-header">
+        <i class="bx bx-info-circle me-1"></i>
+        Detail Aktivitas
+      </div>
+      <div class="card-body">
+        <div id="activityDetail">
+          <p class="text-center text-muted">Klik pada segmen di chart untuk melihat detailnya</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card mb-4">
+      <div class="card-header">
+        <i class="bx bx-palette me-1"></i>
+        Legenda
+      </div>
+      <div class="card-body">
+        <div class="legend-container">
+          <div class="legend-item">
+            <div class="legend-color" style="background-color: #28a745;"></div>
+            <div>Operating</div>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color" style="background-color: #ffc107;"></div>
+            <div>Delay</div>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color" style="background-color: #6c757d;"></div>
+            <div>Standby</div>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color" style="background-color: #17a2b8;"></div>
+            <div>Service</div>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color" style="background-color: #dc3545;"></div>
+            <div>Breakdown</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card mb-4">
+      <div class="card-header">
+        <i class="bx bx-pie-chart-alt me-1"></i>
+        Ringkasan
+      </div>
+      <div class="card-body">
+        <h5>Jam Penggunaan</h5>
+        <div class="progress mb-3" style="height: 25px;">
+          <div class="progress-bar bg-success" role="progressbar" style="width: @Model.Summary.OperatingPercentage%;"
+            title="Operating: @Model.Summary.OperatingHours.ToString("0.0") jam">
+            @Model.Summary.OperatingHours.ToString("0.0")
+          </div>
+          <div class="progress-bar bg-warning" role="progressbar" style="width: @Model.Summary.DelayPercentage%;"
+            title="Delay: @Model.Summary.DelayHours.ToString("0.0") jam">
+            @Model.Summary.DelayHours.ToString("0.0")
+          </div>
+          <div class="progress-bar bg-secondary" role="progressbar" style="width: @Model.Summary.StandbyPercentage%;"
+            title="Standby: @Model.Summary.StandbyHours.ToString("0.0") jam">
+            @Model.Summary.StandbyHours.ToString("0.0")
+          </div>
+          <div class="progress-bar bg-info" role="progressbar" style="width: @Model.Summary.ServicePercentage%;"
+            title="Service: @Model.Summary.ServiceHours.ToString("0.0") jam">
+            @Model.Summary.ServiceHours.ToString("0.0")
+          </div>
+          <div class="progress-bar bg-danger" role="progressbar" style="width: @Model.Summary.BreakdownPercentage%;"
+            title="Breakdown: @Model.Summary.BreakdownHours.ToString("0.0") jam">
+            @Model.Summary.BreakdownHours.ToString("0.0")
+          </div>
+        </div>
+
+        <table class="table table-sm">
+          <tr>
+            <td>Operating</td>
+            <td>@Model.Summary.OperatingHours.ToString("0.0") jam</td>
+            <td>@Model.Summary.OperatingPercentage.ToString("0.0")%</td>
+          </tr>
+          <tr>
+            <td>Delay</td>
+            <td>@Model.Summary.DelayHours.ToString("0.0") jam</td>
+            <td>@Model.Summary.DelayPercentage.ToString("0.0")%</td>
+          </tr>
+          <tr>
+            <td>Standby</td>
+            <td>@Model.Summary.StandbyHours.ToString("0.0") jam</td>
+            <td>@Model.Summary.StandbyPercentage.ToString("0.0")%</td>
+          </tr>
+          <tr>
+            <td>Service</td>
+            <td>@Model.Summary.ServiceHours.ToString("0.0") jam</td>
+            <td>@Model.Summary.ServicePercentage.ToString("0.0")%</td>
+          </tr>
+          <tr>
+            <td>Breakdown</td>
+            <td>@Model.Summary.BreakdownHours.ToString("0.0") jam</td>
+            <td>@Model.Summary.BreakdownPercentage.ToString("0.0")%</td>
+          </tr>
+          <!-- Tambahkan divider untuk memisahkan metrik asli dengan metrik baru -->
+          <tr class="table-secondary">
+            <td colspan="2" class="text-center">
+              <strong>Key Performance Indicators</strong>
+            </td>
+          </tr>
+          <!-- Metrik baru -->
+          <tr class="table-primary">
+            <th>Availability</th>
+            <th>@Model.Summary.AvailabilityPercentage.ToString("0.0")%</th>
+            @* <th>
+              <small>Available Time / Calendar Time</small>
+            </th> *@
+          </tr>
+          <tr class="table-info">
+            <th>Utilisation</th>
+            <th>@Model.Summary.UtilisationPercentage.ToString("0.0")%</th>
+            @* <th>
+              <small>Operating / Calendar Time</small>
+            </th> *@
+          </tr>
+          <tr class="table-success">
+            <th>Usage</th>
+            <th>@Model.Summary.UsagePercentage.ToString("0.0")%</th>
+            @* <th>
+              <small>Utilized Time / Available Time</small>
+            </th> *@
+          </tr>
+          <!-- Optional: metrik asli jika masih ingin ditampilkan -->
+          <tr class="table-active" style="display: none;">
+            <th>Available Time</th>
+            <th>@Model.Summary.AvailableHours.ToString("0.0") jam</th>
+            <th>@Model.Summary.AvailablePercentage.ToString("0.0")%</th>
+          </tr>
+          <tr class="table-active" style="display: none;">
+            <th>Maintenance Time</th>
+            <th>@Model.Summary.MaintenanceHours.ToString("0.0") jam</th>
+            <th>@Model.Summary.MaintenancePercentage.ToString("0.0")%</th>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="d-flex justify-content-between mb-4">
+  <a asp-action="Index" class="btn btn-secondary">
+    <i class="bx bx-arrow-left me-1"></i> Kembali ke Daftar
+  </a>
+  <a asp-action="Form" asp-route-craneId="@Model.CraneId" asp-route-date="@Model.Date.ToString("yyyy-MM-dd")"
+    class="btn btn-success">
+    <i class="bx bx-plus me-1"></i> Tambah Penggunaan Baru
+  </a>
+</div>
+
+@section VendorScripts {
+  <!-- D3.js CDN -->
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+}
+
+@section PageScripts {
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      // Ambil data dari model
+      const minuteData = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(Model.MinuteData));
+
+      // Helper function untuk mendapatkan warna berdasarkan kategori
+      function getCategoryColor(category) {
+        const categoryColors = {
+          'Operating': '#28a745',
+          'Delay': '#ffc107',
+          'Standby': '#6c757d',
+          'Service': '#17a2b8',
+          'Breakdown': '#dc3545'
+        };
+        return categoryColors[category] || '#6c757d';
+      }
+
+      // Helper function untuk format waktu
+      function formatTime(timeString) {
+        try {
+          const date = new Date(timeString);
+          if (isNaN(date.getTime())) {
+            return 'Waktu Tidak Valid';
+          }
+          return date.toLocaleTimeString('id-ID', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+          });
+        } catch (error) {
+          console.error("Error saat memformat waktu:", error, timeString);
+          return 'Error';
+        }
+      }
+
+      // Format jam untuk label Y-axis
+      function formatHour(hour) {
+        return hour.toString().padStart(2, '0') + ':00';
+      }
+
+      // Fungsi untuk menampilkan detail aktivitas
+      function displayActivityDetails(activity) {
+        if (!activity) {
+          document.getElementById('activityDetail').innerHTML =
+            '<p class="text-center text-muted">Tidak ada detail aktivitas tersedia</p>';
+          return;
+        }
+
+        const startTime = formatTime(activity.StartTime);
+        const endTime = formatTime(activity.EndTime);
+        const durationMinutes = activity.DurationMinutes;
+        const hours = Math.floor(durationMinutes / 60);
+        const minutes = durationMinutes % 60;
+        const durationText = hours > 0
+          ? `${hours} jam ${minutes} menit`
+          : `${minutes} menit`;
+
+        const color = getCategoryColor(activity.Category);
+
+        let detailHtml = `
+                              <div class="detail-segment">
+                                <div class="detail-time">${startTime} - ${endTime}</div>
+                                <span class="badge mb-2" style="background-color: ${color}">${activity.Category}</span>
+                                <div class="detail-category">${activity.SubcategoryName}</div>
+                                <div class="detail-duration mb-3">Durasi: ${durationText}</div>
+                            `;
+
+        // Tambahkan informasi opsional jika tersedia
+        if (activity.OperatorName) {
+          detailHtml += `<div class="detail-info"><strong>Operator:</strong> ${activity.OperatorName}</div>`;
+        }
+
+        if (activity.BookingNumber) {
+          detailHtml += `<div class="detail-info"><strong>Booking:</strong> ${activity.BookingNumber}</div>`;
+        }
+
+        if (activity.MaintenanceTitle) {
+          detailHtml += `<div class="detail-info"><strong>Maintenance:</strong> ${activity.MaintenanceTitle}</div>`;
+        }
+
+        if (activity.Notes) {
+          detailHtml += `<div class="detail-info"><strong>Catatan:</strong> ${activity.Notes}</div>`;
+        }
+
+        detailHtml += `</div>`;
+
+        document.getElementById('activityDetail').innerHTML = detailHtml;
+      }
+
+      // Tambahkan tooltip
+      const tooltip = d3.select("body")
+        .append("div")
+        .attr("class", "tooltip")
+        .style("opacity", 0);
+
+      // Menggambar visualisasi dengan D3.js
+      function drawVisualization() {
+        // Hapus visualisasi yang ada (jika ada)
+        d3.select("#minuteVisualizationChart").html("");
+
+        // Fix the data first - adjust any segments that go to next day
+        const processedData = (minuteData || []).map(segment => {
+          const result = { ...segment };
+
+          // Convert to Date objects if they're strings
+          if (typeof result.StartTime === 'string') {
+            result.StartTime = new Date(result.StartTime);
+          }
+          if (typeof result.EndTime === 'string') {
+            result.EndTime = new Date(result.EndTime);
+          }
+
+          // Ensure end time doesn't go to next day for visualization purposes
+          if (result.EndTime.getDate() > result.StartTime.getDate()) {
+            // Create a new date at 23:59:59 on the same day as start
+            const endOfDay = new Date(result.StartTime);
+            endOfDay.setHours(23, 59, 59, 999);
+            result.EndTime = endOfDay;
+          }
+
+          return result;
+        });
+
+        console.log("Processed data:", processedData);
+
+        // Ensure all 24 hours are covered
+        const dateStr = '@Model.Date.ToString("yyyy-MM-dd")';
+        let segments = [];
+
+        if (processedData.length === 0) {
+          // If no data, create a full-day standby segment
+          segments = [{
+            Category: 'Standby',
+            SubcategoryName: 'Standby',
+            StartTime: new Date(dateStr + 'T00:00:00'),
+            EndTime: new Date(dateStr + 'T23:59:59'),
+            OperatorName: null,
+            BookingNumber: null,
+            MaintenanceTitle: null,
+            Notes: null,
+            DurationMinutes: 24 * 60 - 1
+          }];
+        } else {
+          // Sort segments by start time
+          const sortedData = [...processedData].sort((a, b) => a.StartTime - b.StartTime);
+
+          // Start tracking from beginning of day
+          let currentTime = new Date(dateStr + 'T00:00:00');
+          const dayEnd = new Date(dateStr + 'T23:59:59');
+
+          // Process each segment, filling gaps with standby
+          sortedData.forEach(segment => {
+            if (segment.StartTime > currentTime) {
+              // Add a standby segment for the gap
+              segments.push({
+                Category: 'Standby',
+                SubcategoryName: 'Standby',
+                StartTime: new Date(currentTime),
+                EndTime: new Date(segment.StartTime),
+                OperatorName: null,
+                BookingNumber: null,
+                MaintenanceTitle: null,
+                Notes: null,
+                DurationMinutes: (segment.StartTime - currentTime) / 60000
+              });
+            }
+
+            // Add the actual segment
+            segments.push(segment);
+
+            // Update current time
+            currentTime = new Date(segment.EndTime);
+          });
+
+          // Fill remaining time until end of day if needed
+          if (currentTime < dayEnd) {
+            segments.push({
+              Category: 'Standby',
+              SubcategoryName: 'Standby',
+              StartTime: new Date(currentTime),
+              EndTime: new Date(dayEnd),
+              OperatorName: null,
+              BookingNumber: null,
+              MaintenanceTitle: null,
+              Notes: null,
+              DurationMinutes: (dayEnd - currentTime) / 60000
+            });
+          }
+        }
+
+        console.log("Segments to render:", segments);
+
+        // Siapkan dimensi dan margin
+        const margin = { top: 20, right: 20, bottom: 40, left: 50 },
+          containerWidth = document.getElementById('minuteVisualizationChart').clientWidth,
+          containerHeight = document.querySelector('.minute-chart-container').clientHeight,
+          width = containerWidth - margin.left - margin.right,
+          height = containerHeight - margin.top - margin.bottom;
+
+        // Buat SVG container
+        const svg = d3.select("#minuteVisualizationChart")
+          .append("svg")
+          .attr("width", containerWidth)
+          .attr("height", containerHeight)
+          .append("g")
+          .attr("transform", `translate(${margin.left},${margin.top})`);
+
+        // Definisikan skala untuk sumbu Y (jam)
+        const yScale = d3.scaleLinear()
+          .domain([0, 24])
+          .range([0, height]);
+
+        // Tentukan lebar batang (30% dari lebar chart)
+        const barWidth = width * 0.3;
+        const barX = (width - barWidth) / 2;
+
+        // Tambahkan sumbu Y (jam)
+        const yAxis = d3.axisLeft(yScale)
+          .ticks(24)
+          .tickFormat(formatHour);
+
+        svg.append("g")
+          .attr("class", "y-axis")
+          .call(yAxis);
+
+        // Tambahkan grid lines horizontal
+        svg.selectAll("grid-line")
+          .data(d3.range(0, 25))
+          .enter()
+          .append("line")
+          .attr("class", "grid-line")
+          .attr("x1", 0)
+          .attr("x2", width)
+          .attr("y1", d => yScale(d))
+          .attr("y2", d => yScale(d))
+          .attr("stroke", "#eee")
+          .attr("stroke-width", 1);
+
+        // Helper function untuk mendapatkan jam sebagai desimal
+        function getHourDecimal(dateObj) {
+          return dateObj.getHours() + dateObj.getMinutes() / 60 + dateObj.getSeconds() / 3600;
+        }
+
+        // Buat dan tambahkan segmen
+        svg.selectAll(".segment")
+          .data(segments)
+          .enter()
+          .append("rect")
+          .attr("class", "segment")
+          .attr("x", barX)
+          .attr("y", d => yScale(getHourDecimal(d.StartTime)))
+          .attr("width", barWidth)
+          .attr("height", d => {
+            const startHour = getHourDecimal(d.StartTime);
+            const endHour = getHourDecimal(d.EndTime);
+
+            // Ensure positive height (important)
+            return Math.max(0.1, yScale(endHour) - yScale(startHour));
+          })
+          .attr("fill", d => getCategoryColor(d.Category))
+          .attr("stroke", "#fff")
+          .attr("stroke-width", 0.5)
+          .on("mouseover", function (event, d) {
+            d3.select(this)
+              .attr("stroke", "#000")
+              .attr("stroke-width", 1);
+
+            const startTime = formatTime(d.StartTime);
+            const endTime = formatTime(d.EndTime);
+            const durationMinutes = d.DurationMinutes;
+            const hours = Math.floor(durationMinutes / 60);
+            const minutes = durationMinutes % 60;
+            const durationText = hours > 0
+              ? `${hours} jam ${minutes} menit`
+              : `${minutes} menit`;
+
+            tooltip.transition()
+              .duration(200)
+              .style("opacity", 0.9);
+            tooltip.html(`
+                                  <strong>${d.Category}</strong> - ${d.SubcategoryName}<br/>
+                                  ${startTime} - ${endTime} (${durationText})<br/>
+                                  ${d.OperatorName ? `Operator: ${d.OperatorName}<br/>` : ""}
+                                  ${d.BookingNumber ? `Booking: ${d.BookingNumber}` : ""}
+                                `)
+              .style("left", (event.pageX + 10) + "px")
+              .style("top", (event.pageY - 28) + "px");
+          })
+          .on("mouseout", function () {
+            d3.select(this)
+              .attr("stroke", "#fff")
+              .attr("stroke-width", 0.5);
+
+            tooltip.transition()
+              .duration(500)
+              .style("opacity", 0);
+          })
+          .on("click", function (event, d) {
+            // Tampilkan detail aktivitas saat diklik
+            displayActivityDetails(d);
+          });
+
+        // Label sumbu Y
+        svg.append("text")
+          .attr("transform", "rotate(-90)")
+          .attr("y", 0 - margin.left)
+          .attr("x", 0 - (height / 2))
+          .attr("dy", "1em")
+          .style("text-anchor", "middle")
+          .style("font-size", "12px")
+          .text("Jam");
+
+        // Judul chart
+        svg.append("text")
+          .attr("x", width / 2)
+          .attr("y", 0 - (margin.top / 2))
+          .attr("text-anchor", "middle")
+          .style("font-size", "14px")
+          .style("font-weight", "bold")
+          .text("Detail Penggunaan Crane per Menit");
+
+        // Tampilkan detail segmen pertama secara default
+        if (segments.length > 0) {
+          displayActivityDetails(segments[0]);
+        }
+      }
+
+      // Gambar visualisasi
+      drawVisualization();
+
+      // Event listener untuk resize window
+      window.addEventListener('resize', drawVisualization);
+    });
+  </script>
+}

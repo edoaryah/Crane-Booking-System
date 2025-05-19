@@ -1,0 +1,318 @@
+<!-- Views/Billing/Details.cshtml -->
+@model AspnetCoreMvcFull.ViewModels.Billing.BillingDetailViewModel
+@{
+  ViewData["Title"] = "Detail Penagihan";
+  Layout = "_ContentNavbarLayout";
+}
+
+@if (ViewBag.SuccessMessage != null)
+{
+  <div class="alert alert-success alert-dismissible fade show" role="alert">
+    @ViewBag.SuccessMessage
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+}
+@if (ViewBag.ErrorMessage != null)
+{
+  <div class="alert alert-danger alert-dismissible fade show" role="alert">
+    @ViewBag.ErrorMessage
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+}
+
+<h1>Detail Penagihan</h1>
+<p class="lead">Detail penggunaan crane untuk booking @Model.Booking.BookingNumber</p>
+
+<!-- Card Info Booking -->
+<div class="card mb-4">
+  <div class="card-header">
+    <i class="bx bx-info-circle me-1"></i>
+    Informasi Booking
+  </div>
+  <div class="card-body">
+    <div class="row">
+      <div class="col-md-6">
+        <dl class="row">
+          <dt class="col-sm-4">No. Booking:</dt>
+          <dd class="col-sm-8">@Model.Booking.BookingNumber</dd>
+
+          <dt class="col-sm-4">No. Dokumen:</dt>
+          <dd class="col-sm-8">@Model.Booking.DocumentNumber</dd>
+
+          <dt class="col-sm-4">Requester:</dt>
+          <dd class="col-sm-8">@Model.Booking.RequesterName</dd>
+
+          <dt class="col-sm-4">Departemen:</dt>
+          <dd class="col-sm-8">@Model.Booking.Department</dd>
+        </dl>
+      </div>
+      <div class="col-md-6">
+        <dl class="row">
+          <dt class="col-sm-4">Crane:</dt>
+          <dd class="col-sm-8">@Model.Booking.CraneCode (@Model.Booking.CraneCapacity Ton)</dd>
+
+          <dt class="col-sm-4">Tanggal Booking:</dt>
+          <dd class="col-sm-8">@Model.Booking.BookingStartDate.ToString("dd/MM/yyyy") -
+            @Model.Booking.BookingEndDate.ToString("dd/MM/yyyy")</dd>
+
+          <dt class="col-sm-4">Tanggal Aktual:</dt>
+          <dd class="col-sm-8">
+            @if (Model.Booking.ActualStartDate.HasValue && Model.Booking.ActualEndDate.HasValue)
+            {
+              @Model.Booking.ActualStartDate.Value.ToString("dd/MM/yyyy") <text> - </text>
+              @Model.Booking.ActualEndDate.Value.ToString("dd/MM/yyyy")
+            }
+            else
+            {
+              <span class="text-muted">Belum ada penggunaan aktual</span>
+            }
+          </dd>
+
+          <dt class="col-sm-4">Status:</dt>
+          <dd class="col-sm-8">
+            @if (Model.Booking.IsBilled)
+            {
+              <span class="badge bg-success">Sudah Ditagih</span>
+            }
+            else
+            {
+              <span class="badge bg-warning">Belum Ditagih</span>
+            }
+          </dd>
+
+          @if (Model.Booking.IsBilled)
+          {
+            <dt class="col-sm-4">Ditagih Pada:</dt>
+            <dd class="col-sm-8">@Model.Booking.BilledDate?.ToString("dd/MM/yyyy HH:mm")</dd>
+
+            <dt class="col-sm-4">Ditagih Oleh:</dt>
+            <dd class="col-sm-8">@Model.Booking.BilledBy</dd>
+
+            @if (!string.IsNullOrEmpty(Model.Booking.BillingNotes))
+            {
+              <dt class="col-sm-4">Catatan:</dt>
+              <dd class="col-sm-8">@Model.Booking.BillingNotes</dd>
+            }
+          }
+        </dl>
+      </div>
+    </div>
+
+    <!-- Billing Action Buttons -->
+    <div class="mt-3 text-end">
+      @if (!Model.Booking.IsBilled)
+      {
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#billingModal">
+          <i class="bx bx-check-circle me-1"></i> Tandai Sudah Ditagih
+        </button>
+      }
+      else
+      {
+        <form asp-action="UnmarkAsBilled" asp-route-id="@Model.Booking.BookingId" method="post" class="d-inline"
+          onsubmit="return confirm('Apakah Anda yakin ingin membatalkan status penagihan untuk booking ini?');">
+          @Html.AntiForgeryToken()
+          <button type="submit" class="btn btn-warning">
+            <i class="bx bx-undo me-1"></i> Batalkan Status Penagihan
+          </button>
+        </form>
+      }
+      <a asp-action="Index" class="btn btn-secondary">
+        <i class="bx bx-arrow-back me-1"></i> Kembali
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Card Summary -->
+<div class="card mb-4">
+  <div class="card-header">
+    <i class="bx bx-pie-chart-alt me-1"></i>
+    Ringkasan Penggunaan
+  </div>
+  <div class="card-body">
+    <div class="row">
+      <div class="col-md-6">
+        <h5>Total Jam Penggunaan</h5>
+        <div class="progress mb-3" style="height: 25px;">
+          <div class="progress-bar bg-success" role="progressbar"
+            style="width: @Model.Calculation.OperatingPercentage%;"
+            title="Operating: @Model.Calculation.OperatingHours.ToString("0.0") jam">
+            @Model.Calculation.OperatingHours.ToString("0.0")
+          </div>
+          <div class="progress-bar bg-warning" role="progressbar" style="width: @Model.Calculation.DelayPercentage%;"
+            title="Delay: @Model.Calculation.DelayHours.ToString("0.0") jam">
+            @Model.Calculation.DelayHours.ToString("0.0")
+          </div>
+          <div class="progress-bar bg-secondary" role="progressbar"
+            style="width: @Model.Calculation.StandbyPercentage%;"
+            title="Standby: @Model.Calculation.StandbyHours.ToString("0.0") jam">
+            @Model.Calculation.StandbyHours.ToString("0.0")
+          </div>
+          <div class="progress-bar bg-info" role="progressbar" style="width: @Model.Calculation.ServicePercentage%;"
+            title="Service: @Model.Calculation.ServiceHours.ToString("0.0") jam">
+            @Model.Calculation.ServiceHours.ToString("0.0")
+          </div>
+          <div class="progress-bar bg-danger" role="progressbar" style="width: @Model.Calculation.BreakdownPercentage%;"
+            title="Breakdown: @Model.Calculation.BreakdownHours.ToString("0.0") jam">
+            @Model.Calculation.BreakdownHours.ToString("0.0")
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <table class="table table-sm">
+          <tr>
+            <td>Operating</td>
+            <td>@Model.Calculation.OperatingHours.ToString("0.0") jam</td>
+            <td>@Model.Calculation.OperatingPercentage.ToString("0.0")%</td>
+          </tr>
+          <tr>
+            <td>Delay</td>
+            <td>@Model.Calculation.DelayHours.ToString("0.0") jam</td>
+            <td>@Model.Calculation.DelayPercentage.ToString("0.0")%</td>
+          </tr>
+          <tr>
+            <td>Standby</td>
+            <td>@Model.Calculation.StandbyHours.ToString("0.0") jam</td>
+            <td>@Model.Calculation.StandbyPercentage.ToString("0.0")%</td>
+          </tr>
+          <tr>
+            <td>Service</td>
+            <td>@Model.Calculation.ServiceHours.ToString("0.0") jam</td>
+            <td>@Model.Calculation.ServicePercentage.ToString("0.0")%</td>
+          </tr>
+          <tr>
+            <td>Breakdown</td>
+            <td>@Model.Calculation.BreakdownHours.ToString("0.0") jam</td>
+            <td>@Model.Calculation.BreakdownPercentage.ToString("0.0")%</td>
+          </tr>
+          <tr class="table-active">
+            <th>Total</th>
+            <th>@Model.Calculation.TotalHours.ToString("0.0") jam</th>
+            <th>100%</th>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Card Detail Entry -->
+<div class="card mb-4">
+  <div class="card-header">
+    <i class="bx bx-list-ul me-1"></i>
+    Detail Entri Penggunaan
+  </div>
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-bordered table-hover" id="entriesTable">
+        <thead class="table-light">
+          <tr>
+            <th>Tanggal</th>
+            <th>Waktu</th>
+            <th>Kategori</th>
+            <th>Subkategori</th>
+            <th>Operator</th>
+            <th>Durasi</th>
+            <th>Catatan</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (Model.Entries != null && Model.Entries.Any())
+          {
+            @foreach (var entry in Model.Entries)
+            {
+              <tr>
+                <td>@entry.Date.ToString("dd/MM/yyyy")</td>
+                <td>@entry.StartTime.ToString(@"hh\:mm") - @entry.EndTime.ToString(@"hh\:mm")</td>
+                <td>
+                  <span class="badge" style="background-color: @GetCategoryColor(entry.Category)">
+                    @entry.Category
+                  </span>
+                </td>
+                <td>@entry.SubcategoryName</td>
+                <td>@entry.OperatorName</td>
+                <td>@entry.DurationHours.ToString("0.0") jam</td>
+                <td>@entry.Notes</td>
+              </tr>
+            }
+          }
+          else
+          {
+            <tr>
+              <td colspan="7" class="text-center">Tidak ada entri penggunaan</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Mark as Billed Modal -->
+<div class="modal fade" id="billingModal" tabindex="-1" aria-labelledby="billingModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form asp-action="MarkAsBilled" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="BookingId" value="@Model.Booking.BookingId" />
+        <input type="hidden" name="BookingNumber" value="@Model.Booking.BookingNumber" />
+        <div class="modal-header">
+          <h5 class="modal-title" id="billingModalLabel">Tandai Sebagai Sudah Ditagih</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>Apakah Anda yakin ingin menandai booking <strong>@Model.Booking.BookingNumber</strong> sebagai sudah
+            ditagih?</p>
+
+          <p><strong>Ringkasan Penggunaan:</strong></p>
+          <ul>
+            <li>Operating: @Model.Calculation.OperatingHours.ToString("0.0") jam</li>
+            <li>Delay: @Model.Calculation.DelayHours.ToString("0.0") jam</li>
+            <li>Standby: @Model.Calculation.StandbyHours.ToString("0.0") jam</li>
+            <li>Service: @Model.Calculation.ServiceHours.ToString("0.0") jam</li>
+            <li>Breakdown: @Model.Calculation.BreakdownHours.ToString("0.0") jam</li>
+            <li><strong>Total: @Model.Calculation.TotalHours.ToString("0.0") jam</strong></li>
+          </ul>
+
+          <div class="mb-3">
+            <label for="BillingNotes" class="form-label">Catatan Penagihan (Opsional)</label>
+            <textarea id="BillingNotes" name="BillingNotes" class="form-control" rows="3"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+          <button type="submit" class="btn btn-primary">Tandai Sudah Ditagih</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+@functions {
+  public string GetCategoryColor(UsageCategory category)
+  {
+    return category switch
+    {
+      UsageCategory.Operating => "#28a745", // Green
+      UsageCategory.Delay => "#ffc107", // Yellow
+      UsageCategory.Standby => "#6c757d", // Gray
+      UsageCategory.Service => "#17a2b8", // Cyan
+      UsageCategory.Breakdown => "#dc3545", // Red
+      _ => "#6c757d" // Default Gray
+    };
+  }
+}
+
+@section PageScripts {
+  <script>
+    $(document).ready(function () {
+      $('#entriesTable').DataTable({
+        language: {
+          url: '/lib/datatables/Indonesian.json'
+        },
+        order: [[0, 'asc'], [1, 'asc']], // Sort by date, then time
+        responsive: true
+      });
+    });
+  </script>
+}

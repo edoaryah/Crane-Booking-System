@@ -1,0 +1,142 @@
+@model AspnetCoreMvcFull.ViewModels.ApprovalViewModel
+@{
+  ViewData["Title"] = "Persetujuan PIC Crane";
+  Layout = "_BlankLayout";
+}
+
+<div class="container-xxl flex-grow-1 container-p-y">
+  <h4 class="fw-bold py-3 mb-4">
+    <span class="text-muted fw-light">Booking Crane /</span> Persetujuan PIC Crane
+  </h4>
+
+  <div class="row">
+    <div class="col-12">
+      <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">Detail Booking #@Model.BookingDetails?.BookingNumber</h5>
+        </div>
+        <div class="card-body">
+          <div class="alert alert-info" role="alert">
+            <h6 class="alert-heading mb-1">Informasi</h6>
+            <p class="mb-0">Anda diminta untuk menyetujui atau menolak permintaan booking crane ini sebagai PIC Crane.
+            </p>
+          </div>
+
+          <!-- Detail Booking -->
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label">Nama Pemohon</label>
+                <input type="text" class="form-control" value="@Model.BookingDetails?.Name" readonly />
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Departemen</label>
+                <input type="text" class="form-control" value="@Model.BookingDetails?.Department" readonly />
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Tanggal Booking</label>
+                <input type="text" class="form-control"
+                  value="@Model.BookingDetails?.StartDate.ToString("dd/MM/yyyy") - @Model.BookingDetails?.EndDate.ToString("dd/MM/yyyy")"
+                  readonly />
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label">Crane</label>
+                <input type="text" class="form-control" value="@Model.BookingDetails?.CraneCode" readonly />
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Lokasi</label>
+                <input type="text" class="form-control" value="@Model.BookingDetails?.Location" readonly />
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Tanggal Pengajuan</label>
+                <input type="text" class="form-control"
+                  value="@Model.BookingDetails?.SubmitTime.ToString("dd/MM/yyyy HH:mm")" readonly />
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Deskripsi Pekerjaan</label>
+            <textarea class="form-control" rows="3" readonly>@Model.BookingDetails?.Description</textarea>
+          </div>
+
+          <!-- Approval Info -->
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label">Status Persetujuan Manager</label>
+                <input type="text" class="form-control bg-success text-white"
+                  value="Disetujui oleh @Model.BookingDetails?.ManagerName pada @Model.BookingDetails?.ManagerApprovalTime?.ToString("dd/MM/yyyy HH:mm")"
+                  readonly />
+              </div>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="row mt-4">
+            <div class="col-md-6">
+              <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#approveModal">
+                <i class="bx bx-check me-1"></i> Setujui
+              </button>
+              <button type="button" class="btn btn-danger ms-2" data-bs-toggle="modal" data-bs-target="#rejectModal">
+                <i class="bx bx-x me-1"></i> Tolak
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Approve Modal -->
+<div class="modal fade" id="approveModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <form method="post" asp-action="ApproveByPic">
+        <input type="hidden" name="bookingId" value="@Model.BookingId" />
+        <input type="hidden" name="picName" value="@Model.EmployeeName" />
+        <div class="modal-header">
+          <h5 class="modal-title">Konfirmasi Persetujuan</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>Apakah Anda yakin ingin menyetujui booking crane ini?</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+          <button type="submit" class="btn btn-success">Setujui</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Reject Modal -->
+<div class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <form method="post" asp-action="RejectByPic">
+        <input type="hidden" name="bookingId" value="@Model.BookingId" />
+        <input type="hidden" name="picName" value="@Model.EmployeeName" />
+        <div class="modal-header">
+          <h5 class="modal-title">Konfirmasi Penolakan</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Alasan Penolakan <span class="text-danger">*</span></label>
+            <textarea class="form-control" name="rejectReason" rows="3" required></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+          <button type="submit" class="btn btn-danger">Tolak</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

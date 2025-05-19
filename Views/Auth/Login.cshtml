@@ -1,0 +1,163 @@
+@model AspnetCoreMvcFull.ViewModels.Auth.LoginViewModel
+@{
+  Layout = "_BlankLayout";
+  ViewData["Title"] = "Login - Crane Booking";
+}
+
+@section PageStyles {
+  <link rel="stylesheet" href="~/vendor/css/pages/page-auth.css">
+}
+
+<div class="container-xxl">
+  <div class="authentication-wrapper authentication-basic container-p-y">
+    <div class="card-login">
+      <!-- Crane Image Slider (Left Side) -->
+      <div class="login-image-side">
+        <div class="slide active">
+          <img src="~/img/illustrations/crane1.jpg" alt="Crane Image 1">
+          <div class="slide-content">
+          </div>
+        </div>
+        <div class="slide">
+          <img src="~/img/illustrations/crane2.jpg" alt="Crane Image 2">
+          <div class="slide-content">
+          </div>
+        </div>
+        <div class="slide">
+          <img src="~/img/illustrations/crane3.jpg" alt="Crane Image 3">
+          <div class="slide-content">
+          </div>
+        </div>
+        <div class="slider-controls">
+          <span class="slider-dot active" data-slide="0"></span>
+          <span class="slider-dot" data-slide="1"></span>
+          <span class="slider-dot" data-slide="2"></span>
+        </div>
+      </div>
+
+      <!-- Login Form (Right Side) -->
+      <div class="login-form-side">
+        <!-- /Logo -->
+        <h4 class="mb-1">Welcome to Crane Booking Systems</h4>
+        <p class="mb-4">Please sign-in to your account</p>
+
+        <form id="formAuthentication" class="mb-3" asp-controller="Auth" asp-action="Login" method="POST">
+          @Html.AntiForgeryToken()
+          <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+          <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
+
+          <div class="mb-3">
+            <label asp-for="Username" class="form-label">LDAP Username</label>
+            <input type="text" class="form-control" asp-for="Username" placeholder="Enter your LDAP username" autofocus>
+            <span asp-validation-for="Username" class="text-danger"></span>
+          </div>
+
+          <div class="mb-3 form-password-toggle">
+            <label asp-for="Password" class="form-label">Password</label>
+            <div
+              class="input-group input-group-merge @(ViewData.ModelState["Password"]?.Errors.Count > 0 ? "is-invalid" : "")">
+              <input type="password" asp-for="Password" class="form-control"
+                placeholder="&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;"
+                aria-describedby="password" />
+              <span class="input-group-text cursor-pointer"><i class="bx bx-hide"></i></span>
+            </div>
+            <span asp-validation-for="Password" class="text-danger"></span>
+          </div>
+
+          <div class="mb-3">
+            <div class="d-flex justify-content-between">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" asp-for="RememberMe" id="remember-me">
+                <label class="form-check-label" for="remember-me">
+                  Remember Me
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <button class="btn btn-primary d-grid w-100" type="submit" id="loginButton">Login</button>
+          </div>
+        </form>
+
+        @* <div class="text-center mt-4">
+          <p class="text-muted">Crane Booking System &copy; @DateTime.Now.Year</p>
+        </div> *@
+      </div>
+    </div>
+  </div>
+</div>
+
+@section PageScripts {
+  <script>
+    // Prevent multiple form submissions
+    document.getElementById('formAuthentication').addEventListener('submit', function (e) {
+      const button = document.getElementById('loginButton');
+
+      if (button.classList.contains('disabled')) {
+        e.preventDefault();
+        return false;
+      }
+
+      // Disable button and show loading state
+      button.innerHTML = '<div class="d-flex align-items-center justify-content-center"><span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span><span>Processing...</span></div>';
+      button.classList.add('disabled');
+
+      // Enable button after 10 seconds (fallback)
+      setTimeout(function () {
+        button.innerHTML = 'Login';
+        button.classList.remove('disabled');
+      }, 10000);
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+      const passwordInput = document.getElementById('Password');
+      if (passwordInput &&
+        (passwordInput.classList.contains('input-validation-error') ||
+          passwordInput.classList.contains('is-invalid'))) {
+        passwordInput.closest('.input-group').classList.add('is-invalid');
+      }
+    });
+
+    // Image Slider Script
+    document.addEventListener('DOMContentLoaded', function () {
+      const slides = document.querySelectorAll('.slide');
+      const dots = document.querySelectorAll('.slider-dot');
+      let currentSlide = 0;
+
+      // Set up dot click handlers
+      dots.forEach(dot => {
+        dot.addEventListener('click', function () {
+          const slideIndex = parseInt(this.getAttribute('data-slide'));
+          showSlide(slideIndex);
+        });
+      });
+
+      // Show specific slide
+      function showSlide(index) {
+        // Deactivate current slide and dot
+        slides[currentSlide].classList.remove('active');
+        dots[currentSlide].classList.remove('active');
+
+        // Activate new slide and dot
+        currentSlide = index;
+        slides[currentSlide].classList.add('active');
+        dots[currentSlide].classList.add('active');
+      }
+
+      // Auto slide change
+      function nextSlide() {
+        let newIndex = currentSlide + 1;
+        if (newIndex >= slides.length) {
+          newIndex = 0;
+        }
+        showSlide(newIndex);
+      }
+
+      // Change slides every 5 seconds
+      setInterval(nextSlide, 5000);
+    });
+  </script>
+  <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+  <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+}

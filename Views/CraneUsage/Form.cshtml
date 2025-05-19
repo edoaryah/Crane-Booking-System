@@ -1,0 +1,897 @@
+@model AspnetCoreMvcFull.ViewModels.CraneUsage.CraneUsageFormViewModel
+@{
+  ViewData["Title"] = "Input Crane Usage";
+  Layout = "_ContentNavbarLayout";
+}
+
+@if (ViewBag.SuccessMessage != null)
+{
+  <div class="alert alert-success alert-dismissible fade show" role="alert">
+    @ViewBag.SuccessMessage
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+}
+@if (ViewBag.ErrorMessage != null)
+{
+  <div class="alert alert-danger alert-dismissible fade show" role="alert">
+    @ViewBag.ErrorMessage
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+}
+
+<h1>Input Crane Usage</h1>
+<p class="lead">Record usage for crane @Model.CraneCode on @Model.Date.ToString("dd MMMM yyyy")</p>
+
+<!-- Record Information Card -->
+<div class="card mb-4">
+  <div class="card-header">
+    <i class="bx bx-info-circle me-1"></i>
+    Record Information
+  </div>
+  <div class="card-body">
+    <div class="row">
+      <div class="col-md-6">
+        <dl class="row">
+          <dt class="col-sm-4">Crane:</dt>
+          <dd class="col-sm-8">@Model.CraneCode</dd>
+
+          <dt class="col-sm-4">Date:</dt>
+          <dd class="col-sm-8">@Model.Date.ToString("dd MMMM yyyy")</dd>
+        </dl>
+      </div>
+      <div class="col-md-6">
+        <dl class="row">
+          <dt class="col-sm-4">Status:</dt>
+          <dd class="col-sm-8">
+            @if (Model.IsFinalized)
+            {
+              <span class="badge bg-success">Finalized</span>
+            }
+            else
+            {
+              <span class="badge bg-warning">Draft</span>
+            }
+          </dd>
+
+          @if (Model.IsFinalized)
+          {
+            <dt class="col-sm-4">Finalized By:</dt>
+            <dd class="col-sm-8">@Model.FinalizedBy on @Model.FinalizedAt?.ToString("dd/MM/yyyy HH:mm")</dd>
+          }
+        </dl>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Entry List Card -->
+<form id="usageForm" asp-action="Form" method="post">
+  <input type="hidden" asp-for="CraneId" />
+  <input type="hidden" asp-for="Date" />
+  <input type="hidden" asp-for="IsFinalized" />
+
+  <div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <div>
+        <i class="bx bx-time me-1"></i>
+        Entries
+      </div>
+      @if (!Model.IsFinalized)
+      {
+        <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#addEntryModal">
+          <i class="bx bx-plus me-1"></i> Add Entry
+        </button>
+      }
+    </div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-bordered table-hover" id="entriesTable">
+          <thead class="table-light">
+            <tr>
+              <th>Time</th>
+              <th>Category</th>
+              <th>Subcategory</th>
+              <th>Operator</th>
+              <th>Booking</th>
+              <th>Notes</th>
+              @if (!Model.IsFinalized)
+              {
+                <th>Actions</th>
+              }
+            </tr>
+          </thead>
+          <tbody id="entriesTableBody">
+            @if (Model.Entries != null && Model.Entries.Any())
+            {
+              @for (int i = 0; i < Model.Entries.Count; i++)
+              {
+                var entry = Model.Entries[i];
+                <tr data-entry-id="@entry.Id">
+                  <td>@entry.StartTime.ToString(@"hh\:mm") - @entry.EndTime.ToString(@"hh\:mm")</td>
+                  <td>
+                    <span class="badge" style="background-color: @GetCategoryColor(entry.Category)">
+                      @entry.CategoryName
+                    </span>
+                  </td>
+                  <td>@entry.SubcategoryName</td>
+                  <td>@entry.OperatorName</td>
+                  <td>
+                    @if (!string.IsNullOrEmpty(entry.BookingNumber))
+                    {
+                      <span class="badge bg-primary">@entry.BookingNumber</span>
+                    }
+                    @if (!string.IsNullOrEmpty(entry.MaintenanceTitle))
+                    {
+                      <span class="badge bg-info">@entry.MaintenanceTitle</span>
+                    }
+                  </td>
+                  <td>@entry.Notes</td>
+                  @if (!Model.IsFinalized)
+                  {
+                    <td>
+                      <div class="btn-group">
+                        <button type="button" class="btn btn-sm btn-warning text-white edit-entry" data-id="@entry.Id"
+                          data-start="@entry.StartTime.ToString(@"hh\:mm")" data-end="@entry.EndTime.ToString(@"hh\:mm")"
+                          data-category="@((int)entry.Category)" data-subcategory="@entry.UsageSubcategoryId"
+                          data-operator="@entry.OperatorName" data-booking="@entry.BookingId"
+                          data-maintenance="@entry.MaintenanceScheduleId" data-notes="@entry.Notes">
+                          <i class="bx bx-edit"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-danger delete-entry" data-id="@entry.Id">
+                          <i class="bx bx-trash"></i>
+                        </button>
+                      </div>
+                    </td>
+                  }
+
+                  <input type="hidden" name="Entries[@i].Id" value="@entry.Id" />
+                  <input type="hidden" name="Entries[@i].StartTime" value="@entry.StartTime" />
+                  <input type="hidden" name="Entries[@i].EndTime" value="@entry.EndTime" />
+                  <input type="hidden" name="Entries[@i].Category" value="@((int)entry.Category)" />
+                  <input type="hidden" name="Entries[@i].UsageSubcategoryId" value="@entry.UsageSubcategoryId" />
+                  <input type="hidden" name="Entries[@i].OperatorName" value="@entry.OperatorName" />
+                  <input type="hidden" name="Entries[@i].BookingId" value="@entry.BookingId" />
+                  <input type="hidden" name="Entries[@i].MaintenanceScheduleId" value="@entry.MaintenanceScheduleId" />
+                  <input type="hidden" name="Entries[@i].Notes" value="@entry.Notes" />
+                </tr>
+              }
+            }
+            else
+            {
+              <tr id="noEntriesRow">
+                <td colspan="@(Model.IsFinalized ? 6 : 7)" class="text-center">No entries found. @(Model.IsFinalized ? ""
+                                  : "Click \"Add Entry\" to add a new entry.")</td>
+            </tr>
+                        }
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card-footer">
+      <div class="d-flex justify-content-between">
+        <div>
+          <a asp-action="Index" class="btn btn-secondary">
+            <i class="bx bx-arrow-back me-1"></i> Back to List
+          </a>
+          @if (!Model.IsFinalized)
+          {
+            <button type="submit" class="btn btn-primary">
+              <i class="bx bx-save me-1"></i> Save Changes
+            </button>
+          }
+        </div>
+        @if (!Model.IsFinalized && Model.Entries.Any())
+        {
+          <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#finalizeModal">
+            <i class="bx bx-check-circle me-1"></i> Selesaikan Input Usage
+          </button>
+        }
+      </div>
+    </div>
+  </div>
+</form>
+
+<!-- Entry Form Modal -->
+@if (!Model.IsFinalized)
+{
+  <!-- Add Entry Modal -->
+  <div class="modal fade" id="addEntryModal" tabindex="-1" aria-labelledby="addEntryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addEntryModalLabel">Add Entry</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="entryForm">
+            <input type="hidden" id="entryId" value="0" />
+
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="startTime" class="form-label">Start Time</label>
+                <input type="time" id="startTime" class="form-control" required />
+                <div class="invalid-feedback">Start time is required.</div>
+              </div>
+              <div class="col-md-6">
+                <label for="endTime" class="form-label">End Time</label>
+                <input type="time" id="endTime" class="form-control" required />
+                <div class="invalid-feedback">End time is required.</div>
+              </div>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="category" class="form-label">Category</label>
+                <select id="category" class="form-select" required>
+                  <option value="">-- Select Category --</option>
+                  @foreach (var category in Enum.GetValues(typeof(UsageCategory)))
+                  {
+                    <option value="@((int)category)">@category</option>
+                  }
+                </select>
+                <div class="invalid-feedback">Category is required.</div>
+              </div>
+              <div class="col-md-6">
+                <label for="subcategory" class="form-label">Subcategory</label>
+                <select id="subcategory" class="form-select" required>
+                  <option value="">-- Select Subcategory --</option>
+                </select>
+                <div class="invalid-feedback">Subcategory is required.</div>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="operator" class="form-label">Operator</label>
+              <input type="text" id="operator" class="form-control" required />
+              <div class="invalid-feedback">Operator name is required.</div>
+            </div>
+
+            <div class="mb-3">
+              <label for="booking" class="form-label">Booking (Optional)</label>
+              <div class="input-group">
+                <input type="hidden" id="booking" />
+                <input type="text" id="bookingSearch" class="form-control" placeholder="Search bookings..." />
+                <button class="btn btn-outline-secondary" type="button" id="clearBookingBtn">
+                  <i class="bx bx-x"></i>
+                </button>
+              </div>
+              <div id="bookingSearchResults" class="search-results mt-1"></div>
+              <div id="selectedBookingInfo" class="mt-2"></div>
+            </div>
+
+            <div class="mb-3">
+              <label for="maintenance" class="form-label">Maintenance (Optional)</label>
+              <select id="maintenance" class="form-select">
+                <option value="">-- No Maintenance --</option>
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label for="notes" class="form-label">Notes (Optional)</label>
+              <textarea id="notes" class="form-control" rows="3"></textarea>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="saveEntryBtn">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Finalize Modal -->
+  <div class="modal fade" id="finalizeModal" tabindex="-1" aria-labelledby="finalizeModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="finalizeModalLabel">Finalize Record</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>Apakah Anda yakin ingin menyelesaikan input usage untuk crane ini? Setelah finalisasi, data tidak dapat
+            diubah lagi.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <a href="@Url.Action("Finalize", new { craneId = Model.CraneId, date = Model.Date.ToString("yyyy-MM-dd") })"
+            class="btn btn-success">
+            <i class="bx bx-check-circle me-1"></i> Finalize
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+@functions {
+  public string GetCategoryColor(UsageCategory category)
+  {
+    return category switch
+    {
+      UsageCategory.Operating => "#28a745", // Green
+      UsageCategory.Delay => "#ffc107", // Yellow
+      UsageCategory.Standby => "#6c757d", // Gray
+      UsageCategory.Service => "#17a2b8", // Cyan
+      UsageCategory.Breakdown => "#dc3545", // Red
+      _ => "#6c757d" // Default Gray
+    };
+  }
+}
+
+@section PageScripts {
+  <script>
+    $(document).ready(function () {
+      // Initialize variables
+      var isEditMode = false;
+      var entryCount = @(Model.Entries?.Count ?? 0);
+      var searchTimeout;
+      var selectedBooking = null;
+
+      // Get current user name from claims
+      var currentUser = '@User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value';
+
+      // ---------------------------------------------------------------------
+      // Event handlers
+      // ---------------------------------------------------------------------
+
+      // Load subcategories when category changes
+      $('#category').change(function () {
+        var categoryId = $(this).val();
+        if (categoryId) {
+          $('#subcategory').html('<option value="">Loading...</option>');
+
+          $.getJSON('@Url.Action("GetSubcategories")?category=' + categoryId, function (data) {
+            var subcategorySelect = $('#subcategory');
+            subcategorySelect.empty();
+            subcategorySelect.append($('<option></option>').val('').text('-- Select Subcategory --'));
+            $.each(data, function (index, item) {
+              subcategorySelect.append($('<option></option>').val(item.value).text(item.text));
+            });
+          });
+        }
+      });
+
+      // Search bookings as user types
+      $('#bookingSearch').on('input', function () {
+        var term = $(this).val();
+
+        // Clear previous timeout
+        if (searchTimeout) {
+          clearTimeout(searchTimeout);
+        }
+
+        // Set new timeout to prevent too many requests
+        searchTimeout = setTimeout(function () {
+          if (term.length >= 3) {
+            $.getJSON('@Url.Action("SearchBookings")?term=' + term + '&craneId=@Model.CraneId', function (data) {
+              var results = $('#bookingSearchResults');
+              results.empty();
+
+              if (data && data.length > 0) {
+                results.show();
+                $.each(data, function (index, booking) {
+                  results.append(
+                    $('<div class="result-item"></div>')
+                      .text(booking.text)
+                      .data('id', booking.value)
+                      .data('text', booking.text)
+                      .click(function () {
+                        selectBooking($(this).data('id'), $(this).data('text'));
+                        results.hide();
+                      })
+                  );
+                });
+              } else {
+                results.hide();
+              }
+            });
+          } else {
+            $('#bookingSearchResults').hide();
+          }
+        }, 300);
+      });
+
+      // Clear booking selection
+      $('#clearBookingBtn').click(function () {
+        removeSelectedBooking();
+      });
+
+      // Function to select booking
+      function selectBooking(id, text) {
+        selectedBooking = { id: id, text: text };
+        $('#booking').val(id);
+        $('#bookingSearch').val('');
+
+        // Display selected booking
+        var bookingInfo = '<div class="selected-booking p-2 bg-light rounded border">' +
+          '<div class="d-flex justify-content-between align-items-center">' +
+          '<span>' + text + '</span>' +
+          '<button type="button" class="btn btn-sm btn-outline-danger remove-btn" title="Remove booking">' +
+          '<i class="bx bx-x"></i></button>' +
+          '</div></div>';
+
+        $('#selectedBookingInfo').html(bookingInfo);
+
+        // Add event to remove button
+        $('.remove-btn').click(function (e) {
+          e.preventDefault();
+          removeSelectedBooking();
+        });
+      }
+
+      // Function to remove selected booking
+      function removeSelectedBooking() {
+        selectedBooking = null;
+        $('#booking').val('');
+        $('#bookingSearch').val('');
+        $('#selectedBookingInfo').empty();
+      }
+
+      // Update related maintenance when time changes
+      function updateRelatedMaintenanceOptions() {
+        var startTime = $('#startTime').val();
+        var endTime = $('#endTime').val();
+
+        if (startTime && endTime) {
+          // Load maintenance options
+          $('#maintenance').html('<option value="">Loading...</option>');
+
+          $.getJSON('@Url.Action("GetRelatedMaintenance")?craneId=@Model.CraneId&date=@Model.Date.ToString("yyyy-MM-dd")&startTime=' + startTime + '&endTime=' + endTime, function (data) {
+            var maintenanceSelect = $('#maintenance');
+            maintenanceSelect.empty();
+            maintenanceSelect.append($('<option></option>').val('').text('-- No Maintenance --'));
+            $.each(data, function (index, item) {
+              maintenanceSelect.append($('<option></option>').val(item.value).text(item.text));
+            });
+          });
+        }
+      }
+
+      $('#startTime, #endTime').change(updateRelatedMaintenanceOptions);
+
+      // ---------------------------------------------------------------------
+      // Modal handling
+      // ---------------------------------------------------------------------
+
+      // Initialize modal on show
+      $('#addEntryModal').on('show.bs.modal', function (e) {
+        if (!isEditMode) {
+          // Reset form for adding new entry
+          $('#entryForm')[0].reset();
+          $('#entryId').val(0);
+          $('#addEntryModalLabel').text('Add Entry');
+
+          // Set default values
+          $('#startTime').val('08:00');
+          $('#endTime').val('09:00');
+          $('#category').val('');
+          $('#subcategory').empty().append($('<option></option>').val('').text('-- Select Subcategory --'));
+          $('#operator').val(currentUser); // Default to current user
+          $('#maintenance').empty().append($('<option></option>').val('').text('-- No Maintenance --'));
+          $('#notes').val('');
+
+          removeSelectedBooking();
+        }
+      });
+
+      // Edit entry button click
+      $(document).on('click', '.edit-entry', function () {
+        isEditMode = true;
+
+        // Get entry data from button data attributes
+        var id = $(this).data('id');
+        var startTime = $(this).data('start');
+        var endTime = $(this).data('end');
+        var category = $(this).data('category');
+        var subcategory = $(this).data('subcategory');
+        var operator = $(this).data('operator');
+        var booking = $(this).data('booking');
+        var bookingText = $(this).closest('tr').find('td:eq(4) .badge.bg-primary').text() || '';
+        var maintenance = $(this).data('maintenance');
+        var notes = $(this).data('notes');
+
+        // Format time
+        startTime = formatTime(startTime);
+        endTime = formatTime(endTime);
+
+        // Set form values
+        $('#entryId').val(id);
+        $('#startTime').val(startTime);
+        $('#endTime').val(endTime);
+        $('#category').val(category);
+        $('#operator').val(operator || '');
+        $('#notes').val(notes || '');
+
+        // Clear booking and set if needed
+        removeSelectedBooking();
+        if (booking && bookingText) {
+          selectBooking(booking, bookingText);
+        }
+
+        // Load subcategories
+        $('#category').trigger('change');
+
+        // Set timeout to allow subcategories to load
+        setTimeout(function () {
+          $('#subcategory').val(subcategory);
+
+          // Load maintenance options
+          updateRelatedMaintenanceOptions();
+
+          // Set timeout to allow maintenance to load
+          setTimeout(function () {
+            if (maintenance) {
+              $('#maintenance').val(maintenance);
+            }
+          }, 500);
+        }, 500);
+
+        // Update modal title
+        $('#addEntryModalLabel').text('Edit Entry');
+
+        // Show modal
+        $('#addEntryModal').modal('show');
+      });
+
+      // ---------------------------------------------------------------------
+      // Save/Delete Entry functions
+      // ---------------------------------------------------------------------
+
+      // Save entry button click
+      $('#saveEntryBtn').click(function () {
+        // Validate form
+        var form = $('#entryForm')[0];
+        if (!form.checkValidity()) {
+          $(form).addClass('was-validated');
+          return;
+        }
+
+        // Get form values
+        var entryId = $('#entryId').val();
+        var startTime = $('#startTime').val();
+        var endTime = $('#endTime').val();
+        var category = $('#category').val();
+        var subcategory = $('#subcategory').val();
+        var operator = $('#operator').val();
+        var booking = $('#booking').val();
+        var maintenance = $('#maintenance').val();
+        var notes = $('#notes').val();
+
+        // Validate times
+        var today = new Date();
+        var startParts = startTime.split(':');
+        var endParts = endTime.split(':');
+
+        var startDateTime = new Date(today);
+        startDateTime.setHours(parseInt(startParts[0]), parseInt(startParts[1]), 0, 0);
+
+        var endDateTime = new Date(today);
+        endDateTime.setHours(parseInt(endParts[0]), parseInt(endParts[1]), 0, 0);
+
+        if (startDateTime >= endDateTime) {
+          alert('Start time must be earlier than end time.');
+          return;
+        }
+
+        // Prepare entry data
+        var entryData = {
+          Id: entryId !== '0' ? parseInt(entryId) : 0,
+          StartTime: startTime,
+          EndTime: endTime,
+          Category: parseInt(category),
+          UsageSubcategoryId: parseInt(subcategory),
+          OperatorName: operator,
+          BookingId: booking ? parseInt(booking) : null,
+          MaintenanceScheduleId: maintenance ? parseInt(maintenance) : null,
+          Notes: notes
+        };
+
+        // Send to server
+        if (isEditMode) {
+          // Update existing entry
+          $.ajax({
+            url: '@Url.Action("UpdateEntry")',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(entryData),
+            success: function (response) {
+              if (response.success) {
+                // Update row in table
+                updateTableRow(response.entry);
+
+                // Close modal
+                $('#addEntryModal').modal('hide');
+
+                // Reset edit mode
+                isEditMode = false;
+              } else {
+                alert(response.message || 'Error updating entry');
+              }
+            },
+            error: function (xhr, status, error) {
+              console.error('Error updating entry:', error);
+              alert('Error updating entry. Please try again.');
+            }
+          });
+        } else {
+          // Add new entry
+          $.ajax({
+            url: '@Url.Action("AddEntry")',
+            type: 'POST',
+            data: {
+              entry: entryData,
+              craneId: '@Model.CraneId',
+              date: '@Model.Date.ToString("yyyy-MM-dd")'
+            },
+            success: function (response) {
+              if (response.success) {
+                // Add row to table
+                addTableRow(response.entry);
+
+                // Close modal
+                $('#addEntryModal').modal('hide');
+              } else {
+                alert(response.message || 'Error adding entry');
+              }
+            },
+            error: function (xhr, status, error) {
+              console.error('Error adding entry:', error);
+              alert('Error adding entry. Please try again.');
+            }
+          });
+        }
+      });
+
+      // Delete entry button click
+      $(document).on('click', '.delete-entry', function () {
+        if (confirm('Are you sure you want to delete this entry?')) {
+          var id = $(this).data('id');
+          var row = $(this).closest('tr');
+
+          // Only send delete request for existing entries (ID > 0)
+          if (id > 0) {
+            $.ajax({
+              url: '@Url.Action("DeleteEntry")',
+              type: 'POST',
+              data: { id: id },
+              success: function (response) {
+                if (response.success) {
+                  // Remove row from table
+                  row.remove();
+
+                  // Show "no entries" row if no entries remain
+                  if ($('#entriesTableBody tr').length === 0) {
+                    $('#entriesTableBody').html('<tr id="noEntriesRow"><td colspan="7" class="text-center">No entries found. Click "Add Entry" to add a new entry.</td></tr>');
+                  }
+
+                  // Re-index entries
+                  reindexEntries();
+                } else {
+                  alert(response.message || 'Error deleting entry');
+                }
+              },
+              error: function () {
+                alert('Error deleting entry. Please try again.');
+              }
+            });
+          } else {
+            // Just remove the row for new entries
+            row.remove();
+
+            // Show "no entries" row if no entries remain
+            if ($('#entriesTableBody tr').length === 0) {
+              $('#entriesTableBody').html('<tr id="noEntriesRow"><td colspan="7" class="text-center">No entries found. Click "Add Entry" to add a new entry.</td></tr>');
+            }
+
+            // Re-index entries
+            reindexEntries();
+          }
+        }
+      });
+
+      // ---------------------------------------------------------------------
+      // Helper functions
+      // ---------------------------------------------------------------------
+
+      // Function to add a new row to the table
+      function addTableRow(entry) {
+        // Remove "no entries" row if it exists
+        $('#noEntriesRow').remove();
+
+        var index = entryCount++;
+        var categoryColor = getCategoryColor(entry.category);
+
+        var relatedItems = '';
+        if (entry.bookingNumber) {
+          relatedItems += '<span class="badge bg-primary">' + entry.bookingNumber + '</span> ';
+        }
+        if (entry.maintenanceTitle) {
+          relatedItems += '<span class="badge bg-info">' + entry.maintenanceTitle + '</span>';
+        }
+
+        var newRow = `
+            <tr data-entry-id="${entry.id}">
+              <td>${formatTime(entry.startTime)} - ${formatTime(entry.endTime)}</td>
+              <td>
+                <span class="badge" style="background-color: ${categoryColor}">
+                  ${entry.categoryName}
+                </span>
+              </td>
+              <td>${entry.subcategoryName}</td>
+              <td>${entry.operatorName || ''}</td>
+              <td>${relatedItems}</td>
+              <td>${entry.notes || ''}</td>
+              <td>
+                <div class="btn-group">
+                  <button type="button" class="btn btn-sm btn-warning text-white edit-entry"
+                    data-id="${entry.id}"
+                    data-start="${formatTime(entry.startTime)}"
+                    data-end="${formatTime(entry.endTime)}"
+                    data-category="${entry.category}"
+                    data-subcategory="${entry.usageSubcategoryId}"
+                    data-operator="${entry.operatorName || ''}"
+                    data-booking="${entry.bookingId || ''}"
+                    data-maintenance="${entry.maintenanceScheduleId || ''}"
+                    data-notes="${entry.notes || ''}">
+                    <i class="bx bx-edit"></i>
+                  </button>
+                  <button type="button" class="btn btn-sm btn-danger delete-entry" data-id="${entry.id}">
+                    <i class="bx bx-trash"></i>
+                  </button>
+                </div>
+              </td>
+
+              <input type="hidden" name="Entries[${index}].Id" value="${entry.id}" />
+              <input type="hidden" name="Entries[${index}].StartTime" value="${entry.startTime}" />
+              <input type="hidden" name="Entries[${index}].EndTime" value="${entry.endTime}" />
+              <input type="hidden" name="Entries[${index}].Category" value="${entry.category}" />
+              <input type="hidden" name="Entries[${index}].UsageSubcategoryId" value="${entry.usageSubcategoryId}" />
+              <input type="hidden" name="Entries[${index}].OperatorName" value="${entry.operatorName || ''}" />
+              <input type="hidden" name="Entries[${index}].BookingId" value="${entry.bookingId || ''}" />
+              <input type="hidden" name="Entries[${index}].MaintenanceScheduleId" value="${entry.maintenanceScheduleId || ''}" />
+              <input type="hidden" name="Entries[${index}].Notes" value="${entry.notes || ''}" />
+            </tr>
+          `;
+
+        $('#entriesTableBody').append(newRow);
+      }
+
+      // Function to update an existing row in the table
+      function updateTableRow(entry) {
+        var row = $(`tr[data-entry-id="${entry.id}"]`);
+        var categoryColor = getCategoryColor(entry.category);
+
+        // Format times
+        var startTimeFormatted = formatTime(entry.startTime);
+        var endTimeFormatted = formatTime(entry.endTime);
+
+        var relatedItems = '';
+        if (entry.bookingNumber) {
+          relatedItems += '<span class="badge bg-primary">' + entry.bookingNumber + '</span> ';
+        }
+        if (entry.maintenanceTitle) {
+          relatedItems += '<span class="badge bg-info">' + entry.maintenanceTitle + '</span>';
+        }
+
+        // Update visible cells
+        row.find('td').eq(0).text(startTimeFormatted + ' - ' + endTimeFormatted);
+        row.find('td').eq(1).html(`<span class="badge" style="background-color: ${categoryColor}">${entry.categoryName}</span>`);
+        row.find('td').eq(2).text(entry.subcategoryName);
+        row.find('td').eq(3).text(entry.operatorName || '');
+        row.find('td').eq(4).html(relatedItems);
+        row.find('td').eq(5).text(entry.notes || '');
+
+        // Update data attributes for edit button
+        var editButton = row.find('.edit-entry');
+        editButton.data('start', startTimeFormatted);
+        editButton.data('end', endTimeFormatted);
+        editButton.data('category', entry.category);
+        editButton.data('subcategory', entry.usageSubcategoryId);
+        editButton.data('operator', entry.operatorName || '');
+        editButton.data('booking', entry.bookingId || '');
+        editButton.data('maintenance', entry.maintenanceScheduleId || '');
+        editButton.data('notes', entry.notes || '');
+
+        // Update hidden inputs
+        row.find('input[name$=".StartTime"]').val(entry.startTime);
+        row.find('input[name$=".EndTime"]').val(entry.endTime);
+        row.find('input[name$=".Category"]').val(entry.category);
+        row.find('input[name$=".UsageSubcategoryId"]').val(entry.usageSubcategoryId);
+        row.find('input[name$=".OperatorName"]').val(entry.operatorName || '');
+        row.find('input[name$=".BookingId"]').val(entry.bookingId || '');
+        row.find('input[name$=".MaintenanceScheduleId"]').val(entry.maintenanceScheduleId || '');
+        row.find('input[name$=".Notes"]').val(entry.notes || '');
+      }
+
+      // Function to re-index entries in the form
+      function reindexEntries() {
+        $('#entriesTableBody tr').each(function (index) {
+          $(this).find('input[name^="Entries["]').each(function () {
+            var name = $(this).attr('name');
+            var newName = name.replace(/Entries\[\d+\]/, `Entries[${index}]`);
+            $(this).attr('name', newName);
+          });
+        });
+      }
+
+      // Helper function to get category color
+      function getCategoryColor(category) {
+        var colors = {
+          0: '#28a745', // Operating (Green)
+          1: '#ffc107', // Delay (Yellow)
+          2: '#6c757d', // Standby (Gray)
+          3: '#17a2b8', // Service (Cyan)
+          4: '#dc3545'  // Breakdown (Red)
+        };
+
+        return colors[category] || '#6c757d';
+      }
+
+      // Helper function to format time
+      function formatTime(timeString) {
+        if (!timeString) return '';
+
+        // If it's already in HH:MM format, return as is
+        if (/^\d{2}:\d{2}$/.test(timeString)) {
+          return timeString;
+        }
+
+        // Try to parse TimeSpan format
+        try {
+          // Split string based on ':'
+          var parts = timeString.split(':');
+
+          // If there are more than 2 parts (e.g., seconds), take only hours and minutes
+          if (parts.length >= 2) {
+            // Ensure format with leading zero
+            var hours = parts[0].padStart(2, '0');
+            var minutes = parts[1].padStart(2, '0');
+            return `${hours}:${minutes}`;
+          }
+        } catch (e) {
+          console.error('Error formatting time:', e);
+        }
+
+        // Return original if parsing fails
+        return timeString;
+      }
+
+      // Close booking search results when clicking outside
+      $(document).on('click', function (e) {
+        if (!$(e.target).closest('#bookingSearch, #bookingSearchResults').length) {
+          $('#bookingSearchResults').hide();
+        }
+      });
+    });
+  </script>
+
+  <style>
+    .search-results {
+      position: absolute;
+      width: 100%;
+      max-height: 200px;
+      overflow-y: auto;
+      background-color: white;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      z-index: 1000;
+      display: none;
+    }
+
+    .search-results .result-item {
+      padding: 8px 12px;
+      cursor: pointer;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .search-results .result-item:hover {
+      background-color: #f5f5f5;
+    }
+
+    .selected-booking .remove-btn {
+      font-size: 0.8rem;
+      padding: 0.2rem 0.4rem;
+    }
+  </style>
+}

@@ -1,0 +1,112 @@
+@model AspnetCoreMvcFull.ViewModels.MaintenanceManagement.MaintenanceScheduleDetailViewModel
+@{
+  ViewData["Title"] = "Maintenance Details";
+  Layout = "_ContentNavbarLayout";
+}
+
+<h4 class="py-3 mb-4">
+  <span class="text-muted fw-light">Maintenance /</span> Schedule Details
+</h4>
+
+<div class="row">
+  <div class="col-12">
+    <div class="card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">@Model.Title</h5>
+        <div>
+          <a href="@Url.Action("Edit", "Maintenance", new { documentNumber = Model.DocumentNumber })"
+            class="btn btn-primary me-2">
+            <i class="bx bx-edit-alt me-1"></i> Edit
+          </a>
+          <a href="@Url.Action("Delete", "Maintenance", new { documentNumber = Model.DocumentNumber })"
+            class="btn btn-danger me-2">
+            <i class="bx bx-trash me-1"></i> Delete
+          </a>
+          <a href="@Url.Action("List", "Maintenance")" class="btn btn-outline-secondary">
+            <i class="bx bx-arrow-back me-1"></i> Back to List
+          </a>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <div class="row mb-4">
+          <div class="col-md-6">
+            <h6 class="fw-semibold">Maintenance Info</h6>
+            <dl class="row mt-3">
+              @* <dt class="col-sm-4">Document Number</dt>
+                <dd class="col-sm-8">@Model.DocumentNumber</dd> *@
+
+              <dt class="col-sm-4">Crane</dt>
+              <dd class="col-sm-8">@Model.CraneCode</dd>
+
+              <dt class="col-sm-4">Date Range</dt>
+              <dd class="col-sm-8">
+                @Model.StartDate.ToShortDateString() - @Model.EndDate.ToShortDateString()
+                <span class="badge bg-label-primary">
+                  @((Model.EndDate - Model.StartDate).Days + 1) days
+                </span>
+              </dd>
+
+              <dt class="col-sm-4">Description</dt>
+              <dd class="col-sm-8">@(string.IsNullOrEmpty(Model.Description) ? "-" : Model.Description)</dd>
+            </dl>
+          </div>
+          <div class="col-md-6">
+            <h6 class="fw-semibold">Maintenance Metadata</h6>
+            <dl class="row mt-3">
+              <dt class="col-sm-4">Created By</dt>
+              <dd class="col-sm-8">@Model.CreatedBy</dd>
+
+              <dt class="col-sm-4">Created At</dt>
+              <dd class="col-sm-8">@Model.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")</dd>
+            </dl>
+          </div>
+        </div>
+
+        <hr class="my-4">
+
+        <h6 class="fw-semibold mb-3">Scheduled Shifts</h6>
+
+        <div class="table-responsive">
+          <table class="table table-bordered">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Day</th>
+                <th>Shifts</th>
+              </tr>
+            </thead>
+            <tbody>
+              @{
+                // Group shifts by date
+                var shiftsByDate = Model.Shifts
+                .GroupBy(s => s.Date.Date)
+                .OrderBy(g => g.Key)
+                .ToList();
+              }
+
+              @foreach (var group in shiftsByDate)
+              {
+                <tr>
+                  <td>@group.Key.ToShortDateString()</td>
+                  <td>@group.Key.ToString("dddd")</td>
+                  <td>
+                    <div class="d-flex flex-wrap gap-2">
+                      @foreach (var shift in group.OrderBy(s => s.StartTime))
+                      {
+                        <span class="badge bg-primary">
+                          @shift.ShiftName (@(shift.StartTime?.ToString(@"hh\:mm")) -
+                          @(shift.EndTime?.ToString(@"hh\:mm")))
+                        </span>
+                      }
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

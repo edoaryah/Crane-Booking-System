@@ -1,0 +1,166 @@
+<!-- Views/Billing/Index.cshtml -->
+@model AspnetCoreMvcFull.ViewModels.Billing.BillingListViewModel
+@{
+  ViewData["Title"] = "Penagihan Penggunaan Crane";
+  Layout = "_ContentNavbarLayout";
+}
+
+<!-- Card Filter -->
+<div class="card mb-4">
+  <div class="card-header">
+    <i class="bx bx-filter-alt me-1"></i>
+    Filter
+  </div>
+  <div class="card-body">
+    <form asp-action="Index" method="get" id="filterForm">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label asp-for="Filter.CraneId" class="form-label">Crane</label>
+          <select asp-for="Filter.CraneId" asp-items="Model.Filter.CraneList" class="form-select"
+            onchange="document.getElementById('filterForm').submit()">
+            <option value="">-- Semua Crane --</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label asp-for="Filter.StartDate" class="form-label">Dari Tanggal</label>
+          <input asp-for="Filter.StartDate" class="form-control" type="date"
+            onchange="document.getElementById('filterForm').submit()" />
+        </div>
+        <div class="col-md-4">
+          <label asp-for="Filter.EndDate" class="form-label">Sampai Tanggal</label>
+          <input asp-for="Filter.EndDate" class="form-control" type="date"
+            onchange="document.getElementById('filterForm').submit()" />
+        </div>
+        <div class="col-md-4">
+          <label asp-for="Filter.Department" class="form-label">Departemen</label>
+          <select asp-for="Filter.Department" asp-items="Model.Filter.DepartmentList" class="form-select"
+            onchange="document.getElementById('filterForm').submit()">
+            <option value="">-- Semua Departemen --</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label asp-for="Filter.IsBilled" class="form-label">Status Penagihan</label>
+          <select asp-for="Filter.IsBilled" class="form-select"
+            onchange="document.getElementById('filterForm').submit()">
+            <option value="">-- Semua Status --</option>
+            <option value="true">Sudah Ditagih</option>
+            <option value="false">Belum Ditagih</option>
+          </select>
+        </div>
+        <div class="col-md-12 d-flex justify-content-end mt-2">
+          <a href="@Url.Action("Index")" class="btn btn-outline-secondary btn-sm">
+            <i class="bx bx-reset me-1"></i> Reset Filter
+          </a>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Card Tabel -->
+<div class="card">
+  <div class="card-header d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+    <div class="mb-2 mb-md-0">
+      <i class="bx bx-receipt me-1"></i>
+      Penagihan Booking Crane
+    </div>
+  </div>
+
+  @if (ViewBag.SuccessMessage != null)
+  {
+    <div class="alert alert-success alert-dismissible mx-4 mt-4" role="alert">
+      @ViewBag.SuccessMessage
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  }
+
+  @if (ViewBag.ErrorMessage != null)
+  {
+    <div class="alert alert-danger alert-dismissible mx-4 mt-4" role="alert">
+      @ViewBag.ErrorMessage
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  }
+
+  <div class="table-responsive text-nowrap">
+    <table class="table table-hover" id="billingTable">
+      <thead>
+        <tr>
+          <th>No. Booking</th>
+          <th>Crane</th>
+          <th>Requester</th>
+          <th>Departemen</th>
+          <th>Tanggal</th>
+          <th>Jam Operasional</th>
+          <th>Total Jam</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody class="table-border-bottom-0">
+        @if (Model.Bookings != null && Model.Bookings.Any())
+        {
+          @foreach (var booking in Model.Bookings)
+          {
+            <tr>
+              <td><strong>@booking.BookingNumber</strong></td>
+              <td>@booking.CraneCode (@booking.CraneCapacity Ton)</td>
+              <td>@booking.RequesterName</td>
+              <td>@booking.Department</td>
+              <!-- Views/Billing/Index.cshtml - kolom tanggal pada tabel -->
+              <td>
+                @if (booking.ActualStartDate.HasValue && booking.ActualEndDate.HasValue)
+                {
+                  @booking.ActualStartDate.Value.ToString("dd/MM/yyyy") <text> - </text>
+                  @booking.ActualEndDate.Value.ToString("dd/MM/yyyy")
+                }
+                else
+                {
+                  <span class="text-muted">Belum ada penggunaan aktual</span>
+                }
+              </td>
+              <td>@booking.OperatingHours.ToString("0.0") jam</td>
+              <td>@booking.TotalHours.ToString("0.0") jam</td>
+              <td>
+                @if (booking.IsBilled)
+                {
+                  <span class="badge bg-success">Sudah Ditagih</span>
+                }
+                else
+                {
+                  <span class="badge bg-warning">Belum Ditagih</span>
+                }
+              </td>
+              <td>
+                <a class="btn btn-sm btn-info text-white" href="@Url.Action("Details", new { id = booking.BookingId })">
+                  <i class="bx bx-detail me-1"></i> Detail
+                </a>
+              </td>
+            </tr>
+          }
+        }
+        else
+        {
+          <tr>
+            <td colspan="9" class="text-center">Tidak ada data penagihan ditemukan</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>
+
+@section PageScripts {
+  <script>
+    $(document).ready(function () {
+      // Initialize DataTable
+      $('#billingTable').DataTable({
+        language: {
+          url: '/lib/datatables/Indonesian.json'
+        },
+        order: [[0, 'desc']], // Sort by booking number desc
+        responsive: true
+      });
+    });
+  </script>
+}

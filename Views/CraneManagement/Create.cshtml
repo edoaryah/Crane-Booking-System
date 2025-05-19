@@ -1,0 +1,62 @@
+<!-- Views/CraneManagement/Create.cshtml -->
+@model AspnetCoreMvcFull.ViewModels.CraneManagement.CraneCreateViewModel
+@{
+  ViewData["Title"] = "Create Crane";
+  Layout = "_ContentNavbarLayout";
+}
+
+<div class="row">
+  <div class="col-12">
+    <div class="card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Create New Crane</h5>
+        <a href="@Url.Action("Index")" class="btn btn-outline-secondary">
+          <i class="bx bx-arrow-back me-1"></i> Back to List
+        </a>
+      </div>
+      <div class="card-body">
+        <form asp-action="Create" method="post" enctype="multipart/form-data">
+          <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+          <div class="mb-3">
+            <label asp-for="Code" class="form-label">Crane Code</label>
+            <input asp-for="Code" class="form-control" required />
+            <span asp-validation-for="Code" class="text-danger"></span>
+          </div>
+
+          <div class="mb-3">
+            <label asp-for="Capacity" class="form-label">Capacity (ton)</label>
+            <input asp-for="Capacity" class="form-control" type="number" required />
+            <span asp-validation-for="Capacity" class="text-danger"></span>
+          </div>
+
+          <div class="mb-3">
+            <label asp-for="Ownership" class="form-label">Ownership</label>
+            <select asp-for="Ownership" class="form-select" required>
+              <option value="@AspnetCoreMvcFull.Models.CraneOwnership.KPC">KPC</option>
+              <option value="@AspnetCoreMvcFull.Models.CraneOwnership.Kontraktor">Kontraktor</option>
+            </select>
+            <span asp-validation-for="Ownership" class="text-danger"></span>
+          </div>
+
+          <div class="mb-3">
+            <label asp-for="Image" class="form-label">Crane Image</label>
+            <input asp-for="Image" class="form-control" type="file" accept="image/*" />
+            <span asp-validation-for="Image" class="text-danger"></span>
+          </div>
+
+          <div class="mt-4">
+            <button type="submit" class="btn btn-primary">Create</button>
+            <a href="@Url.Action("Index")" class="btn btn-outline-secondary ms-2">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+@* @section Scripts {
+  @{
+    await Html.RenderPartialAsync("_ValidationScriptsPartial");
+  }
+} *@
