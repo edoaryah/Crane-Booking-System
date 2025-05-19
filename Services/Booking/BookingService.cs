@@ -315,9 +315,15 @@ namespace AspnetCoreMvcFull.Services
         var craneDto = response.Cranes.FirstOrDefault(c => c.CraneId == crane.Code);
         if (craneDto == null) continue;
 
+        // // Group maintenance shifts by date and schedule
+        // var craneMaintenance = maintenanceShifts
+        //     .Where(ms => ms.MaintenanceSchedule!.CraneId == crane.Id)
+        //     .GroupBy(ms => new { ms.Date, ms.MaintenanceScheduleId })
+        //     .ToList();
         // Group maintenance shifts by date and schedule
         var craneMaintenance = maintenanceShifts
-            .Where(ms => ms.MaintenanceSchedule!.CraneId == crane.Id)
+            .Where(ms => ms.MaintenanceSchedule!.CraneId == crane.Id ||
+                   (ms.MaintenanceSchedule!.CraneId == null && ms.MaintenanceSchedule.CraneCode == crane.Code))
             .GroupBy(ms => new { ms.Date, ms.MaintenanceScheduleId })
             .ToList();
 

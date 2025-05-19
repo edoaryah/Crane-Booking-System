@@ -328,6 +328,19 @@ namespace AspnetCoreMvcFull.Services
         booking.CraneId = null;
       }
 
+      // Periksa apakah ada maintenance schedule yang menggunakan crane ini
+      var relatedSchedules = await _context.MaintenanceSchedules
+          .Where(ms => ms.CraneId == id)
+          .ToListAsync();
+
+      // Update semua maintenance schedule terkait dengan data historis crane
+      foreach (var schedule in relatedSchedules)
+      {
+        schedule.CraneCode = crane.Code;
+        schedule.CraneCapacity = crane.Capacity;
+        schedule.CraneId = null;
+      }
+
       // Delete all related Breakdowns
       var relatedLogs = await _context.Breakdowns.Where(ul => ul.CraneId == id).ToListAsync();
 
@@ -349,8 +362,8 @@ namespace AspnetCoreMvcFull.Services
       _context.Cranes.Remove(crane);
       await _context.SaveChangesAsync();
 
-      _logger.LogInformation("Crane {CraneId} deleted and {BookingCount} related bookings updated with historical data",
-          id, relatedBookings.Count);
+      _logger.LogInformation("Crane {CraneId} deleted and {BookingCount} related bookings and {ScheduleCount} maintenance schedules updated with historical data",
+        id, relatedBookings.Count, relatedSchedules.Count);
     }
 
     public async Task ChangeCraneStatusToAvailableAsync(int craneId)

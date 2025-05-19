@@ -115,7 +115,7 @@ namespace AspnetCoreMvcFull.Data
           .HasOne(ms => ms.Crane)
           .WithMany()
           .HasForeignKey(ms => ms.CraneId)
-          .OnDelete(DeleteBehavior.Cascade);
+          .OnDelete(DeleteBehavior.SetNull);
 
       // Relasi MaintenanceSchedule dan MaintenanceScheduleShift
       modelBuilder.Entity<MaintenanceScheduleShift>()

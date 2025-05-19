@@ -11,8 +11,14 @@ namespace AspnetCoreMvcFull.Models
     [StringLength(36)]
     public string DocumentNumber { get; set; } = Guid.NewGuid().ToString();
 
-    [Required]
-    public int CraneId { get; set; }
+    // Ubah CraneId menjadi nullable
+    public int? CraneId { get; set; }
+
+    // Tambahkan properti data historis Crane
+    [StringLength(50)]
+    public string? CraneCode { get; set; }
+
+    public int? CraneCapacity { get; set; }
 
     [Required]
     public required string Title { get; set; }

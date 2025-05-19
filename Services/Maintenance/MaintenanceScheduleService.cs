@@ -42,8 +42,9 @@ namespace AspnetCoreMvcFull.Services
       {
         Id = m.Id,
         DocumentNumber = m.DocumentNumber,
-        CraneId = m.CraneId,
-        CraneCode = m.Crane?.Code,
+        CraneId = m.CraneId ?? 0,
+        // Prioritaskan data historis yang disimpan jika CraneId null
+        CraneCode = m.CraneId.HasValue ? m.Crane?.Code : m.CraneCode,
         Title = m.Title,
         StartDate = m.StartDate,
         EndDate = m.EndDate,
@@ -70,8 +71,9 @@ namespace AspnetCoreMvcFull.Services
       {
         Id = schedule.Id,
         DocumentNumber = schedule.DocumentNumber,
-        CraneId = schedule.CraneId,
-        CraneCode = schedule.Crane?.Code,
+        CraneId = schedule.CraneId ?? 0,
+        // Prioritaskan data historis yang disimpan jika CraneId null
+        CraneCode = schedule.CraneId.HasValue ? schedule.Crane?.Code : schedule.CraneCode,
         Title = schedule.Title,
         StartDate = schedule.StartDate,
         EndDate = schedule.EndDate,
@@ -110,8 +112,9 @@ namespace AspnetCoreMvcFull.Services
       {
         Id = schedule.Id,
         DocumentNumber = schedule.DocumentNumber,
-        CraneId = schedule.CraneId,
-        CraneCode = schedule.Crane?.Code,
+        CraneId = schedule.CraneId ?? 0,
+        // Prioritaskan data historis yang disimpan jika CraneId null
+        CraneCode = schedule.CraneId.HasValue ? schedule.Crane?.Code : schedule.CraneCode,
         Title = schedule.Title,
         StartDate = schedule.StartDate,
         EndDate = schedule.EndDate,
@@ -135,14 +138,16 @@ namespace AspnetCoreMvcFull.Services
 
     public async Task<IEnumerable<MaintenanceScheduleViewModel>> GetMaintenanceSchedulesByCraneIdAsync(int craneId)
     {
-      if (!await _craneService.CraneExistsAsync(craneId))
+      // Dapatkan Crane terlebih dahulu untuk mendapatkan kode
+      var crane = await _context.Cranes.FindAsync(craneId);
+      if (crane == null)
       {
         throw new KeyNotFoundException($"Crane with ID {craneId} not found");
       }
 
       var schedules = await _context.MaintenanceSchedules
           .Include(m => m.Crane)
-          .Where(m => m.CraneId == craneId)
+          .Where(m => m.CraneId == craneId || (m.CraneId == null && m.CraneCode == crane.Code))
           .OrderByDescending(m => m.CreatedAt)
           .ToListAsync();
 
@@ -150,8 +155,9 @@ namespace AspnetCoreMvcFull.Services
       {
         Id = m.Id,
         DocumentNumber = m.DocumentNumber,
-        CraneId = m.CraneId,
-        CraneCode = m.Crane?.Code,
+        CraneId = m.CraneId ?? 0,
+        // Prioritaskan data historis yang disimpan jika CraneId null
+        CraneCode = m.CraneId.HasValue ? m.Crane?.Code : m.CraneCode,
         Title = m.Title,
         StartDate = m.StartDate,
         EndDate = m.EndDate,
@@ -168,7 +174,8 @@ namespace AspnetCoreMvcFull.Services
         _logger.LogInformation("Creating maintenance schedule for crane {CraneId}", maintenanceViewModel.CraneId);
 
         // Validate crane exists
-        if (!await _craneService.CraneExistsAsync(maintenanceViewModel.CraneId))
+        var crane = await _context.Cranes.FindAsync(maintenanceViewModel.CraneId);
+        if (crane == null)
         {
           throw new KeyNotFoundException($"Crane with ID {maintenanceViewModel.CraneId} not found");
         }
@@ -257,6 +264,9 @@ namespace AspnetCoreMvcFull.Services
         {
           DocumentNumber = Guid.NewGuid().ToString(),
           CraneId = maintenanceViewModel.CraneId,
+          // Simpan data historis crane
+          CraneCode = crane.Code,
+          CraneCapacity = crane.Capacity,
           Title = maintenanceViewModel.Title,
           StartDate = startDate,
           EndDate = endDate,
@@ -334,10 +344,18 @@ namespace AspnetCoreMvcFull.Services
         }
 
         // Validate crane exists if changing crane
-        if (schedule.CraneId != maintenanceViewModel.CraneId &&
-            !await _craneService.CraneExistsAsync(maintenanceViewModel.CraneId))
+        if (schedule.CraneId != maintenanceViewModel.CraneId)
         {
-          throw new KeyNotFoundException($"Crane with ID {maintenanceViewModel.CraneId} not found");
+          var crane = await _context.Cranes.FindAsync(maintenanceViewModel.CraneId);
+          if (crane == null)
+          {
+            throw new KeyNotFoundException($"Crane with ID {maintenanceViewModel.CraneId} not found");
+          }
+
+          // Update schedule.CraneId and historical data
+          schedule.CraneId = maintenanceViewModel.CraneId;
+          schedule.CraneCode = crane.Code;
+          schedule.CraneCapacity = crane.Capacity;
         }
 
         // Gunakan tanggal lokal tanpa konversi UTC
@@ -425,7 +443,6 @@ namespace AspnetCoreMvcFull.Services
         var previousEndDate = schedule.EndDate;
 
         // Update maintenance schedule
-        schedule.CraneId = maintenanceViewModel.CraneId;
         schedule.Title = maintenanceViewModel.Title;
         schedule.StartDate = startDate;
         schedule.EndDate = endDate;
