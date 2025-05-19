@@ -68,7 +68,7 @@ namespace AspnetCoreMvcFull.Data
           .HasOne(u => u.Crane)
           .WithMany(c => c.Breakdowns)
           .HasForeignKey(u => u.CraneId)
-          .OnDelete(DeleteBehavior.Cascade);
+          .OnDelete(DeleteBehavior.SetNull);
 
       // Relasi Crane dan Booking
       modelBuilder.Entity<Booking>()

@@ -65,7 +65,7 @@ namespace AspnetCoreMvcFull.Services
         Breakdowns = crane.Breakdowns?.Select(ul => new BreakdownViewModel
         {
           Id = ul.Id,
-          CraneId = ul.CraneId,
+          CraneId = ul.CraneId ?? 0,
           UrgentStartTime = ul.UrgentStartTime,
           UrgentEndTime = ul.UrgentEndTime,
           ActualUrgentEndTime = ul.ActualUrgentEndTime,
@@ -92,7 +92,7 @@ namespace AspnetCoreMvcFull.Services
       return breakdowns.Select(ul => new BreakdownViewModel
       {
         Id = ul.Id,
-        CraneId = ul.CraneId,
+        CraneId = ul.CraneId ?? 0,
         UrgentStartTime = ul.UrgentStartTime,
         UrgentEndTime = ul.UrgentEndTime,
         ActualUrgentEndTime = ul.ActualUrgentEndTime,
@@ -179,6 +179,9 @@ namespace AspnetCoreMvcFull.Services
           var breakdown = new Breakdown
           {
             CraneId = existingCrane.Id,
+            // Tambahkan data historis crane
+            CraneCode = existingCrane.Code,
+            CraneCapacity = existingCrane.Capacity,
             UrgentStartTime = updateViewModel.Breakdown.UrgentStartTime,
             UrgentEndTime = updateViewModel.Breakdown.UrgentEndTime,
             Reasons = updateViewModel.Breakdown.Reasons
@@ -344,6 +347,15 @@ namespace AspnetCoreMvcFull.Services
       // Delete all related Breakdowns
       var relatedLogs = await _context.Breakdowns.Where(ul => ul.CraneId == id).ToListAsync();
 
+      // Update semua breakdowns terkait dengan data historis crane
+      foreach (var log in relatedLogs)
+      {
+        // Simpan data historis crane
+        log.CraneCode = crane.Code;
+        log.CraneCapacity = crane.Capacity;
+        log.CraneId = null;
+      }
+
       // Cancel all related Hangfire jobs
       foreach (var log in relatedLogs.Where(l => !string.IsNullOrEmpty(l.HangfireJobId)))
       {
@@ -358,7 +370,10 @@ namespace AspnetCoreMvcFull.Services
         }
       }
 
-      _context.Breakdowns.RemoveRange(relatedLogs);
+      // Simpan perubahan pada breakdowns
+      await _context.SaveChangesAsync();
+
+      // _context.Breakdowns.RemoveRange(relatedLogs);
       _context.Cranes.Remove(crane);
       await _context.SaveChangesAsync();
 
@@ -417,9 +432,10 @@ namespace AspnetCoreMvcFull.Services
       return breakdowns.Select(b => new BreakdownHistoryViewModel
       {
         Id = b.Id,
-        CraneId = b.CraneId,
-        CraneCode = b.Crane?.Code ?? "Unknown",
-        CraneCapacity = b.Crane?.Capacity ?? 0,
+        CraneId = b.CraneId ?? 0, // Null-coalescing operator untuk mengatasi nullable CraneId
+        // Prioritaskan data yang ada di Crane, gunakan data historis jika Crane null
+        CraneCode = b.CraneId.HasValue && b.Crane != null ? b.Crane.Code : b.CraneCode ?? "Unknown",
+        CraneCapacity = b.CraneId.HasValue && b.Crane != null ? b.Crane.Capacity : b.CraneCapacity ?? 0,
         UrgentStartTime = b.UrgentStartTime,
         UrgentEndTime = b.UrgentEndTime,
         ActualUrgentEndTime = b.ActualUrgentEndTime,

@@ -8,8 +8,14 @@ namespace AspnetCoreMvcFull.Models
     [Key]
     public int Id { get; set; }
 
-    [Required]
-    public int CraneId { get; set; }
+    // Ubah CraneId menjadi nullable
+    public int? CraneId { get; set; }
+
+    // Tambahkan properti historis crane (hanya code dan capacity)
+    [StringLength(50)]
+    public string? CraneCode { get; set; }
+
+    public int? CraneCapacity { get; set; }
 
     [Required]
     public DateTime UrgentStartTime { get; set; } = DateTime.Now;
