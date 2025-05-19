@@ -38,8 +38,14 @@ namespace AspnetCoreMvcFull.Models
     [Required]
     public required string Department { get; set; }
 
-    [Required]
-    public int CraneId { get; set; }
+    // Ubah CraneId menjadi nullable
+    public int? CraneId { get; set; }
+
+    // Properti data historis Crane
+    [StringLength(50)]
+    public string? CraneCode { get; set; }
+
+    public int? CraneCapacity { get; set; }
 
     [Required]
     public DateTime StartDate { get; set; }

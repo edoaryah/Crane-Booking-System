@@ -28,6 +28,7 @@ namespace AspnetCoreMvcFull.ViewModels.BookingManagement
   }
 
   // ViewModel untuk menampilkan informasi dasar booking
+  // ViewModels/BookingManagement/BookingFormViewModels.cs
   public class BookingViewModel
   {
     public int Id { get; set; }
@@ -35,18 +36,20 @@ namespace AspnetCoreMvcFull.ViewModels.BookingManagement
     public string DocumentNumber { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string Department { get; set; } = string.Empty;
-    public int CraneId { get; set; }
-    public string? CraneCode { get; set; }
+    public int CraneId { get; set; } // Tetap int karena ViewModel tidak perlu nullable
+    public string? CraneCode { get; set; } // Sudah ada untuk data historis
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
     public DateTime SubmitTime { get; set; }
     public string? Location { get; set; }
-    // Tambahkan properti Status
     public BookingStatus Status { get; set; }
     public string? ProjectSupervisor { get; set; }
     public string? CostCode { get; set; }
     public string? PhoneNumber { get; set; }
     public string? Description { get; set; }
+    // Tambahkan properti untuk data historis lainnya jika diperlukan
+    public int? CraneCapacity { get; set; }
+    public CraneOwnership? CraneOwnership { get; set; }
   }
 
   // ViewModel untuk menampilkan detail booking dengan semua informasi terkait

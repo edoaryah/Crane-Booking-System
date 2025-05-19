@@ -300,7 +300,10 @@ namespace AspnetCoreMvcFull.Services
 
     public async Task DeleteCraneAsync(int id)
     {
-      var crane = await _context.Cranes.FindAsync(id);
+      var crane = await _context.Cranes
+          .Include(c => c.Breakdowns)
+          .FirstOrDefaultAsync(c => c.Id == id);
+
       if (crane == null)
       {
         throw new KeyNotFoundException($"Crane with ID {id} not found");
@@ -310,6 +313,19 @@ namespace AspnetCoreMvcFull.Services
       if (!string.IsNullOrEmpty(crane.ImagePath))
       {
         await _fileStorage.DeleteFileAsync(crane.ImagePath, ContainerName);
+      }
+
+      // Periksa apakah ada booking yang menggunakan crane ini
+      var relatedBookings = await _context.Bookings
+          .Where(b => b.CraneId == id)
+          .ToListAsync();
+
+      // Update semua booking terkait dengan data historis crane
+      foreach (var booking in relatedBookings)
+      {
+        booking.CraneCode = crane.Code;
+        booking.CraneCapacity = crane.Capacity;
+        booking.CraneId = null;
       }
 
       // Delete all related Breakdowns
@@ -332,6 +348,9 @@ namespace AspnetCoreMvcFull.Services
       _context.Breakdowns.RemoveRange(relatedLogs);
       _context.Cranes.Remove(crane);
       await _context.SaveChangesAsync();
+
+      _logger.LogInformation("Crane {CraneId} deleted and {BookingCount} related bookings updated with historical data",
+          id, relatedBookings.Count);
     }
 
     public async Task ChangeCraneStatusToAvailableAsync(int craneId)

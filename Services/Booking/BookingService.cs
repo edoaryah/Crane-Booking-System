@@ -52,7 +52,7 @@ namespace AspnetCoreMvcFull.Services
         DocumentNumber = r.DocumentNumber,
         Name = r.Name,
         Department = r.Department,
-        CraneId = r.CraneId,
+        CraneId = r.CraneId ?? 0,
         CraneCode = r.Crane?.Code,
         StartDate = r.StartDate,
         EndDate = r.EndDate,
@@ -112,8 +112,9 @@ namespace AspnetCoreMvcFull.Services
         DocumentNumber = booking.DocumentNumber,
         Name = booking.Name,
         Department = booking.Department,
-        CraneId = booking.CraneId,
-        CraneCode = booking.Crane?.Code,
+        CraneId = booking.CraneId ?? 0,
+        // Prioritaskan data historis yang disimpan jika CraneId null
+        CraneCode = booking.CraneId.HasValue ? booking.Crane?.Code : booking.CraneCode,
         StartDate = booking.StartDate,
         EndDate = booking.EndDate,
         SubmitTime = booking.SubmitTime,
@@ -203,7 +204,7 @@ namespace AspnetCoreMvcFull.Services
         DocumentNumber = r.DocumentNumber,
         Name = r.Name,
         Department = r.Department,
-        CraneId = r.CraneId,
+        CraneId = r.CraneId ?? 0,
         CraneCode = r.Crane?.Code,
         StartDate = r.StartDate,
         EndDate = r.EndDate,
@@ -263,9 +264,10 @@ namespace AspnetCoreMvcFull.Services
 
         // Group shifts by date and booking
         var craneShifts = bookingShifts
-            .Where(bs => bs.Booking!.CraneId == crane.Id)
-            .GroupBy(bs => new { bs.Date, bs.BookingId })
-            .ToList();
+        .Where(bs => bs.Booking!.CraneId == crane.Id ||
+            (bs.Booking!.CraneId == null && bs.Booking.CraneCode == crane.Code)) // Cek juga booking dengan CraneId null tapi CraneCode cocok
+        .GroupBy(bs => new { bs.Date, bs.BookingId })
+        .ToList();
 
         foreach (var group in craneShifts)
         {
@@ -452,6 +454,11 @@ namespace AspnetCoreMvcFull.Services
           Name = bookingViewModel.Name,
           Department = bookingViewModel.Department,
           CraneId = bookingViewModel.CraneId,
+
+          // Simpan data historis crane
+          CraneCode = crane.Code,
+          CraneCapacity = crane.Capacity,
+
           StartDate = startDate,
           EndDate = endDate,
           SubmitTime = DateTime.Now,
@@ -594,20 +601,24 @@ namespace AspnetCoreMvcFull.Services
         }
 
         // Validate crane exists if changing crane
-        if (booking.CraneId != bookingViewModel.CraneId &&
-            !await _craneService.CraneExistsAsync(bookingViewModel.CraneId))
-        {
-          throw new KeyNotFoundException($"Crane with ID {bookingViewModel.CraneId} not found");
-        }
-
-        // Validate crane is available if changing crane
         if (booking.CraneId != bookingViewModel.CraneId)
         {
+          if (!await _craneService.CraneExistsAsync(bookingViewModel.CraneId))
+          {
+            throw new KeyNotFoundException($"Crane with ID {bookingViewModel.CraneId} not found");
+          }
+
+          // Validate crane is available if changing crane
           var crane = await _context.Cranes.FindAsync(bookingViewModel.CraneId);
           if (crane?.Status == CraneStatus.Maintenance)
           {
             throw new InvalidOperationException($"Cannot reserve crane with ID {bookingViewModel.CraneId} because it is currently under maintenance");
           }
+
+          // Update booking.CraneId and historical data
+          booking.CraneId = bookingViewModel.CraneId;
+          booking.CraneCode = crane.Code;
+          booking.CraneCapacity = crane.Capacity;
         }
 
         // Gunakan tanggal lokal tanpa konversi UTC
@@ -691,7 +702,6 @@ namespace AspnetCoreMvcFull.Services
         // Update booking
         booking.Name = bookingViewModel.Name;
         booking.Department = bookingViewModel.Department;
-        booking.CraneId = bookingViewModel.CraneId;
         booking.StartDate = startDate;
         booking.EndDate = endDate;
         booking.CustomHazard = bookingViewModel.CustomHazard;
@@ -849,7 +859,7 @@ namespace AspnetCoreMvcFull.Services
             DocumentNumber = booking.DocumentNumber,
             Name = booking.Name,
             Department = booking.Department,
-            CraneId = booking.CraneId,
+            CraneId = booking.CraneId ?? 0,
             CraneCode = booking.Crane?.Code,
             StartDate = booking.StartDate,
             EndDate = booking.EndDate,
@@ -893,16 +903,122 @@ namespace AspnetCoreMvcFull.Services
 
     //   return bookingShifts;
     // }
+
+    // public async Task<IEnumerable<BookedShiftViewModel>> GetBookedShiftsByCraneAndDateRangeAsync(
+    // int craneId, DateTime startDate, DateTime endDate)
+    // {
+    //   // Dapatkan semua booking shifts yang ada dalam rentang tanggal
+    //   var existingBookings = await _context.BookingShifts
+    //       .Include(bs => bs.Booking)
+    //       .Where(bs =>
+    //           bs.Booking != null &&
+    //           bs.Booking.Status != BookingStatus.Cancelled &&
+    //           bs.Booking.CraneId == craneId &&
+    //           bs.Date.Date >= startDate.Date.AddDays(-1) && // Tambah 1 hari ke belakang untuk mengatasi shift yang melewati tengah malam
+    //           bs.Date.Date <= endDate.Date)
+    //       .ToListAsync();
+
+    //   // Dapatkan semua definisi shift aktif
+    //   var activeShifts = await _context.ShiftDefinitions
+    //       .Where(sd => sd.IsActive)
+    //       .ToListAsync();
+
+    //   var result = new List<BookedShiftViewModel>();
+
+    //   // Tambahkan booking yang sudah ada berdasarkan ShiftDefinitionId (perilaku original)
+    //   foreach (var booking in existingBookings)
+    //   {
+    //     // Untuk compatibility, tambahkan booking dengan ShiftDefinitionId yang sama
+    //     result.Add(new BookedShiftViewModel
+    //     {
+    //       CraneId = craneId,
+    //       Date = booking.Date,
+    //       ShiftDefinitionId = booking.ShiftDefinitionId
+    //     });
+    //   }
+
+    //   // Periksa untuk overlap berdasarkan rentang waktu dengan shift saat ini
+    //   foreach (var shift in activeShifts)
+    //   {
+    //     foreach (var date in Enumerable.Range(0, (endDate - startDate).Days + 1)
+    //                         .Select(d => startDate.AddDays(d)))
+    //     {
+    //       // Cek apakah kombinasi shift dan tanggal ini sudah ada di result
+    //       if (result.Any(r => r.Date.Date == date.Date && r.ShiftDefinitionId == shift.Id))
+    //       {
+    //         continue; // Sudah ada di hasil, lewati
+    //       }
+
+    //       // Rentang waktu shift saat ini
+    //       DateTime currStartTime = date.Date.Add(shift.StartTime);
+    //       DateTime currEndTime = date.Date.Add(shift.EndTime);
+    //       if (shift.EndTime < shift.StartTime)
+    //       {
+    //         currEndTime = currEndTime.AddDays(1); // Shift melewati tengah malam
+    //       }
+
+    //       // Cek overlap dengan booking yang ada
+    //       bool hasOverlap = false;
+
+    //       foreach (var bs in existingBookings)
+    //       {
+    //         // Periksa apakah bs.Date relevan dengan shift saat ini
+    //         if (!(bs.Date.Date == date.Date ||
+    //               // Jika shift saat ini melewati tengah malam, periksa hari sebelumnya
+    //               (shift.EndTime < shift.StartTime && bs.Date.Date == date.Date.AddDays(-1)) ||
+    //               // Jika booking shift melewati tengah malam, periksa hari berikutnya
+    //               (bs.ShiftEndTime < bs.ShiftStartTime && bs.Date.Date == date.Date.AddDays(-1))))
+    //         {
+    //           continue; // Tanggal tidak relevan, lewati
+    //         }
+
+    //         // Hitung rentang waktu booking yang ada
+    //         DateTime bookStartTime = bs.Date.Date.Add(bs.ShiftStartTime);
+    //         DateTime bookEndTime = bs.Date.Date.Add(bs.ShiftEndTime);
+    //         if (bs.ShiftEndTime < bs.ShiftStartTime)
+    //         {
+    //           bookEndTime = bookEndTime.AddDays(1); // Booking melewati tengah malam
+    //         }
+
+    //         // Cek overlap dengan formula standar
+    //         if (currStartTime < bookEndTime && currEndTime > bookStartTime)
+    //         {
+    //           hasOverlap = true;
+    //           break;
+    //         }
+    //       }
+
+    //       // Jika ada overlap, tambahkan shift ini ke hasil
+    //       if (hasOverlap)
+    //       {
+    //         result.Add(new BookedShiftViewModel
+    //         {
+    //           CraneId = craneId,
+    //           Date = date,
+    //           ShiftDefinitionId = shift.Id
+    //         });
+    //       }
+    //     }
+    //   }
+
+    //   return result;
+    // }
+
     public async Task<IEnumerable<BookedShiftViewModel>> GetBookedShiftsByCraneAndDateRangeAsync(
     int craneId, DateTime startDate, DateTime endDate)
     {
+      // Dapatkan Crane terlebih dahulu
+      var crane = await _context.Cranes.FindAsync(craneId);
+      string craneCode = crane?.Code ?? string.Empty;
+
       // Dapatkan semua booking shifts yang ada dalam rentang tanggal
       var existingBookings = await _context.BookingShifts
           .Include(bs => bs.Booking)
           .Where(bs =>
               bs.Booking != null &&
               bs.Booking.Status != BookingStatus.Cancelled &&
-              bs.Booking.CraneId == craneId &&
+              (bs.Booking.CraneId == craneId ||
+               (bs.Booking.CraneId == null && bs.Booking.CraneCode == craneCode)) &&
               bs.Date.Date >= startDate.Date.AddDays(-1) && // Tambah 1 hari ke belakang untuk mengatasi shift yang melewati tengah malam
               bs.Date.Date <= endDate.Date)
           .ToListAsync();
@@ -1028,7 +1144,7 @@ namespace AspnetCoreMvcFull.Services
           DocumentNumber = b.DocumentNumber,
           Name = b.Name,
           Department = b.Department,
-          CraneId = b.CraneId,
+          CraneId = b.CraneId ?? 0,
           CraneCode = b.Crane?.Code,
           StartDate = b.StartDate,
           EndDate = b.EndDate,
