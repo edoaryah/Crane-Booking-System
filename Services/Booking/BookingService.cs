@@ -363,14 +363,17 @@ namespace AspnetCoreMvcFull.Services
         _logger.LogInformation("Creating booking for crane {CraneId}", bookingViewModel.CraneId);
 
         // Validate crane exists
-        if (!await _craneService.CraneExistsAsync(bookingViewModel.CraneId))
+        var crane = await _context.Cranes.FindAsync(bookingViewModel.CraneId);
+        if (crane == null)
         {
           throw new KeyNotFoundException($"Crane with ID {bookingViewModel.CraneId} not found");
         }
 
+        // Get crane code for conflict checking
+        string craneCode = crane.Code;
+
         // Validate crane is available (not in maintenance)
-        var crane = await _context.Cranes.FindAsync(bookingViewModel.CraneId);
-        if (crane?.Status == CraneStatus.Maintenance)
+        if (crane.Status == CraneStatus.Maintenance)
         {
           throw new InvalidOperationException($"Cannot reserve crane with ID {bookingViewModel.CraneId} because it is currently under maintenance");
         }
@@ -428,7 +431,9 @@ namespace AspnetCoreMvcFull.Services
             bool hasConflict = await _scheduleConflictService.IsBookingConflictAsync(
                 bookingViewModel.CraneId,
                 dateLocal,
-                shiftId);
+                shiftId,
+                null,
+                craneCode);  // Teruskan craneCode
 
             if (hasConflict)
             {
@@ -441,7 +446,9 @@ namespace AspnetCoreMvcFull.Services
             bool hasMaintenanceConflict = await _scheduleConflictService.IsMaintenanceConflictAsync(
                 bookingViewModel.CraneId,
                 dateLocal,
-                shiftId);
+                shiftId,
+                null,
+                craneCode);  // Teruskan craneCode
 
             if (hasMaintenanceConflict)
             {
@@ -607,21 +614,24 @@ namespace AspnetCoreMvcFull.Services
         }
 
         // Validate crane exists if changing crane
+        var crane = await _context.Cranes.FindAsync(bookingViewModel.CraneId);
+        if (crane == null)
+        {
+          throw new KeyNotFoundException($"Crane with ID {bookingViewModel.CraneId} not found");
+        }
+
+        // Get crane code for conflict checking
+        string craneCode = crane.Code;
+
+        // Validate crane is available if changing crane
+        if (booking.CraneId != bookingViewModel.CraneId && crane.Status == CraneStatus.Maintenance)
+        {
+          throw new InvalidOperationException($"Cannot reserve crane with ID {bookingViewModel.CraneId} because it is currently under maintenance");
+        }
+
+        // Update booking.CraneId and historical data if changing crane
         if (booking.CraneId != bookingViewModel.CraneId)
         {
-          if (!await _craneService.CraneExistsAsync(bookingViewModel.CraneId))
-          {
-            throw new KeyNotFoundException($"Crane with ID {bookingViewModel.CraneId} not found");
-          }
-
-          // Validate crane is available if changing crane
-          var crane = await _context.Cranes.FindAsync(bookingViewModel.CraneId);
-          if (crane?.Status == CraneStatus.Maintenance)
-          {
-            throw new InvalidOperationException($"Cannot reserve crane with ID {bookingViewModel.CraneId} because it is currently under maintenance");
-          }
-
-          // Update booking.CraneId and historical data
           booking.CraneId = bookingViewModel.CraneId;
           booking.CraneCode = crane.Code;
           booking.CraneCapacity = crane.Capacity;
@@ -681,7 +691,8 @@ namespace AspnetCoreMvcFull.Services
                 bookingViewModel.CraneId,
                 dateLocal,
                 shiftId,
-                id);
+                id,  // Exclude current booking
+                craneCode);  // Teruskan craneCode
 
             if (hasConflict)
             {
@@ -694,7 +705,9 @@ namespace AspnetCoreMvcFull.Services
             bool hasMaintenanceConflict = await _scheduleConflictService.IsMaintenanceConflictAsync(
                 bookingViewModel.CraneId,
                 dateLocal,
-                shiftId);
+                shiftId,
+                null,
+                craneCode);  // Teruskan craneCode
 
             if (hasMaintenanceConflict)
             {

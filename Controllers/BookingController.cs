@@ -577,11 +577,56 @@ namespace AspnetCoreMvcFull.Controllers
       }
     }
 
+    // [HttpGet]
+    // public async Task<IActionResult> GetMaintenanceShifts(int craneId, DateTime startDate, DateTime endDate)
+    // {
+    //   try
+    //   {
+    //     var maintenanceShifts = new List<BookedShiftViewModel>();
+
+    //     // Loop melalui rentang tanggal yang diminta
+    //     var currentDate = startDate.Date;
+    //     while (currentDate <= endDate.Date)
+    //     {
+    //       // Loop melalui semua shift definitions
+    //       foreach (var shift in await _shiftService.GetAllShiftDefinitionsAsync())
+    //       {
+    //         // Periksa apakah ada konflik maintenance
+    //         bool hasMaintenanceConflict = await _scheduleConflictService.IsMaintenanceConflictAsync(
+    //             craneId, currentDate, shift.Id);
+
+    //         if (hasMaintenanceConflict)
+    //         {
+    //           // Tambahkan ke daftar
+    //           maintenanceShifts.Add(new BookedShiftViewModel
+    //           {
+    //             CraneId = craneId,
+    //             Date = currentDate,
+    //             ShiftDefinitionId = shift.Id
+    //           });
+    //         }
+    //       }
+
+    //       currentDate = currentDate.AddDays(1);
+    //     }
+
+    //     return Json(maintenanceShifts);
+    //   }
+    //   catch (Exception ex)
+    //   {
+    //     _logger.LogError(ex, "Error getting maintenance shifts");
+    //     return StatusCode(500, new { error = ex.Message });
+    //   }
+    // }
     [HttpGet]
     public async Task<IActionResult> GetMaintenanceShifts(int craneId, DateTime startDate, DateTime endDate)
     {
       try
       {
+        // Dapatkan Crane Code dari CraneService
+        var crane = await _craneService.GetCraneByIdAsync(craneId);
+        string craneCode = crane?.Code ?? string.Empty;
+
         var maintenanceShifts = new List<BookedShiftViewModel>();
 
         // Loop melalui rentang tanggal yang diminta
@@ -593,7 +638,7 @@ namespace AspnetCoreMvcFull.Controllers
           {
             // Periksa apakah ada konflik maintenance
             bool hasMaintenanceConflict = await _scheduleConflictService.IsMaintenanceConflictAsync(
-                craneId, currentDate, shift.Id);
+                craneId, currentDate, shift.Id, null, craneCode);
 
             if (hasMaintenanceConflict)
             {
