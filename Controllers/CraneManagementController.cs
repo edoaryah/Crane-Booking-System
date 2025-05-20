@@ -1,4 +1,4 @@
-// Controllers/CraneManagementController.cs (Updated)
+// Controllers/CraneManagementController.cs (Updated with error & success messages)
 using Microsoft.AspNetCore.Mvc;
 using AspnetCoreMvcFull.Filters;
 using AspnetCoreMvcFull.Services;
@@ -11,16 +11,36 @@ namespace AspnetCoreMvcFull.Controllers
   public class CraneManagementController : Controller
   {
     private readonly ICraneService _craneService;
+    private readonly ILogger<CraneManagementController> _logger;
 
-    public CraneManagementController(ICraneService craneService)
+    public CraneManagementController(ICraneService craneService, ILogger<CraneManagementController> logger)
     {
       _craneService = craneService;
+      _logger = logger;
     }
 
     public async Task<IActionResult> Index()
     {
-      var cranes = await _craneService.GetAllCranesAsync();
-      return View(cranes);
+      try
+      {
+        var cranes = await _craneService.GetAllCranesAsync();
+
+        // Display messages from TempData
+        ViewBag.SuccessMessage = TempData["CraneSuccessMessage"] as string;
+        ViewBag.ErrorMessage = TempData["CraneErrorMessage"] as string;
+
+        // Remove TempData after use to prevent messages reappearing on refresh
+        TempData.Remove("CraneSuccessMessage");
+        TempData.Remove("CraneErrorMessage");
+
+        return View(cranes);
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Error loading cranes");
+        ViewBag.ErrorMessage = "Error loading cranes: " + ex.Message;
+        return View(new List<CraneViewModel>());
+      }
     }
 
     public async Task<IActionResult> Details(int id)
@@ -28,11 +48,26 @@ namespace AspnetCoreMvcFull.Controllers
       try
       {
         var crane = await _craneService.GetCraneByIdAsync(id);
+
+        // Display messages from TempData for the details view
+        ViewBag.SuccessMessage = TempData["CraneSuccessMessage"] as string;
+        ViewBag.ErrorMessage = TempData["CraneErrorMessage"] as string;
+
+        // Remove TempData after use
+        TempData.Remove("CraneSuccessMessage");
+        TempData.Remove("CraneErrorMessage");
+
         return View(crane);
       }
       catch (KeyNotFoundException)
       {
         return NotFound();
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Error loading crane with ID {id}", id);
+        TempData["CraneErrorMessage"] = "Error loading crane: " + ex.Message;
+        return RedirectToAction(nameof(Index));
       }
     }
 
@@ -50,10 +85,12 @@ namespace AspnetCoreMvcFull.Controllers
         try
         {
           await _craneService.CreateCraneAsync(viewModel);
+          TempData["CraneSuccessMessage"] = "Crane created successfully";
           return RedirectToAction(nameof(Index));
         }
         catch (Exception ex)
         {
+          _logger.LogError(ex, "Error creating crane");
           ModelState.AddModelError("", $"Error creating crane: {ex.Message}");
         }
       }
@@ -78,6 +115,12 @@ namespace AspnetCoreMvcFull.Controllers
       {
         return NotFound();
       }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Error loading crane with ID {id} for edit", id);
+        TempData["CraneErrorMessage"] = "Error loading crane for edit: " + ex.Message;
+        return RedirectToAction(nameof(Index));
+      }
     }
 
     [HttpPost]
@@ -93,10 +136,12 @@ namespace AspnetCoreMvcFull.Controllers
             Crane = viewModel
           };
           await _craneService.UpdateCraneAsync(id, updateModel);
+          TempData["CraneSuccessMessage"] = "Crane updated successfully";
           return RedirectToAction(nameof(Index));
         }
         catch (Exception ex)
         {
+          _logger.LogError(ex, "Error updating crane with ID {id}", id);
           ModelState.AddModelError("", $"Error updating crane: {ex.Message}");
         }
       }
@@ -114,6 +159,12 @@ namespace AspnetCoreMvcFull.Controllers
       {
         return NotFound();
       }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Error loading crane with ID {id} for deletion", id);
+        TempData["CraneErrorMessage"] = "Error loading crane for deletion: " + ex.Message;
+        return RedirectToAction(nameof(Index));
+      }
     }
 
     [HttpPost, ActionName("Delete")]
@@ -123,11 +174,20 @@ namespace AspnetCoreMvcFull.Controllers
       try
       {
         await _craneService.DeleteCraneAsync(id);
+        TempData["CraneSuccessMessage"] = "Crane deleted successfully";
         return RedirectToAction(nameof(Index));
       }
-      catch (Exception)
+      catch (KeyNotFoundException)
       {
-        return View("Error", new ErrorViewModel { RequestId = HttpContext.TraceIdentifier });
+        return NotFound();
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Error deleting crane with ID {id}", id);
+        // Use ViewBag for error messages and stay on Delete page
+        var crane = await _craneService.GetCraneByIdAsync(id);
+        ViewBag.ErrorMessage = "Error deleting crane: " + ex.Message;
+        return View(crane);
       }
     }
 
@@ -155,21 +215,21 @@ namespace AspnetCoreMvcFull.Controllers
           };
 
           await _craneService.UpdateCraneAsync(id, craneUpdate);
+          TempData["CraneSuccessMessage"] = "Crane status set to maintenance successfully";
           return RedirectToAction(nameof(Details), new { id });
         }
         catch (Exception ex)
         {
+          _logger.LogError(ex, "Error setting crane with ID {id} to breakdown", id);
           ModelState.AddModelError("", $"Error setting crane to breakdown: {ex.Message}");
           var crane = await _craneService.GetCraneByIdAsync(id);
           return View("Details", crane);
         }
       }
+
       var model = await _craneService.GetCraneByIdAsync(id);
       return View("Details", model);
     }
-
-    // Controllers/CraneManagementController.cs
-    // Add this method to the existing controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -192,10 +252,12 @@ namespace AspnetCoreMvcFull.Controllers
         };
 
         await _craneService.UpdateCraneAsync(id, updateModel);
+        TempData["CraneSuccessMessage"] = "Crane status set to available successfully";
         return RedirectToAction(nameof(Details), new { id });
       }
       catch (Exception ex)
       {
+        _logger.LogError(ex, "Error setting crane with ID {id} to available", id);
         ModelState.AddModelError("", $"Error setting crane to available: {ex.Message}");
         var crane = await _craneService.GetCraneByIdAsync(id);
         return View("Details", crane);

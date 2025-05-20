@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using AspnetCoreMvcFull.Filters;
 using AspnetCoreMvcFull.Services;
 using AspnetCoreMvcFull.ViewModels.ShiftManagement;
-using AspnetCoreMvcFull.Models; // Added for CraneStatus enum
+using AspnetCoreMvcFull.Models;
 
 namespace AspnetCoreMvcFull.Controllers
 {
@@ -10,20 +10,40 @@ namespace AspnetCoreMvcFull.Controllers
   public class ShiftManagementController : Controller
   {
     private readonly IShiftDefinitionService _shiftService;
+    private readonly ILogger<ShiftManagementController> _logger;
 
-    public ShiftManagementController(IShiftDefinitionService shiftService)
+    public ShiftManagementController(IShiftDefinitionService shiftService, ILogger<ShiftManagementController> logger)
     {
       _shiftService = shiftService;
+      _logger = logger;
     }
 
     public async Task<IActionResult> Index()
     {
-      var shifts = await _shiftService.GetAllShiftDefinitionsAsync();
-      var viewModel = new ShiftListViewModel
+      try
       {
-        Shifts = shifts
-      };
-      return View(viewModel);
+        var shifts = await _shiftService.GetAllShiftDefinitionsAsync();
+        var viewModel = new ShiftListViewModel
+        {
+          Shifts = shifts
+        };
+
+        // Display messages from TempData
+        ViewBag.SuccessMessage = TempData["ShiftSuccessMessage"] as string;
+        ViewBag.ErrorMessage = TempData["ShiftErrorMessage"] as string;
+
+        // Remove TempData after use to prevent messages reappearing on refresh
+        TempData.Remove("ShiftSuccessMessage");
+        TempData.Remove("ShiftErrorMessage");
+
+        return View(viewModel);
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Error loading shifts");
+        ViewBag.ErrorMessage = "Error loading shifts: " + ex.Message;
+        return View(new ShiftListViewModel());
+      }
     }
 
     public async Task<IActionResult> Details(int id)
@@ -36,6 +56,12 @@ namespace AspnetCoreMvcFull.Controllers
       catch (KeyNotFoundException)
       {
         return NotFound();
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Error loading shift with ID {id}", id);
+        TempData["ShiftErrorMessage"] = "Error loading shift: " + ex.Message;
+        return RedirectToAction(nameof(Index));
       }
     }
 
@@ -60,6 +86,7 @@ namespace AspnetCoreMvcFull.Controllers
         try
         {
           await _shiftService.CreateShiftDefinitionAsync(viewModel);
+          TempData["ShiftSuccessMessage"] = "Shift created successfully";
           return RedirectToAction(nameof(Index));
         }
         catch (ArgumentException ex)
@@ -72,6 +99,7 @@ namespace AspnetCoreMvcFull.Controllers
         }
         catch (Exception ex)
         {
+          _logger.LogError(ex, "Error creating shift");
           ModelState.AddModelError("", $"Error creating shift: {ex.Message}");
         }
       }
@@ -96,6 +124,12 @@ namespace AspnetCoreMvcFull.Controllers
       {
         return NotFound();
       }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Error loading shift with ID {id} for edit", id);
+        TempData["ShiftErrorMessage"] = "Error loading shift for edit: " + ex.Message;
+        return RedirectToAction(nameof(Index));
+      }
     }
 
     [HttpPost]
@@ -107,6 +141,7 @@ namespace AspnetCoreMvcFull.Controllers
         try
         {
           await _shiftService.UpdateShiftDefinitionAsync(id, viewModel);
+          TempData["ShiftSuccessMessage"] = "Shift updated successfully";
           return RedirectToAction(nameof(Index));
         }
         catch (KeyNotFoundException)
@@ -123,6 +158,7 @@ namespace AspnetCoreMvcFull.Controllers
         }
         catch (Exception ex)
         {
+          _logger.LogError(ex, "Error updating shift with ID {id}", id);
           ModelState.AddModelError("", $"Error updating shift: {ex.Message}");
         }
       }
@@ -140,6 +176,12 @@ namespace AspnetCoreMvcFull.Controllers
       {
         return NotFound();
       }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Error loading shift with ID {id} for deletion", id);
+        TempData["ShiftErrorMessage"] = "Error loading shift for deletion: " + ex.Message;
+        return RedirectToAction(nameof(Index));
+      }
     }
 
     [HttpPost, ActionName("Delete")]
@@ -149,6 +191,7 @@ namespace AspnetCoreMvcFull.Controllers
       try
       {
         await _shiftService.DeleteShiftDefinitionAsync(id);
+        TempData["ShiftSuccessMessage"] = "Shift deleted successfully";
         return RedirectToAction(nameof(Index));
       }
       catch (KeyNotFoundException)
@@ -157,12 +200,19 @@ namespace AspnetCoreMvcFull.Controllers
       }
       catch (InvalidOperationException ex)
       {
-        TempData["ErrorMessage"] = ex.Message;
-        return RedirectToAction(nameof(Delete), new { id });
+        // Use ViewBag for error messages and stay on Delete page
+        // Don't use TempData so the message doesn't appear on the Index page
+        var shift = await _shiftService.GetShiftDefinitionByIdAsync(id);
+        ViewBag.ErrorMessage = ex.Message;
+        return View(shift);
       }
-      catch (Exception)
+      catch (Exception ex)
       {
-        return View("Error", new ErrorViewModel { RequestId = HttpContext.TraceIdentifier });
+        _logger.LogError(ex, "Error deleting shift with ID {id}", id);
+        // Use ViewBag for error messages and stay on Delete page
+        var shift = await _shiftService.GetShiftDefinitionByIdAsync(id);
+        ViewBag.ErrorMessage = "Error deleting shift: " + ex.Message;
+        return View(shift);
       }
     }
   }
