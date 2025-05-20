@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace AspnetCoreMvcFull.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250519083130_InitialCreate2")]
-    partial class InitialCreate2
+    [Migration("20250520130849_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -76,9 +76,6 @@ namespace AspnetCoreMvcFull.Migrations
                         .HasColumnType("character varying(50)");
 
                     b.Property<int?>("CraneId")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("CraneOwnership")
                         .HasColumnType("integer");
 
                     b.Property<string>("CustomHazard")
@@ -272,7 +269,14 @@ namespace AspnetCoreMvcFull.Migrations
                     b.Property<DateTime?>("ActualUrgentEndTime")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<int>("CraneId")
+                    b.Property<int?>("CraneCapacity")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("CraneCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int?>("CraneId")
                         .HasColumnType("integer");
 
                     b.Property<string>("HangfireJobId")
@@ -523,7 +527,14 @@ namespace AspnetCoreMvcFull.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("CraneId")
+                    b.Property<int?>("CraneCapacity")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("CraneCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int?>("CraneId")
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("CreatedAt")
@@ -950,8 +961,7 @@ namespace AspnetCoreMvcFull.Migrations
                     b.HasOne("AspnetCoreMvcFull.Models.Crane", "Crane")
                         .WithMany("Breakdowns")
                         .HasForeignKey("CraneId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Crane");
                 });
@@ -1004,8 +1014,7 @@ namespace AspnetCoreMvcFull.Migrations
                     b.HasOne("AspnetCoreMvcFull.Models.Crane", "Crane")
                         .WithMany()
                         .HasForeignKey("CraneId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Crane");
                 });

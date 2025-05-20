@@ -105,7 +105,9 @@ namespace AspnetCoreMvcFull.Migrations
                     BookingNumber = table.Column<string>(type: "text", nullable: false),
                     Name = table.Column<string>(type: "text", nullable: false),
                     Department = table.Column<string>(type: "text", nullable: false),
-                    CraneId = table.Column<int>(type: "integer", nullable: false),
+                    CraneId = table.Column<int>(type: "integer", nullable: true),
+                    CraneCode = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    CraneCapacity = table.Column<int>(type: "integer", nullable: true),
                     StartDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
                     EndDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
                     SubmitTime = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
@@ -144,7 +146,7 @@ namespace AspnetCoreMvcFull.Migrations
                         column: x => x.CraneId,
                         principalTable: "Cranes",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.SetNull);
                 });
 
             migrationBuilder.CreateTable(
@@ -153,7 +155,9 @@ namespace AspnetCoreMvcFull.Migrations
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    CraneId = table.Column<int>(type: "integer", nullable: false),
+                    CraneId = table.Column<int>(type: "integer", nullable: true),
+                    CraneCode = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    CraneCapacity = table.Column<int>(type: "integer", nullable: true),
                     UrgentStartTime = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
                     UrgentEndTime = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
                     ActualUrgentEndTime = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
@@ -168,7 +172,7 @@ namespace AspnetCoreMvcFull.Migrations
                         column: x => x.CraneId,
                         principalTable: "Cranes",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.SetNull);
                 });
 
             migrationBuilder.CreateTable(
@@ -203,7 +207,9 @@ namespace AspnetCoreMvcFull.Migrations
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     DocumentNumber = table.Column<string>(type: "character varying(36)", maxLength: 36, nullable: false),
-                    CraneId = table.Column<int>(type: "integer", nullable: false),
+                    CraneId = table.Column<int>(type: "integer", nullable: true),
+                    CraneCode = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    CraneCapacity = table.Column<int>(type: "integer", nullable: true),
                     Title = table.Column<string>(type: "text", nullable: false),
                     StartDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
                     EndDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
@@ -219,7 +225,7 @@ namespace AspnetCoreMvcFull.Migrations
                         column: x => x.CraneId,
                         principalTable: "Cranes",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.SetNull);
                 });
 
             migrationBuilder.CreateTable(

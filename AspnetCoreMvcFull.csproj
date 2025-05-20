@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="datatables.net-bs5" Version="2.3.1" />
     <PackageReference Include="Hangfire" Version="1.8.18" />
     <PackageReference Include="Hangfire.PostgreSql" Version="1.20.12" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.15" />
