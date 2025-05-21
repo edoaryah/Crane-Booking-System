@@ -1,7 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using AspnetCoreMvcFull.Filters;
 using AspnetCoreMvcFull.Services;
 using AspnetCoreMvcFull.ViewModels.MaintenanceManagement;
+using AspnetCoreMvcFull.Models.Common;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using System.Linq;
 
 namespace AspnetCoreMvcFull.Controllers
 {
@@ -23,30 +29,65 @@ namespace AspnetCoreMvcFull.Controllers
     }
 
     // GET: /MaintenanceHistory
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(MaintenanceHistoryFilterRequest filter)
     {
       try
       {
-        var schedules = await _maintenanceService.GetAllMaintenanceSchedulesAsync();
+        // Initialize filter if null
+        filter ??= new MaintenanceHistoryFilterRequest();
 
-        var viewModel = new MaintenanceListViewModel
+        // Get crane list for dropdown
+        filter.CraneList = await GetCraneSelectListAsync();
+
+        // Get paged maintenance schedules
+        var pagedSchedules = await _maintenanceService.GetPagedMaintenanceSchedulesAsync(filter);
+
+        var viewModel = new MaintenanceHistoryPagedViewModel
         {
-          Schedules = schedules,
+          PagedSchedules = pagedSchedules,
+          Filter = filter,
           SuccessMessage = TempData["MaintenanceHistorySuccessMessage"] as string,
           ErrorMessage = TempData["MaintenanceHistoryErrorMessage"] as string
         };
 
-        // Hapus TempData setelah digunakan
+        // Clear TempData after use
         TempData.Remove("MaintenanceHistorySuccessMessage");
         TempData.Remove("MaintenanceHistoryErrorMessage");
+
+        // For AJAX requests, return partial view
+        if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+        {
+          return PartialView("_MaintenanceHistoryTable", viewModel);
+        }
 
         return View(viewModel);
       }
       catch (Exception ex)
       {
         _logger.LogError(ex, "Error loading maintenance history");
+
+        if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+        {
+          return Json(new { success = false, message = ex.Message });
+        }
+
         TempData["MaintenanceHistoryErrorMessage"] = "Error loading maintenance history: " + ex.Message;
-        return View(new MaintenanceListViewModel { ErrorMessage = ex.Message });
+        return View(new MaintenanceHistoryPagedViewModel
+        {
+          PagedSchedules = new PagedResult<MaintenanceScheduleViewModel>
+          {
+            Items = Enumerable.Empty<MaintenanceScheduleViewModel>(),
+            TotalCount = 0,
+            PageCount = 0,
+            PageNumber = 1,
+            PageSize = 10
+          },
+          Filter = new MaintenanceHistoryFilterRequest
+          {
+            CraneList = await GetCraneSelectListAsync()
+          },
+          ErrorMessage = ex.Message
+        });
       }
     }
 
@@ -76,11 +117,27 @@ namespace AspnetCoreMvcFull.Controllers
       try
       {
         var crane = await _craneService.GetCraneByIdAsync(craneId);
-        var schedules = await _maintenanceService.GetMaintenanceSchedulesByCraneIdAsync(craneId);
-
-        var viewModel = new MaintenanceListViewModel
+        if (crane == null)
         {
-          Schedules = schedules,
+          return NotFound();
+        }
+
+        // Create filter
+        var filter = new MaintenanceHistoryFilterRequest
+        {
+          CraneId = craneId,
+          PageNumber = 1,
+          PageSize = 10,
+          CraneList = await GetCraneSelectListAsync()
+        };
+
+        // Get schedules
+        var pagedSchedules = await _maintenanceService.GetPagedMaintenanceSchedulesAsync(filter);
+
+        var viewModel = new MaintenanceHistoryPagedViewModel
+        {
+          PagedSchedules = pagedSchedules,
+          Filter = filter,
           SuccessMessage = TempData["MaintenanceHistorySuccessMessage"] as string,
           ErrorMessage = TempData["MaintenanceHistoryErrorMessage"] as string
         };
@@ -104,6 +161,17 @@ namespace AspnetCoreMvcFull.Controllers
         TempData["MaintenanceHistoryErrorMessage"] = "Error loading maintenance history: " + ex.Message;
         return RedirectToAction(nameof(Index));
       }
+    }
+
+    // Helper method to get crane select list
+    private async Task<List<SelectListItem>> GetCraneSelectListAsync()
+    {
+      var cranes = await _craneService.GetAllCranesAsync();
+      return cranes.Select(c => new SelectListItem
+      {
+        Value = c.Id.ToString(),
+        Text = $"{c.Code} - {c.Capacity} ton"
+      }).ToList();
     }
   }
 }

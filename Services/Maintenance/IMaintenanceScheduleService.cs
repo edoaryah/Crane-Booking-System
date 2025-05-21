@@ -1,4 +1,5 @@
 using AspnetCoreMvcFull.ViewModels.MaintenanceManagement;
+using AspnetCoreMvcFull.Models.Common;
 
 namespace AspnetCoreMvcFull.Services
 {
@@ -14,5 +15,8 @@ namespace AspnetCoreMvcFull.Services
     Task<bool> IsShiftMaintenanceConflictAsync(int craneId, DateTime date, int shiftDefinitionId, int? excludeMaintenanceId = null);
     Task<bool> MaintenanceScheduleExistsAsync(int id);
     Task<bool> MaintenanceScheduleExistsByDocumentNumberAsync(string documentNumber);
+
+    // Add to existing interface
+    Task<PagedResult<MaintenanceScheduleViewModel>> GetPagedMaintenanceSchedulesAsync(MaintenanceHistoryFilterRequest request);
   }
 }

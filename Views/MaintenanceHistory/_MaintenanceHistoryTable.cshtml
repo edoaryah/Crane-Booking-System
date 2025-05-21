@@ -1,0 +1,137 @@
+@model AspnetCoreMvcFull.ViewModels.MaintenanceManagement.MaintenanceHistoryPagedViewModel
+
+@if (Model.PagedSchedules.Items.Any())
+{
+  <div class="table-responsive text-nowrap">
+    <table class="table table-striped" id="maintenanceHistoryTable">
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Crane</th>
+          <th>Start Date</th>
+          <th>End Date</th>
+          <th>Duration</th>
+          <th>Created By</th>
+          <th>Created At</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody class="table-border-bottom-0">
+        @foreach (var schedule in Model.PagedSchedules.Items)
+        {
+          <tr>
+            <td>@schedule.Title</td>
+            <td>@schedule.CraneCode</td>
+            <td data-order="@schedule.StartDate.ToString("yyyy-MM-dd")">
+              @schedule.StartDate.ToString("dd/MM/yyyy")
+            </td>
+            <td data-order="@schedule.EndDate.ToString("yyyy-MM-dd")">
+              @schedule.EndDate.ToString("dd/MM/yyyy")
+            </td>
+            <td data-order="@((schedule.EndDate - schedule.StartDate).Days + 1)">
+              @((schedule.EndDate - schedule.StartDate).Days + 1) days
+            </td>
+            <td>@schedule.CreatedBy</td>
+            <td data-order="@schedule.CreatedAt.ToString("yyyy-MM-dd HH:mm")">
+              @schedule.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+            </td>
+            <td>
+              <a class="btn btn-sm btn-outline-primary"
+                href="@Url.Action("Details", "MaintenanceHistory", new { documentNumber = schedule.DocumentNumber })">
+                <i class="bx bx-show-alt me-1"></i> View
+              </a>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination Controls -->
+  <div class="d-flex justify-content-between align-items-center mt-3">
+    <div>
+      Showing @(((Model.PagedSchedules.PageNumber - 1) * Model.PagedSchedules.PageSize) + 1) to
+      @(Math.Min(Model.PagedSchedules.PageNumber * Model.PagedSchedules.PageSize, Model.PagedSchedules.TotalCount))
+      of @Model.PagedSchedules.TotalCount entries
+    </div>
+    <div>
+      <nav aria-label="Page navigation">
+        <ul class="pagination">
+          <li class="page-item @(Model.PagedSchedules.HasPreviousPage ? "" : "disabled")">
+            <a class="page-link" href="#" data-page="@(Model.PagedSchedules.PageNumber - 1)" aria-label="Previous"
+              @(Model.PagedSchedules.HasPreviousPage ? "" : "tabindex='-1' aria-disabled='true'")>
+              <span aria-hidden="true">&laquo;</span>
+            </a>
+          </li>
+
+          @{
+            int startPage = Math.Max(1, Model.PagedSchedules.PageNumber - 2);
+            int endPage = Math.Min(Model.PagedSchedules.PageCount, startPage + 4);
+
+            if (endPage - startPage < 4 && endPage < Model.PagedSchedules.PageCount)
+            {
+              endPage = Math.Min(Model.PagedSchedules.PageCount, endPage + (4 - (endPage - startPage)));
+            }
+
+            if (endPage - startPage < 4 && startPage > 1)
+            {
+              startPage = Math.Max(1, startPage - (4 - (endPage - startPage)));
+            }
+          }
+
+          @for (int i = startPage; i <= endPage; i++)
+          {
+            <li class="page-item @(Model.PagedSchedules.PageNumber == i ? "active" : "")">
+              <a class="page-link" href="#" data-page="@i">@i</a>
+            </li>
+          }
+
+          <li class="page-item @(Model.PagedSchedules.HasNextPage ? "" : "disabled")">
+            <a class="page-link" href="#" data-page="@(Model.PagedSchedules.PageNumber + 1)" aria-label="Next"
+              @(Model.PagedSchedules.HasNextPage ? "" : "tabindex='-1' aria-disabled='true'")>
+              <span aria-hidden="true">&raquo;</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+    </div>
+    <div>
+      <select id="pageSizeSelector" class="form-select form-select-sm" style="width: auto;">
+        @foreach (var size in new[] { 10, 25, 50 })
+        {
+          @if (Model.PagedSchedules.PageSize == size)
+          {
+            <option value="@size" selected="selected">@size</option>
+          }
+          else
+          {
+            <option value="@size">@size</option>
+          }
+        }
+      </select>
+    </div>
+  </div>
+}
+else
+{
+  <div class="text-center p-5">
+    <div class="mb-3">
+      <i class="bx bx-calendar-x text-primary" style="font-size: 4rem;"></i>
+    </div>
+    <h5>No maintenance schedules found</h5>
+    @if (ViewBag.CraneName != null)
+    {
+      <p class="text-muted">No maintenance schedules found for Crane @ViewBag.CraneName.</p>
+      <a href="@Url.Action("Index", "Maintenance", new { craneId = ViewBag.CraneId })" class="btn btn-primary mt-3">
+        <i class="bx bx-plus me-1"></i> Create Maintenance for this Crane
+      </a>
+    }
+    else
+    {
+      <p class="text-muted">Try adjusting your search or filter criteria.</p>
+      <a href="@Url.Action("Index", "MaintenanceHistory")" class="btn btn-outline-secondary mt-3">
+        <i class="bx bx-reset me-1"></i> Reset Filters
+      </a>
+    }
+  </div>
+}
