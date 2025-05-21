@@ -24,6 +24,8 @@ namespace AspnetCoreMvcFull.Services
     private readonly EmailTemplate _emailTemplate;
     private readonly string _env;
     private readonly SmtpSettings _smtpSettings;
+    private readonly bool _testMode;
+    private readonly string _testEmail;
 
     public EmailService(
         IConfiguration configuration,
@@ -45,7 +47,10 @@ namespace AspnetCoreMvcFull.Services
         throw new InvalidOperationException("Sender Email tidak dikonfigurasi");
 
       // Default environment adalah "development"
-      _env = "development";
+      // _env = "development";
+      // Read test mode settings from configuration
+      _testMode = _configuration.GetValue<bool>("EmailSettings:TestMode", false);
+      _testEmail = _configuration.GetValue<string>("EmailSettings:TestEmail", "edoarya2002@gmail.com");
     }
 
     public async Task SendEmailAsync(string toEmail, string subject, string body)

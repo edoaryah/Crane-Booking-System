@@ -39,8 +39,20 @@ namespace AspnetCoreMvcFull.Controllers
         // Get crane list for dropdown
         filter.CraneList = await GetCraneSelectListAsync();
 
+        // Pastikan PageNumber dan PageSize valid
+        if (filter.PageNumber < 1) filter.PageNumber = 1;
+        if (filter.PageSize < 1) filter.PageSize = 10;
+
+        // Log parameter penting untuk debugging
+        _logger.LogInformation("MaintenanceHistory Index called with PageNumber={pageNumber}, PageSize={pageSize}",
+                              filter.PageNumber, filter.PageSize);
+
         // Get paged maintenance schedules
         var pagedSchedules = await _maintenanceService.GetPagedMaintenanceSchedulesAsync(filter);
+
+        // Log hasil pagination
+        _logger.LogInformation("Pagination result: TotalCount={totalCount}, PageCount={pageCount}, CurrentPage={currentPage}",
+                              pagedSchedules.TotalCount, pagedSchedules.PageCount, pagedSchedules.PageNumber);
 
         var viewModel = new MaintenanceHistoryPagedViewModel
         {

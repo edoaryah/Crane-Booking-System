@@ -1,81 +1,83 @@
 @model AspnetCoreMvcFull.ViewModels.MaintenanceManagement.MaintenanceHistoryPagedViewModel
 @{
-  ViewData["Title"] = "Maintenance History";
+  ViewData["Title"] = "Riwayat Pemeliharaan Crane";
   Layout = "_ContentNavbarLayout";
 
   // Check if viewing a specific crane's history
   bool showingCraneHistory = ViewBag.CraneName != null;
 }
 
-<h4 class="py-3 mb-4">
-  <span class="text-muted fw-light">Maintenance /</span> History
+@* <h4 class="py-3 mb-4">
+  <span class="text-muted fw-light">Maintenance /</span> Riwayat
   @if (showingCraneHistory)
   {
     <span class="text-muted fw-light">/ Crane @ViewBag.CraneName</span>
   }
-</h4>
+</h4> *@
 
-<!-- Alert messages -->
-@if (!string.IsNullOrEmpty(Model.SuccessMessage))
-{
-  <div class="alert alert-success alert-dismissible" role="alert">
-    @Model.SuccessMessage
-    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-  </div>
-}
+<div id="alertContainer">
+  @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+  {
+    <div class="alert alert-success alert-dismissible fade show auto-close-alert" role="alert">
+      @Model.SuccessMessage
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  }
 
-@if (!string.IsNullOrEmpty(Model.ErrorMessage))
-{
-  <div class="alert alert-danger alert-dismissible" role="alert">
-    @Model.ErrorMessage
-    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-  </div>
-}
+  @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+  {
+    <div class="alert alert-danger alert-dismissible fade show auto-close-alert" role="alert">
+      @Model.ErrorMessage
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  }
+</div>
 
 <div class="card mb-4">
-  <div class="card-header">
-    <h5 class="mb-0">Filter and Search</h5>
-  </div>
+  @* <div class="card-header d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">Filter dan Pencarian</h5>
+  </div> *@
   <div class="card-body">
-    <form id="filterForm" method="get">
+    <form id="filterForm" method="get" action="@Url.Action("Index", "MaintenanceHistory")">
       <div class="row g-3">
         <div class="col-md-3">
           <label asp-for="Filter.CraneId" class="form-label">Crane</label>
           <select asp-for="Filter.CraneId" asp-items="Model.Filter.CraneList" class="form-select">
-            <option value="">-- All Cranes --</option>
+            <option value="">-- Semua Crane --</option>
           </select>
         </div>
         <div class="col-md-3">
-          <label asp-for="Filter.StartDate" class="form-label">From Date</label>
+          <label asp-for="Filter.StartDate" class="form-label">Dari Tanggal</label>
           <input asp-for="Filter.StartDate" class="form-control" type="date" />
         </div>
         <div class="col-md-3">
-          <label asp-for="Filter.EndDate" class="form-label">To Date</label>
+          <label asp-for="Filter.EndDate" class="form-label">Sampai Tanggal</label>
           <input asp-for="Filter.EndDate" class="form-control" type="date" />
         </div>
         <div class="col-md-3">
-          <label asp-for="Filter.GlobalSearch" class="form-label">Search</label>
-          <input asp-for="Filter.GlobalSearch" class="form-control" placeholder="Search..." />
+          <label asp-for="Filter.GlobalSearch" class="form-label">Cari</label>
+          <input asp-for="Filter.GlobalSearch" class="form-control" placeholder="Ketik kata kunci..." />
         </div>
         <div class="col-12 mt-3 d-flex justify-content-between">
           <div>
             <button type="submit" class="btn btn-primary me-2">
-              <i class="bx bx-filter-alt me-1"></i> Apply Filter
+              <i class="bx bx-filter-alt me-1"></i> Terapkan Filter
             </button>
             <a href="@Url.Action("Index", "MaintenanceHistory")" class="btn btn-outline-secondary">
               <i class="bx bx-reset me-1"></i> Reset
             </a>
           </div>
           <div id="exportButtons" class="d-flex gap-2">
-            <!-- Tombol export akan ditambahkan disini oleh DataTables -->
+            <!-- Tombol export akan ditambahkan disini oleh JavaScript -->
           </div>
         </div>
       </div>
+
       <!-- Hidden inputs for pagination -->
-      <input type="hidden" id="PageNumber" name="PageNumber" value="@Model.Filter.PageNumber" />
-      <input type="hidden" id="PageSize" name="PageSize" value="@Model.Filter.PageSize" />
-      <input type="hidden" id="SortBy" name="SortBy" value="@Model.Filter.SortBy" />
-      <input type="hidden" id="SortDesc" name="SortDesc" value="@Model.Filter.SortDesc.ToString()" />
+      <input type="hidden" name="PageNumber" id="PageNumber" value="@Model.Filter.PageNumber" />
+      <input type="hidden" name="PageSize" id="PageSize" value="@Model.Filter.PageSize" />
+      <input type="hidden" name="SortBy" id="SortBy" value="@Model.Filter.SortBy" />
+      <input type="hidden" name="SortDesc" id="SortDesc" value="@Model.Filter.SortDesc.ToString()" />
     </form>
   </div>
 </div>
@@ -85,27 +87,25 @@
     <h5 class="mb-0">
       @if (showingCraneHistory)
       {
-        <text>Maintenance History for Crane @ViewBag.CraneName</text>
+        <text>Riwayat Pemeliharaan Crane @ViewBag.CraneName</text>
       }
       else
       {
-        <text>All Maintenance Schedules</text>
+        <text>Semua Jadwal Pemeliharaan</text>
       }
     </h5>
     <div>
       <a href="@Url.Action("Index", "Maintenance")" class="btn btn-primary">
-        <i class="bx bx-plus me-1"></i> Create New
+        <i class="bx bx-plus me-1"></i> Buat Baru
       </a>
       <a href="@Url.Action("Calendar", "Maintenance")" class="btn btn-outline-secondary ms-2">
-        <i class="bx bx-calendar me-1"></i> Calendar View
+        <i class="bx bx-calendar me-1"></i> Tampilan Kalender
       </a>
     </div>
   </div>
 
-  <div class="card-body">
-    <div id="maintenanceHistoryTableContainer">
-      @await Html.PartialAsync("_MaintenanceHistoryTable", Model)
-    </div>
+  <div id="maintenanceHistoryTableContainer">
+    @await Html.PartialAsync("_MaintenanceHistoryTable", Model)
   </div>
 </div>
 
@@ -119,28 +119,35 @@
 
   <script>
     $(document).ready(function () {
-      // Inisialisasi DataTable hanya untuk export
+      // Buat tombol Excel dan PDF kustom
+      var excelBtn = $('<a href="#" class="btn btn-sm btn-success"><i class="bx bx-file me-1"></i> Excel</a>');
+      var pdfBtn = $('<a href="#" class="btn btn-sm btn-danger"><i class="bx bx-file-pdf me-1"></i> PDF</a>');
+
+      // Tambahkan ke container
+      $('#exportButtons').append(excelBtn).append(pdfBtn);
+
+      // Inisialisasi DataTable dengan tombol export yang disembunyikan
       var table = $('#maintenanceHistoryTable').DataTable({
-        dom: 'Bfrtip',
-        paging: false,    // Matikan paginasi default
-        ordering: false,  // Matikan sorting default
-        info: false,      // Matikan info
-        searching: false, // Matikan pencarian default
+        dom: 'Bfrtip', // Tipe tampilan, B=buttons
+        paging: false,
+        ordering: false,
+        info: false,
+        searching: false,
         buttons: [
           {
             extend: 'excel',
-            text: '<i class="bx bx-file me-1"></i> Excel',
-            className: 'btn btn-success btn-sm',
-            title: '@(ViewBag.CraneName != null ? $"Maintenance History - Crane {ViewBag.CraneName}" : "Maintenance History")',
+            text: 'Excel',
+            className: 'hidden-button', // Class untuk disembunyikan
+            title: '@(ViewBag.CraneName != null ? $"Riwayat Pemeliharaan - Crane {ViewBag.CraneName}" : "Riwayat Pemeliharaan")',
             exportOptions: {
               columns: ':not(:last-child)' // Exclude Actions column
             }
           },
           {
             extend: 'pdf',
-            text: '<i class="bx bx-file-pdf me-1"></i> PDF',
-            className: 'btn btn-danger btn-sm',
-            title: '@(ViewBag.CraneName != null ? $"Maintenance History - Crane {ViewBag.CraneName}" : "Maintenance History")',
+            text: 'PDF',
+            className: 'hidden-button', // Class untuk disembunyikan
+            title: '@(ViewBag.CraneName != null ? $"Riwayat Pemeliharaan - Crane {ViewBag.CraneName}" : "Riwayat Pemeliharaan")',
             exportOptions: {
               columns: ':not(:last-child)' // Exclude Actions column
             },
@@ -153,112 +160,33 @@
 
               // Tambahkan footer
               doc.footer = function (currentPage, pageCount) {
-                return { text: currentPage.toString() + ' of ' + pageCount, alignment: 'center' };
+                return { text: currentPage.toString() + ' dari ' + pageCount, alignment: 'center' };
               };
             }
           }
         ]
       });
 
-      // Pindahkan tombol export ke posisi yang diinginkan
-      $('.dt-buttons').addClass('d-flex gap-2').detach().appendTo('#exportButtons');
+      // Sembunyikan tombol bawaan DataTables
+      $('<style>.hidden-button, .dt-buttons { display: none !important; }</style>').appendTo('head');
 
-      // Handle pagination links
-      $(document).on('click', '.pagination .page-link', function (e) {
+      // Hubungkan tombol kustom dengan fungsi export DataTables
+      excelBtn.on('click', function (e) {
         e.preventDefault();
-        var page = $(this).data('page');
-        $('#PageNumber').val(page);
-        loadFilteredResults();
+        table.button(0).trigger(); // Indeks 0 = Excel
       });
 
-      // Handle page size changes
-      $('#pageSizeSelector').change(function () {
-        $('#PageSize').val($(this).val());
-        $('#PageNumber').val(1); // Reset to first page
-        loadFilteredResults();
-      });
-
-      // Handle form submission
-      $('#filterForm').submit(function (e) {
+      pdfBtn.on('click', function (e) {
         e.preventDefault();
-        $('#PageNumber').val(1); // Reset to first page
-        loadFilteredResults();
+        table.button(1).trigger(); // Indeks 1 = PDF
       });
 
-      // Function to load filtered results via AJAX
-      function loadFilteredResults() {
-        var formData = $('#filterForm').serialize();
-
-        $.ajax({
-          url: '@Url.Action("Index", "MaintenanceHistory")',
-          type: 'GET',
-          data: formData,
-          beforeSend: function () {
-            // Show loading indicator
-            $('#maintenanceHistoryTableContainer').html(
-              '<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">Loading...</p></div>'
-            );
-          },
-          success: function (result) {
-            $('#maintenanceHistoryTableContainer').html(result);
-            // Reinitialize DataTables buttons on the new table
-            initializeExportButtons();
-          },
-          error: function (xhr, status, error) {
-            $('#maintenanceHistoryTableContainer').html(
-              '<div class="alert alert-danger" role="alert">Error loading data: ' + error + '</div>'
-            );
-          }
+      // Script untuk menghilangkan alert secara otomatis setelah 5 detik
+      setTimeout(function () {
+        $('.auto-close-alert').fadeOut('slow', function () {
+          $(this).remove();
         });
-      }
-
-      // Function to reinitialize DataTables buttons after AJAX load
-      function initializeExportButtons() {
-        if ($.fn.DataTable.isDataTable('#maintenanceHistoryTable')) {
-          $('#maintenanceHistoryTable').DataTable().destroy();
-        }
-
-        var table = $('#maintenanceHistoryTable').DataTable({
-          dom: 'Bfrtip',
-          paging: false,
-          ordering: false,
-          info: false,
-          searching: false,
-          buttons: [
-            {
-              extend: 'excel',
-              text: '<i class="bx bx-file me-1"></i> Excel',
-              className: 'btn btn-success btn-sm',
-              title: '@(ViewBag.CraneName != null ? $"Maintenance History - Crane {ViewBag.CraneName}" : "Maintenance History")',
-              exportOptions: {
-                columns: ':not(:last-child)'
-              }
-            },
-            {
-              extend: 'pdf',
-              text: '<i class="bx bx-file-pdf me-1"></i> PDF',
-              className: 'btn btn-danger btn-sm',
-              title: '@(ViewBag.CraneName != null ? $"Maintenance History - Crane {ViewBag.CraneName}" : "Maintenance History")',
-              exportOptions: {
-                columns: ':not(:last-child)'
-              },
-              customize: function (doc) {
-                doc.content[1].table.widths = Array(doc.content[1].table.body[0].length + 1).join('*').split('');
-                doc.defaultStyle.fontSize = 10;
-                doc.styles.tableHeader.fontSize = 11;
-                doc.styles.title.fontSize = 14;
-
-                doc.footer = function (currentPage, pageCount) {
-                  return { text: currentPage.toString() + ' of ' + pageCount, alignment: 'center' };
-                };
-              }
-            }
-          ]
-        });
-
-        // Pindahkan tombol export ke posisi yang diinginkan
-        $('.dt-buttons').addClass('d-flex gap-2').detach().appendTo('#exportButtons');
-      }
+      }, 5000);
     });
   </script>
 }
