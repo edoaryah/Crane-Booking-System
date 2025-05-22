@@ -28,49 +28,40 @@ namespace AspnetCoreMvcFull.Controllers
       _logger = logger;
     }
 
-    // GET: /MaintenanceHistory
+    /// <summary>
+    /// Main entry point for the maintenance history page.
+    /// Displays the full page with filters and data table.
+    /// </summary>
     public async Task<IActionResult> Index(MaintenanceHistoryFilterRequest filter)
     {
       try
       {
-        // Initialize filter if null
+        // Initialize filter if null and ensure valid defaults
         filter ??= new MaintenanceHistoryFilterRequest();
+
+        // Validate pagination parameters
+        if (filter.PageNumber < 1) filter.PageNumber = 1;
+        if (filter.PageSize < 1) filter.PageSize = 10;
+        if (string.IsNullOrEmpty(filter.SortBy)) filter.SortBy = "CreatedAt";
 
         // Get crane list for dropdown
         filter.CraneList = await GetCraneSelectListAsync();
 
-        // Pastikan PageNumber dan PageSize valid
-        if (filter.PageNumber < 1) filter.PageNumber = 1;
-        if (filter.PageSize < 1) filter.PageSize = 10;
-
-        // Log parameter penting untuk debugging
-        _logger.LogInformation("MaintenanceHistory Index called with PageNumber={pageNumber}, PageSize={pageSize}",
-                              filter.PageNumber, filter.PageSize);
-
-        // Get paged maintenance schedules
+        // Get paged data
         var pagedSchedules = await _maintenanceService.GetPagedMaintenanceSchedulesAsync(filter);
 
-        // Log hasil pagination
-        _logger.LogInformation("Pagination result: TotalCount={totalCount}, PageCount={pageCount}, CurrentPage={currentPage}",
-                              pagedSchedules.TotalCount, pagedSchedules.PageCount, pagedSchedules.PageNumber);
-
+        // Build view model
         var viewModel = new MaintenanceHistoryPagedViewModel
         {
           PagedSchedules = pagedSchedules,
           Filter = filter,
-          SuccessMessage = TempData["MaintenanceHistorySuccessMessage"] as string,
-          ErrorMessage = TempData["MaintenanceHistoryErrorMessage"] as string
+          SuccessMessage = TempData["SuccessMessage"] as string,
+          ErrorMessage = TempData["ErrorMessage"] as string
         };
 
         // Clear TempData after use
-        TempData.Remove("MaintenanceHistorySuccessMessage");
-        TempData.Remove("MaintenanceHistoryErrorMessage");
-
-        // For AJAX requests, return partial view
-        if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
-        {
-          return PartialView("_MaintenanceHistoryTable", viewModel);
-        }
+        TempData.Remove("SuccessMessage");
+        TempData.Remove("ErrorMessage");
 
         return View(viewModel);
       }
@@ -78,13 +69,8 @@ namespace AspnetCoreMvcFull.Controllers
       {
         _logger.LogError(ex, "Error loading maintenance history");
 
-        if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
-        {
-          return Json(new { success = false, message = ex.Message });
-        }
-
-        TempData["MaintenanceHistoryErrorMessage"] = "Error loading maintenance history: " + ex.Message;
-        return View(new MaintenanceHistoryPagedViewModel
+        // Create empty model with error message
+        var errorModel = new MaintenanceHistoryPagedViewModel
         {
           PagedSchedules = new PagedResult<MaintenanceScheduleViewModel>
           {
@@ -98,32 +84,90 @@ namespace AspnetCoreMvcFull.Controllers
           {
             CraneList = await GetCraneSelectListAsync()
           },
-          ErrorMessage = ex.Message
-        });
+          ErrorMessage = "Terjadi kesalahan saat memuat data: " + ex.Message
+        };
+
+        return View(errorModel);
       }
     }
 
-    // GET: /MaintenanceHistory/Details/{documentNumber}
+    /// <summary>
+    /// AJAX endpoint to get just the table portion of the page.
+    /// Used for filtering, pagination, etc.
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> GetTableData(MaintenanceHistoryFilterRequest filter)
+    {
+      try
+      {
+        // Initialize filter if null and ensure valid defaults
+        filter ??= new MaintenanceHistoryFilterRequest();
+
+        // Validate pagination parameters
+        if (filter.PageNumber < 1) filter.PageNumber = 1;
+        if (filter.PageSize < 1) filter.PageSize = 10;
+        if (string.IsNullOrEmpty(filter.SortBy)) filter.SortBy = "CreatedAt";
+
+        // Get paged data
+        var pagedSchedules = await _maintenanceService.GetPagedMaintenanceSchedulesAsync(filter);
+
+        // Get crane list for dropdown (needed for when returning to main view)
+        filter.CraneList = await GetCraneSelectListAsync();
+
+        // Build view model for partial
+        var viewModel = new MaintenanceHistoryPagedViewModel
+        {
+          PagedSchedules = pagedSchedules,
+          Filter = filter
+        };
+
+        // Return partial view
+        return PartialView("_MaintenanceHistoryTable", viewModel);
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Error loading maintenance history table data");
+
+        // Return error message that will be displayed in the table area
+        return Content("<div class='alert alert-danger m-3'>" +
+                      "<i class='bx bx-error-circle me-2'></i>" +
+                      "Terjadi kesalahan saat memuat data: " + ex.Message +
+                      "</div>", "text/html");
+      }
+    }
+
+    /// <summary>
+    /// Display details for a specific maintenance schedule.
+    /// </summary>
+    [HttpGet]
     public async Task<IActionResult> Details(string documentNumber)
     {
       try
       {
+        if (string.IsNullOrEmpty(documentNumber))
+        {
+          return BadRequest("Document number is required");
+        }
+
         var schedule = await _maintenanceService.GetMaintenanceScheduleByDocumentNumberAsync(documentNumber);
         return View(schedule);
       }
       catch (KeyNotFoundException)
       {
-        return NotFound();
+        return NotFound("Maintenance schedule not found");
       }
       catch (Exception ex)
       {
         _logger.LogError(ex, "Error loading maintenance schedule details for document number: {DocumentNumber}", documentNumber);
-        TempData["MaintenanceHistoryErrorMessage"] = "Error loading maintenance details: " + ex.Message;
+        TempData["ErrorMessage"] = "Error loading maintenance details: " + ex.Message;
         return RedirectToAction(nameof(Index));
       }
     }
 
-    // GET: /MaintenanceHistory/Crane/{craneId}
+    /// <summary>
+    /// Filter maintenance history for a specific crane.
+    /// </summary>
+    [HttpGet]
     public async Task<IActionResult> Crane(int craneId)
     {
       try
@@ -131,15 +175,17 @@ namespace AspnetCoreMvcFull.Controllers
         var crane = await _craneService.GetCraneByIdAsync(craneId);
         if (crane == null)
         {
-          return NotFound();
+          return NotFound("Crane not found");
         }
 
-        // Create filter
+        // Create filter specifically for this crane
         var filter = new MaintenanceHistoryFilterRequest
         {
           CraneId = craneId,
           PageNumber = 1,
           PageSize = 10,
+          SortBy = "CreatedAt",
+          SortDesc = true,
           CraneList = await GetCraneSelectListAsync()
         };
 
@@ -150,32 +196,31 @@ namespace AspnetCoreMvcFull.Controllers
         {
           PagedSchedules = pagedSchedules,
           Filter = filter,
-          SuccessMessage = TempData["MaintenanceHistorySuccessMessage"] as string,
-          ErrorMessage = TempData["MaintenanceHistoryErrorMessage"] as string
+          SuccessMessage = TempData["SuccessMessage"] as string,
+          ErrorMessage = TempData["ErrorMessage"] as string
         };
 
         // Hapus TempData setelah digunakan
-        TempData.Remove("MaintenanceHistorySuccessMessage");
-        TempData.Remove("MaintenanceHistoryErrorMessage");
+        TempData.Remove("SuccessMessage");
+        TempData.Remove("ErrorMessage");
 
+        // Add crane info to ViewBag for display
         ViewBag.CraneName = crane.Code;
         ViewBag.CraneId = craneId;
 
         return View("Index", viewModel);
       }
-      catch (KeyNotFoundException)
-      {
-        return NotFound();
-      }
       catch (Exception ex)
       {
         _logger.LogError(ex, "Error loading maintenance history for crane ID: {CraneId}", craneId);
-        TempData["MaintenanceHistoryErrorMessage"] = "Error loading maintenance history: " + ex.Message;
+        TempData["ErrorMessage"] = "Error loading maintenance history: " + ex.Message;
         return RedirectToAction(nameof(Index));
       }
     }
 
-    // Helper method to get crane select list
+    /// <summary>
+    /// Helper method to get crane select list for dropdowns.
+    /// </summary>
     private async Task<List<SelectListItem>> GetCraneSelectListAsync()
     {
       var cranes = await _craneService.GetAllCranesAsync();

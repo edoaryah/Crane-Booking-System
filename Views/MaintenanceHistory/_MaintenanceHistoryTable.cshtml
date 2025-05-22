@@ -1,5 +1,13 @@
 @model AspnetCoreMvcFull.ViewModels.MaintenanceManagement.MaintenanceHistoryPagedViewModel
 
+<!-- Loading indicator -->
+<div id="tableLoadingOverlay" class="d-none">
+  <div class="text-center p-5">
+    <div class="spinner-border text-primary" role="status"></div>
+    <p class="mt-2">Memuat data...</p>
+  </div>
+</div>
+
 @if (Model.PagedSchedules.Items.Any())
 {
   <div class="table-responsive text-nowrap">
@@ -7,11 +15,9 @@
       <thead>
         <tr>
           <th>#</th>
-          <th>Judul</th>
           <th>Crane</th>
           <th>Tanggal Mulai</th>
           <th>Tanggal Selesai</th>
-          <th>Durasi</th>
           <th>Dibuat Oleh</th>
           <th>Dibuat Pada</th>
           <th>Aksi</th>
@@ -19,15 +25,13 @@
       </thead>
       <tbody class="table-border-bottom-0">
         @{
-          int rowNumber = 1;
           var startIndex = (Model.PagedSchedules.PageNumber - 1) * Model.PagedSchedules.PageSize + 1;
         }
         @foreach (var schedule in Model.PagedSchedules.Items)
         {
-          <tr style="cursor: pointer;"
-            onclick="window.location='@Url.Action("Details", "MaintenanceHistory", new { documentNumber = schedule.DocumentNumber })'">
+          <tr class="clickable-row"
+            data-url="@Url.Action("Details", "MaintenanceHistory", new { documentNumber = schedule.DocumentNumber })">
             <td><strong>@(startIndex++)</strong></td>
-            <td>@schedule.Title</td>
             <td>@schedule.CraneCode</td>
             <td data-order="@schedule.StartDate.ToString("yyyy-MM-dd")">
               @schedule.StartDate.ToString("dd/MM/yyyy")
@@ -35,14 +39,11 @@
             <td data-order="@schedule.EndDate.ToString("yyyy-MM-dd")">
               @schedule.EndDate.ToString("dd/MM/yyyy")
             </td>
-            <td data-order="@((schedule.EndDate - schedule.StartDate).Days + 1)">
-              @((schedule.EndDate - schedule.StartDate).Days + 1) hari
-            </td>
             <td>@schedule.CreatedBy</td>
             <td data-order="@schedule.CreatedAt.ToString("yyyy-MM-dd HH:mm")">
               @schedule.CreatedAt.ToString("dd/MM/yyyy HH:mm")
             </td>
-            <td onclick="event.stopPropagation();">
+            <td class="action-buttons-cell">
               <div class="action-buttons">
                 <a class="btn btn-sm btn-outline-primary"
                   href="@Url.Action("Details", "MaintenanceHistory", new { documentNumber = schedule.DocumentNumber })"
@@ -62,22 +63,22 @@
   </div>
 
   <!-- Footer Card dengan Pagination Controls -->
-  <div class="card-header border-top d-flex justify-content-between align-items-center">
+  <div class="card-footer border-top d-flex justify-content-between align-items-center py-3">
     <div>
       Menampilkan @(((Model.PagedSchedules.PageNumber - 1) * Model.PagedSchedules.PageSize) + 1) sampai
       @(Math.Min(Model.PagedSchedules.PageNumber * Model.PagedSchedules.PageSize, Model.PagedSchedules.TotalCount))
       dari @Model.PagedSchedules.TotalCount data
     </div>
 
-    <div>
-      <div class="btn-group">
-        <button type="button"
-          class="btn btn-icon btn-outline-primary @(Model.PagedSchedules.HasPreviousPage ? "" : "disabled")"
-          data-page="@(Model.PagedSchedules.PageNumber - 1)" @(Model.PagedSchedules.HasPreviousPage ? "" : "disabled")>
-          <i class="tf-icon bx bx-chevron-left"></i>
-        </button>
+    <div class="pagination-container text-center mx-auto">
+      <div class="btn-group pagination-group">
+        <a href="#" class="btn btn-icon btn-outline-primary @(Model.PagedSchedules.HasPreviousPage ? "" : "disabled")"
+          data-page="@(Model.PagedSchedules.PageNumber - 1)" aria-label="Previous" @(Model.PagedSchedules.HasPreviousPage
+                                                                                           ? "" : "aria-disabled=\"true\"")>
+        <i class="tf-icon bx bx-chevron-left"></i>
+      </a>
 
-        @{
+      @{
           int startPage = Math.Max(1, Model.PagedSchedules.PageNumber - 2);
           int endPage = Math.Min(Model.PagedSchedules.PageCount, startPage + 4);
 
@@ -94,27 +95,27 @@
 
         @for (int i = startPage; i <= endPage; i++)
         {
-          <button type="button" class="btn @(Model.PagedSchedules.PageNumber == i ? "btn-primary" : "btn-outline-primary")"
+          <a href="#" class="btn @(Model.PagedSchedules.PageNumber == i ? "btn-primary" : "btn-outline-primary")"
             data-page="@i">
             @i
-          </button>
+          </a>
         }
 
-        <button type="button"
-          class="btn btn-icon btn-outline-primary @(Model.PagedSchedules.HasNextPage ? "" : "disabled")"
-          data-page="@(Model.PagedSchedules.PageNumber + 1)" @(Model.PagedSchedules.HasNextPage ? "" : "disabled")>
-          <i class="tf-icon bx bx-chevron-right"></i>
-        </button>
-      </div>
+        <a href="#" class="btn btn-icon btn-outline-primary @(Model.PagedSchedules.HasNextPage ? "" : "disabled")"
+          data-page="@(Model.PagedSchedules.PageNumber + 1)" aria-label="Next" @(Model.PagedSchedules.HasNextPage ? "" :
+                                                                                       "aria-disabled=\"true\"")>
+        <i class="tf-icon bx bx-chevron-right"></i>
+      </a>
     </div>
+  </div>
 
-    <div>
+    <div class="page-size-container">
       <select id="pageSizeSelector" class="form-select form-select-sm" style="width: auto;">
-        @foreach (var size in new[] { 10, 25, 50 })
+      @foreach (var size in new[] { 10, 25, 50 })
         {
-          @if (Model.PagedSchedules.PageSize == size)
+          if (Model.PagedSchedules.PageSize == size)
           {
-            <option value="@size" selected="selected">@size baris</option>
+            <option value="@size" selected>@size baris</option>
           }
           else
           {
