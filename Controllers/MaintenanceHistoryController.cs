@@ -4,6 +4,7 @@ using AspnetCoreMvcFull.Filters;
 using AspnetCoreMvcFull.Services;
 using AspnetCoreMvcFull.ViewModels.MaintenanceManagement;
 using AspnetCoreMvcFull.Models.Common;
+using System.Security.Claims;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -50,6 +51,9 @@ namespace AspnetCoreMvcFull.Controllers
         // Get paged data
         var pagedSchedules = await _maintenanceService.GetPagedMaintenanceSchedulesAsync(filter);
 
+        // Get current user from claims (sama seperti pattern Anda)
+        var userName = User.FindFirst(ClaimTypes.Name)?.Value ?? "System";
+
         // Build view model
         var viewModel = new MaintenanceHistoryPagedViewModel
         {
@@ -58,6 +62,9 @@ namespace AspnetCoreMvcFull.Controllers
           SuccessMessage = TempData["SuccessMessage"] as string,
           ErrorMessage = TempData["ErrorMessage"] as string
         };
+
+        // Pass user info to view
+        ViewBag.CurrentUser = userName;
 
         // Clear TempData after use
         TempData.Remove("SuccessMessage");

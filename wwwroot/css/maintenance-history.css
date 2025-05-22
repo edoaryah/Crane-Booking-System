@@ -59,6 +59,42 @@
   min-height: 200px;
 }
 
+#maintenanceHistoryTable th:nth-child(2),
+#maintenanceHistoryTable td:nth-child(2) {
+  text-align: right !important;
+}
+
+#maintenanceHistoryTable th:nth-child(3),
+#maintenanceHistoryTable th:nth-child(4),
+#maintenanceHistoryTable td:nth-child(3),
+#maintenanceHistoryTable td:nth-child(4) {
+  text-align: center !important;
+}
+
+#maintenanceHistoryTable th:nth-child(6),
+#maintenanceHistoryTable td:nth-child(6) {
+  text-align: left !important;
+}
+
+#maintenanceHistoryTable th:nth-child(7),
+#maintenanceHistoryTable td:nth-child(7) {
+  text-align: center !important;
+}
+
+/* Action buttons - Center alignment */
+.action-buttons-cell {
+  cursor: default;
+  text-align: center; /* Horizontal center */
+  vertical-align: middle; /* Vertical center */
+}
+
+.action-buttons {
+  display: inline-flex; /* Changed from flex to inline-flex */
+  justify-content: center; /* Center horizontally */
+  align-items: center; /* Center vertically */
+  gap: 0.5rem;
+}
+
 /* Export buttons */
 #exportButtons {
   display: flex;
