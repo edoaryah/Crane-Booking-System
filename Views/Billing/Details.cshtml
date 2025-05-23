@@ -108,7 +108,8 @@
       }
       else
       {
-        <form asp-action="UnmarkAsBilled" asp-route-id="@Model.Booking.BookingId" method="post" class="d-inline"
+        <form asp-action="UnmarkAsBilled" asp-route-documentNumber="@Model.Booking.DocumentNumber" method="post"
+          class="d-inline"
           onsubmit="return confirm('Apakah Anda yakin ingin membatalkan status penagihan untuk booking ini?');">
           @Html.AntiForgeryToken()
           <button type="submit" class="btn btn-warning">
@@ -256,6 +257,7 @@
         @Html.AntiForgeryToken()
         <input type="hidden" name="BookingId" value="@Model.Booking.BookingId" />
         <input type="hidden" name="BookingNumber" value="@Model.Booking.BookingNumber" />
+        <input type="hidden" name="DocumentNumber" value="@Model.Booking.DocumentNumber" />
         <div class="modal-header">
           <h5 class="modal-title" id="billingModalLabel">Tandai Sebagai Sudah Ditagih</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>

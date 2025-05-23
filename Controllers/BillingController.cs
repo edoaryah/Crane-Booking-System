@@ -46,12 +46,12 @@ namespace AspnetCoreMvcFull.Controllers
       }
     }
 
-    // GET: /Billing/Details/5
-    public async Task<IActionResult> Details(int id)
+    // GET: /Billing/Details/{documentNumber}
+    public async Task<IActionResult> Details(string documentNumber)
     {
       try
       {
-        var viewModel = await _billingService.GetBillingDetailAsync(id);
+        var viewModel = await _billingService.GetBillingDetailByDocumentNumberAsync(documentNumber);
 
         // Tampilkan pesan dari TempData
         ViewBag.SuccessMessage = TempData["BillingSuccessMessage"] as string;
@@ -69,7 +69,7 @@ namespace AspnetCoreMvcFull.Controllers
       }
       catch (Exception ex)
       {
-        _logger.LogError(ex, "Error retrieving billing details for ID {id}", id);
+        _logger.LogError(ex, "Error retrieving billing details for Document Number {documentNumber}", documentNumber);
         TempData["BillingErrorMessage"] = "Terjadi kesalahan saat mengambil detail penagihan: " + ex.Message;
         return RedirectToAction(nameof(Index));
       }
@@ -97,25 +97,29 @@ namespace AspnetCoreMvcFull.Controllers
           TempData["BillingErrorMessage"] = "Gagal menandai booking sebagai sudah ditagih";
         }
 
-        return RedirectToAction(nameof(Details), new { id = viewModel.BookingId });
+        // Redirect menggunakan DocumentNumber
+        return RedirectToAction(nameof(Details), new { documentNumber = viewModel.DocumentNumber });
       }
       catch (Exception ex)
       {
         _logger.LogError(ex, "Error marking booking as billed");
         TempData["BillingErrorMessage"] = "Terjadi kesalahan saat menandai booking sebagai sudah ditagih: " + ex.Message;
-        return RedirectToAction(nameof(Details), new { id = viewModel.BookingId });
+        return RedirectToAction(nameof(Details), new { documentNumber = viewModel.DocumentNumber });
       }
     }
 
-    // POST: /Billing/UnmarkAsBilled/5
+    // POST: /Billing/UnmarkAsBilled/{documentNumber}
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> UnmarkAsBilled(int id)
+    public async Task<IActionResult> UnmarkAsBilled(string documentNumber)
     {
       try
       {
+        // Dapatkan booking ID berdasarkan document number
+        var viewModel = await _billingService.GetBillingDetailByDocumentNumberAsync(documentNumber);
+
         // Batalkan status sudah ditagih
-        var result = await _billingService.UnmarkBookingAsBilledAsync(id);
+        var result = await _billingService.UnmarkBookingAsBilledAsync(viewModel.Booking.BookingId);
 
         if (result)
         {
@@ -126,13 +130,13 @@ namespace AspnetCoreMvcFull.Controllers
           TempData["BillingErrorMessage"] = "Gagal membatalkan status penagihan booking";
         }
 
-        return RedirectToAction(nameof(Details), new { id });
+        return RedirectToAction(nameof(Details), new { documentNumber });
       }
       catch (Exception ex)
       {
         _logger.LogError(ex, "Error unmarking booking as billed");
         TempData["BillingErrorMessage"] = "Terjadi kesalahan saat membatalkan status penagihan booking: " + ex.Message;
-        return RedirectToAction(nameof(Details), new { id });
+        return RedirectToAction(nameof(Details), new { documentNumber });
       }
     }
   }

@@ -13,11 +13,18 @@ namespace AspnetCoreMvcFull.Services.Billing
     Task<BillingListViewModel> GetBillableBookingsAsync(BillingFilterViewModel filter);
 
     /// <summary>
-    /// Mendapatkan detail booking untuk penagihan
+    /// Mendapatkan detail booking untuk penagihan berdasarkan ID
     /// </summary>
     /// <param name="bookingId">ID booking</param>
     /// <returns>Detail booking dan penggunaan crane</returns>
     Task<BillingDetailViewModel> GetBillingDetailAsync(int bookingId);
+
+    /// <summary>
+    /// Mendapatkan detail booking untuk penagihan berdasarkan Document Number
+    /// </summary>
+    /// <param name="documentNumber">Document Number booking</param>
+    /// <returns>Detail booking dan penggunaan crane</returns>
+    Task<BillingDetailViewModel> GetBillingDetailByDocumentNumberAsync(string documentNumber);
 
     /// <summary>
     /// Menandai booking sebagai sudah ditagih

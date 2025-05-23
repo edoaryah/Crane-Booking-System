@@ -91,8 +91,6 @@
           <th>Requester</th>
           <th>Departemen</th>
           <th>Tanggal</th>
-          @* <th>Jam Operasional</th>
-          <th>Total Jam</th> *@
           <th>Status</th>
           <th>Actions</th>
         </tr>
@@ -107,7 +105,6 @@
               <td>@booking.CraneCode (@booking.CraneCapacity Ton)</td>
               <td>@booking.RequesterName</td>
               <td>@booking.Department</td>
-              <!-- Views/Billing/Index.cshtml - kolom tanggal pada tabel -->
               <td>
                 @if (booking.ActualStartDate.HasValue && booking.ActualEndDate.HasValue)
                 {
@@ -119,8 +116,6 @@
                   <span class="text-muted">Belum ada penggunaan aktual</span>
                 }
               </td>
-              @* <td>@booking.OperatingHours.ToString("0.0") jam</td>
-              <td>@booking.TotalHours.ToString("0.0") jam</td> *@
               <td>
                 @if (booking.IsBilled)
                 {
@@ -132,7 +127,8 @@
                 }
               </td>
               <td>
-                <a class="btn btn-sm btn-info text-white" href="@Url.Action("Details", new { id = booking.BookingId })">
+                <a class="btn btn-sm btn-info text-white"
+                  href="@Url.Action("Details", new { documentNumber = booking.DocumentNumber })">
                   <i class="bx bx-detail me-1"></i> Detail
                 </a>
               </td>

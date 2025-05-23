@@ -102,10 +102,13 @@ namespace AspnetCoreMvcFull.ViewModels.Billing
     public double BreakdownPercentage => TotalHours > 0 ? Math.Round((BreakdownHours / TotalHours) * 100, 1) : 0;
   }
 
+  // ViewModels/Billing/BillingViewModel.cs - Update MarkAsBilledViewModel
+
   public class MarkAsBilledViewModel
   {
     public int BookingId { get; set; }
     public string BookingNumber { get; set; } = string.Empty;
+    public string DocumentNumber { get; set; } = string.Empty; // Tambahkan property ini
 
     [Display(Name = "Catatan Penagihan")]
     public string? BillingNotes { get; set; }

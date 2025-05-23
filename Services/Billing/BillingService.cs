@@ -194,6 +194,118 @@ namespace AspnetCoreMvcFull.Services.Billing
       };
     }
 
+    public async Task<BillingDetailViewModel> GetBillingDetailByDocumentNumberAsync(string documentNumber)
+    {
+      // Mendapatkan booking dengan relasi crane berdasarkan document number
+      var booking = await _context.Bookings
+          .Include(b => b.Crane)
+          .FirstOrDefaultAsync(b => b.DocumentNumber == documentNumber);
+
+      if (booking == null)
+      {
+        throw new KeyNotFoundException($"Booking dengan Document Number {documentNumber} tidak ditemukan");
+      }
+
+      // Mendapatkan semua entri yang terkait booking dan sudah difinalisasi
+      var entries = await _context.CraneUsageEntries
+          .Include(e => e.CraneUsageRecord)
+          .Include(e => e.UsageSubcategory)
+          .Where(e => e.BookingId == booking.Id && e.CraneUsageRecord.IsFinalized)
+          .OrderBy(e => e.CraneUsageRecord.Date)
+          .ThenBy(e => e.StartTime)
+          .ToListAsync();
+
+      // Menghitung total jam tiap kategori
+      var calculation = new BillingCalculationViewModel();
+      var entryViewModels = new List<BillingEntryViewModel>();
+
+      // Hitung tanggal penggunaan aktual
+      DateTime? actualStartDate = null;
+      DateTime? actualEndDate = null;
+
+      if (entries.Any())
+      {
+        actualStartDate = entries.Min(e => e.CraneUsageRecord.Date);
+        actualEndDate = entries.Max(e => e.CraneUsageRecord.Date);
+      }
+
+      foreach (var entry in entries)
+      {
+        var duration = GetDurationHours(entry.StartTime, entry.EndTime);
+
+        // Update total jam
+        calculation.TotalHours += duration;
+
+        // Update jam berdasarkan kategori
+        switch (entry.Category)
+        {
+          case UsageCategory.Operating:
+            calculation.OperatingHours += duration;
+            break;
+          case UsageCategory.Delay:
+            calculation.DelayHours += duration;
+            break;
+          case UsageCategory.Standby:
+            calculation.StandbyHours += duration;
+            break;
+          case UsageCategory.Service:
+            calculation.ServiceHours += duration;
+            break;
+          case UsageCategory.Breakdown:
+            calculation.BreakdownHours += duration;
+            break;
+        }
+
+        // Tambahkan ke list entri
+        entryViewModels.Add(new BillingEntryViewModel
+        {
+          Id = entry.Id,
+          Date = entry.CraneUsageRecord.Date,
+          StartTime = entry.StartTime,
+          EndTime = entry.EndTime,
+          Category = entry.Category,
+          SubcategoryName = entry.UsageSubcategory?.Name ?? entry.Category.ToString(),
+          OperatorName = entry.OperatorName ?? string.Empty,
+          Notes = entry.Notes ?? string.Empty,
+          DurationHours = duration
+        });
+      }
+
+      // Membuat view model
+      var billingViewModel = new BillingViewModel
+      {
+        BookingId = booking.Id,
+        BookingNumber = booking.BookingNumber,
+        DocumentNumber = booking.DocumentNumber,
+        RequesterName = booking.Name,
+        Department = booking.Department,
+        BookingStartDate = booking.StartDate,
+        BookingEndDate = booking.EndDate,
+        ActualStartDate = actualStartDate,
+        ActualEndDate = actualEndDate,
+        CraneCode = booking.Crane?.Code ?? "Unknown",
+        CraneCapacity = booking.Crane?.Capacity ?? 0,
+        Status = booking.Status,
+        TotalHours = calculation.TotalHours,
+        OperatingHours = calculation.OperatingHours,
+        DelayHours = calculation.DelayHours,
+        StandbyHours = calculation.StandbyHours,
+        ServiceHours = calculation.ServiceHours,
+        BreakdownHours = calculation.BreakdownHours,
+        IsBilled = booking.IsBilled,
+        BilledDate = booking.BilledDate,
+        BilledBy = booking.BilledBy,
+        BillingNotes = booking.BillingNotes
+      };
+
+      return new BillingDetailViewModel
+      {
+        Booking = billingViewModel,
+        Entries = entryViewModels,
+        Calculation = calculation
+      };
+    }
+
     public async Task<BillingDetailViewModel> GetBillingDetailAsync(int bookingId)
     {
       // Mendapatkan booking dengan relasi crane
