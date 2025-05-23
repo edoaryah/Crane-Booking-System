@@ -9,36 +9,48 @@
 <div class="card mb-4">
   <div class="card-header">
     <i class="bx bx-filter-alt me-1"></i>
-    Filter
+    Filter Penagihan
   </div>
   <div class="card-body">
     <form asp-action="Index" method="get" id="filterForm">
       <div class="row g-3">
-        <div class="col-md-4">
+        <div class="col-md-3">
           <label asp-for="Filter.CraneId" class="form-label">Crane</label>
           <select asp-for="Filter.CraneId" asp-items="Model.Filter.CraneList" class="form-select"
             onchange="document.getElementById('filterForm').submit()">
             <option value="">-- Semua Crane --</option>
           </select>
         </div>
-        <div class="col-md-4">
-          <label asp-for="Filter.StartDate" class="form-label">Dari Tanggal</label>
+        <div class="col-md-3">
+          <label asp-for="Filter.StartDate" class="form-label">
+            Dari Tanggal Aktual
+            <i class="bx bx-info-circle text-info"
+              title="Filter berdasarkan tanggal aktual penggunaan crane, bukan tanggal booking"
+              style="cursor: help;"></i>
+          </label>
           <input asp-for="Filter.StartDate" class="form-control" type="date"
             onchange="document.getElementById('filterForm').submit()" />
+          <small class="text-muted">Tanggal penggunaan crane</small>
         </div>
-        <div class="col-md-4">
-          <label asp-for="Filter.EndDate" class="form-label">Sampai Tanggal</label>
+        <div class="col-md-3">
+          <label asp-for="Filter.EndDate" class="form-label">
+            Sampai Tanggal Aktual
+            <i class="bx bx-info-circle text-info"
+              title="Filter berdasarkan tanggal aktual penggunaan crane, bukan tanggal booking"
+              style="cursor: help;"></i>
+          </label>
           <input asp-for="Filter.EndDate" class="form-control" type="date"
             onchange="document.getElementById('filterForm').submit()" />
+          <small class="text-muted">Tanggal penggunaan crane</small>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
           <label asp-for="Filter.Department" class="form-label">Departemen</label>
           <select asp-for="Filter.Department" asp-items="Model.Filter.DepartmentList" class="form-select"
             onchange="document.getElementById('filterForm').submit()">
             <option value="">-- Semua Departemen --</option>
           </select>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-6">
           <label asp-for="Filter.IsBilled" class="form-label">Status Penagihan</label>
           <select asp-for="Filter.IsBilled" class="form-select"
             onchange="document.getElementById('filterForm').submit()">
@@ -47,8 +59,8 @@
             <option value="false">Belum Ditagih</option>
           </select>
         </div>
-        <div class="col-md-12 d-flex justify-content-end mt-2">
-          <a href="@Url.Action("Index")" class="btn btn-outline-secondary btn-sm">
+        <div class="col-md-6 d-flex align-items-end">
+          <a href="@Url.Action("Index")" class="btn btn-outline-secondary">
             <i class="bx bx-reset me-1"></i> Reset Filter
           </a>
         </div>
@@ -61,8 +73,11 @@
 <div class="card">
   <div class="card-header d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
     <div class="mb-2 mb-md-0">
-      <i class="bx bx-receipt me-1"></i>
-      Penagihan Booking Crane
+      <h5 class="mb-0">
+        <i class="bx bx-receipt me-1"></i>
+        Penagihan Booking Crane
+      </h5>
+      <small class="text-muted">Data billing berdasarkan penggunaan crane aktual</small>
     </div>
   </div>
 
@@ -84,15 +99,16 @@
 
   <div class="table-responsive text-nowrap">
     <table class="table table-hover" id="billingTable">
-      <thead>
+      <thead class="table-light">
         <tr>
           <th>No. Booking</th>
           <th>Crane</th>
           <th>Requester</th>
           <th>Departemen</th>
-          <th>Tanggal</th>
+          <th>Tanggal Aktual</th>
+          @* <th>Total Jam</th> *@
           <th>Status</th>
-          <th>Actions</th>
+          <th width="120">Actions</th>
         </tr>
       </thead>
       <tbody class="table-border-bottom-0">
@@ -102,33 +118,74 @@
           {
             <tr>
               <td><strong>@booking.BookingNumber</strong></td>
-              <td>@booking.CraneCode (@booking.CraneCapacity Ton)</td>
+              <td>
+                <strong>@booking.CraneCode</strong><br />
+                <small class="text-muted">@booking.CraneCapacity Ton</small>
+              </td>
               <td>@booking.RequesterName</td>
               <td>@booking.Department</td>
               <td>
                 @if (booking.ActualStartDate.HasValue && booking.ActualEndDate.HasValue)
                 {
-                  @booking.ActualStartDate.Value.ToString("dd/MM/yyyy") <text> - </text>
-                  @booking.ActualEndDate.Value.ToString("dd/MM/yyyy")
+                  <strong>@booking.ActualStartDate.Value.ToString("dd/MM/yyyy")</strong>
+                  @if (booking.ActualStartDate.Value.Date != booking.ActualEndDate.Value.Date)
+                  {
+                    <text> - </text>
+
+                    <strong>@booking.ActualEndDate.Value.ToString("dd/MM/yyyy")</strong>
+                  }
+                  <br />
+                  <small class="text-muted">
+                    Booking: @booking.BookingStartDate.ToString("dd/MM") - @booking.BookingEndDate.ToString("dd/MM")
+                  </small>
                 }
                 else
                 {
-                  <span class="text-muted">Belum ada penggunaan aktual</span>
+                  <span class="text-muted">Belum ada penggunaan</span>
+
+                  <br />
+                  <small class="text-muted">
+                    Booking: @booking.BookingStartDate.ToString("dd/MM") - @booking.BookingEndDate.ToString("dd/MM")
+                  </small>
                 }
               </td>
+              @* <td>
+                @if (booking.TotalHours > 0)
+                {
+                  <strong>@booking.TotalHours.ToString("0.0") jam</strong>
+
+                  <br />
+                  <small class="text-success">Operating: @booking.OperatingHours.ToString("0.0")h</small>
+                }
+                else
+                {
+                  <span class="text-muted">0 jam</span>
+                }
+              </td> *@
               <td>
                 @if (booking.IsBilled)
                 {
-                  <span class="badge bg-success">Sudah Ditagih</span>
+                  <span class="badge bg-success">
+                    <i class="bx bx-check me-1"></i>Sudah Ditagih
+                  </span>
+                  @if (booking.BilledDate.HasValue)
+                  {
+                    <br />
+
+                    <small class="text-muted">@booking.BilledDate.Value.ToString("dd/MM/yyyy")</small>
+                  }
                 }
                 else
                 {
-                  <span class="badge bg-warning">Belum Ditagih</span>
+                  <span class="badge bg-warning">
+                    <i class="bx bx-time me-1"></i>Belum Ditagih
+                  </span>
                 }
               </td>
               <td>
                 <a class="btn btn-sm btn-info text-white"
-                  href="@Url.Action("Details", new { documentNumber = booking.DocumentNumber })">
+                  href="@Url.Action("Details", new { documentNumber = booking.DocumentNumber })"
+                  title="Lihat detail billing untuk @booking.BookingNumber">
                   <i class="bx bx-detail me-1"></i> Detail
                 </a>
               </td>
@@ -138,12 +195,29 @@
         else
         {
           <tr>
-            <td colspan="9" class="text-center">Tidak ada data penagihan ditemukan</td>
+            <td colspan="9" class="text-center py-4">
+              <div class="text-muted">
+                <i class="bx bx-info-circle mb-2" style="font-size: 2rem;"></i>
+                <p class="mb-0">Tidak ada data penagihan ditemukan</p>
+                <small>Coba ubah filter untuk melihat data lainnya</small>
+              </div>
+            </td>
           </tr>
         }
       </tbody>
     </table>
   </div>
+
+  @if (Model.Bookings != null && Model.Bookings.Any())
+  {
+    <div class="card-footer">
+      <small class="text-muted">
+        <i class="bx bx-info-circle me-1"></i>
+        Menampilkan @Model.Bookings.Count() booking.
+        Filter berdasarkan tanggal aktual penggunaan crane.
+      </small>
+    </div>
+  }
 </div>
 
 @section PageScripts {
@@ -155,8 +229,59 @@
           url: '/lib/datatables/Indonesian.json'
         },
         order: [[0, 'desc']], // Sort by booking number desc
-        responsive: true
+        responsive: true,
+        pageLength: 25,
+        dom: 'Bfrtip',
+        buttons: [
+          {
+            extend: 'excel',
+            text: '<i class="bx bx-download me-1"></i> Export Excel',
+            className: 'btn btn-success btn-sm',
+            title: 'Data Penagihan Crane - ' + new Date().toLocaleDateString('id-ID')
+          },
+          {
+            extend: 'pdf',
+            text: '<i class="bx bx-file-blank me-1"></i> Export PDF',
+            className: 'btn btn-danger btn-sm',
+            title: 'Data Penagihan Crane',
+            orientation: 'landscape',
+            pageSize: 'A4'
+          }
+        ],
+        columnDefs: [
+          { orderable: false, targets: -1 } // Disable sorting on Actions column
+        ]
       });
+
+      // Initialize tooltips
+      $('[title]').tooltip();
     });
   </script>
+}
+
+@section PageStyles {
+  <!-- DataTables CSS -->
+  <link rel="stylesheet" href="~/vendor/libs/datatables/css/dataTables.dataTables.css">
+  <link rel="stylesheet" href="~/vendor/libs/datatables/css/buttons.dataTables.css">
+
+  <style>
+    .table th {
+      background-color: #f8f9fa;
+      font-weight: 600;
+      font-size: 0.875rem;
+      border-bottom: 2px solid #dee2e6;
+    }
+
+    .table td {
+      vertical-align: middle;
+    }
+
+    .badge {
+      font-size: 0.75rem;
+    }
+
+    .btn-sm {
+      font-size: 0.75rem;
+    }
+  </style>
 }

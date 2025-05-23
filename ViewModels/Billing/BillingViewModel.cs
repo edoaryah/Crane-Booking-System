@@ -108,9 +108,12 @@ namespace AspnetCoreMvcFull.ViewModels.Billing
   {
     public int BookingId { get; set; }
     public string BookingNumber { get; set; } = string.Empty;
-    public string DocumentNumber { get; set; } = string.Empty; // Tambahkan property ini
+
+    [Required(ErrorMessage = "Document Number is required")]
+    public string DocumentNumber { get; set; } = string.Empty;
 
     [Display(Name = "Catatan Penagihan")]
+    [StringLength(500, ErrorMessage = "Catatan tidak boleh lebih dari 500 karakter")]
     public string? BillingNotes { get; set; }
   }
 }

@@ -47,6 +47,7 @@ namespace AspnetCoreMvcFull.Controllers
     }
 
     // GET: /Billing/Details/{documentNumber}
+    [Route("Billing/Details/{documentNumber}")]
     public async Task<IActionResult> Details(string documentNumber)
     {
       try
@@ -65,12 +66,36 @@ namespace AspnetCoreMvcFull.Controllers
       }
       catch (KeyNotFoundException)
       {
-        return NotFound();
+        TempData["BillingErrorMessage"] = $"Booking dengan Document Number {documentNumber} tidak ditemukan";
+        return RedirectToAction(nameof(Index));
       }
       catch (Exception ex)
       {
         _logger.LogError(ex, "Error retrieving billing details for Document Number {documentNumber}", documentNumber);
         TempData["BillingErrorMessage"] = "Terjadi kesalahan saat mengambil detail penagihan: " + ex.Message;
+        return RedirectToAction(nameof(Index));
+      }
+    }
+
+    // GET: /Billing/Details/{id:int} - Legacy support (redirect to new URL)
+    [Route("Billing/Details/{id:int}")]
+    public async Task<IActionResult> DetailsById(int id)
+    {
+      try
+      {
+        var viewModel = await _billingService.GetBillingDetailAsync(id);
+        // Redirect to new URL format using DocumentNumber
+        return RedirectToAction(nameof(Details), new { documentNumber = viewModel.Booking.DocumentNumber });
+      }
+      catch (KeyNotFoundException)
+      {
+        TempData["BillingErrorMessage"] = $"Booking dengan ID {id} tidak ditemukan";
+        return RedirectToAction(nameof(Index));
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Error redirecting from legacy URL for ID {id}", id);
+        TempData["BillingErrorMessage"] = "Terjadi kesalahan saat mengakses detail penagihan";
         return RedirectToAction(nameof(Index));
       }
     }
@@ -82,6 +107,12 @@ namespace AspnetCoreMvcFull.Controllers
     {
       try
       {
+        if (!ModelState.IsValid)
+        {
+          TempData["BillingErrorMessage"] = "Data tidak valid. Silakan periksa kembali.";
+          return RedirectToAction(nameof(Details), new { documentNumber = viewModel.DocumentNumber });
+        }
+
         // Dapatkan nama pengguna
         var userName = User.FindFirst(ClaimTypes.Name)?.Value ?? User.FindFirst("ldapuser")?.Value ?? "system";
 
@@ -97,12 +128,11 @@ namespace AspnetCoreMvcFull.Controllers
           TempData["BillingErrorMessage"] = "Gagal menandai booking sebagai sudah ditagih";
         }
 
-        // Redirect menggunakan DocumentNumber
         return RedirectToAction(nameof(Details), new { documentNumber = viewModel.DocumentNumber });
       }
       catch (Exception ex)
       {
-        _logger.LogError(ex, "Error marking booking as billed");
+        _logger.LogError(ex, "Error marking booking as billed for Document Number {documentNumber}", viewModel.DocumentNumber);
         TempData["BillingErrorMessage"] = "Terjadi kesalahan saat menandai booking sebagai sudah ditagih: " + ex.Message;
         return RedirectToAction(nameof(Details), new { documentNumber = viewModel.DocumentNumber });
       }
@@ -111,11 +141,12 @@ namespace AspnetCoreMvcFull.Controllers
     // POST: /Billing/UnmarkAsBilled/{documentNumber}
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Route("Billing/UnmarkAsBilled/{documentNumber}")]
     public async Task<IActionResult> UnmarkAsBilled(string documentNumber)
     {
       try
       {
-        // Dapatkan booking ID berdasarkan document number
+        // Dapatkan booking details berdasarkan document number
         var viewModel = await _billingService.GetBillingDetailByDocumentNumberAsync(documentNumber);
 
         // Batalkan status sudah ditagih
@@ -123,7 +154,7 @@ namespace AspnetCoreMvcFull.Controllers
 
         if (result)
         {
-          TempData["BillingSuccessMessage"] = "Booking berhasil dibatalkan status penagihan";
+          TempData["BillingSuccessMessage"] = $"Booking {viewModel.Booking.BookingNumber} berhasil dibatalkan status penagihan";
         }
         else
         {
@@ -132,11 +163,36 @@ namespace AspnetCoreMvcFull.Controllers
 
         return RedirectToAction(nameof(Details), new { documentNumber });
       }
+      catch (KeyNotFoundException)
+      {
+        TempData["BillingErrorMessage"] = $"Booking dengan Document Number {documentNumber} tidak ditemukan";
+        return RedirectToAction(nameof(Index));
+      }
       catch (Exception ex)
       {
-        _logger.LogError(ex, "Error unmarking booking as billed");
+        _logger.LogError(ex, "Error unmarking booking as billed for Document Number {documentNumber}", documentNumber);
         TempData["BillingErrorMessage"] = "Terjadi kesalahan saat membatalkan status penagihan booking: " + ex.Message;
         return RedirectToAction(nameof(Details), new { documentNumber });
+      }
+    }
+
+    // POST: /Billing/UnmarkAsBilled/{id:int} - Legacy support
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Route("Billing/UnmarkAsBilled/{id:int}")]
+    public async Task<IActionResult> UnmarkAsBilledById(int id)
+    {
+      try
+      {
+        // Get document number first, then redirect to new method
+        var viewModel = await _billingService.GetBillingDetailAsync(id);
+        return RedirectToAction(nameof(UnmarkAsBilled), new { documentNumber = viewModel.Booking.DocumentNumber });
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Error in legacy UnmarkAsBilled for ID {id}", id);
+        TempData["BillingErrorMessage"] = "Terjadi kesalahan saat membatalkan status penagihan booking";
+        return RedirectToAction(nameof(Index));
       }
     }
   }

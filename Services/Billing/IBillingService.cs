@@ -6,7 +6,7 @@ namespace AspnetCoreMvcFull.Services.Billing
   public interface IBillingService
   {
     /// <summary>
-    /// Mendapatkan daftar booking yang bisa ditagih (semua yang sudah finalize)
+    /// Mendapatkan daftar booking yang bisa ditagih dengan filter berdasarkan tanggal aktual penggunaan
     /// </summary>
     /// <param name="filter">Parameter filter</param>
     /// <returns>Daftar booking yang bisa ditagih</returns>
