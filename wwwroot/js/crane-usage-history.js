@@ -99,7 +99,7 @@ var CraneUsageHistory = (function () {
 
     var docDefinition = {
       pageSize: 'A4',
-      pageOrientation: 'landscape', // Landscape untuk table yang lebih lebar
+      pageOrientation: 'portrait', // Landscape untuk table yang lebih lebar
       pageMargins: [40, config.companyLogo ? 100 : 80, 40, 60],
 
       info: {
