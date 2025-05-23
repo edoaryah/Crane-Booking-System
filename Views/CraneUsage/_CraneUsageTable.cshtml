@@ -1,0 +1,160 @@
+@model AspnetCoreMvcFull.ViewModels.CraneUsage.CraneUsageHistoryPagedViewModel
+
+<!-- Loading indicator -->
+<div id="tableLoadingOverlay" class="d-none">
+  <div class="text-center p-5">
+    <div class="spinner-border text-primary" role="status"></div>
+    <p class="mt-2">Memuat data...</p>
+  </div>
+</div>
+
+@if (Model.PagedRecords.Items.Any())
+{
+  <div class="table-responsive text-nowrap">
+    <table class="table table-hover" id="craneUsageHistoryTable">
+      <thead class="table-light">
+        <tr>
+          <th>#</th>
+          <th>Crane</th>
+          <th>Tanggal</th>
+          <th>Entries</th>
+          <th>Total Jam</th>
+          <th>Operating</th>
+          <th>Delay</th>
+          <th>Standby</th>
+          <th>Maintenance</th>
+          <th>Status</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
+      <tbody class="table-border-bottom-0">
+        @{
+          var startIndex = (Model.PagedRecords.PageNumber - 1) * Model.PagedRecords.PageSize + 1;
+        }
+        @foreach (var record in Model.PagedRecords.Items)
+        {
+          <tr class="clickable-row"
+            data-url="@Url.Action("Form", "CraneUsage", new { craneId = record.CraneId, date = record.Date.ToString("yyyy-MM-dd") })">
+            <td><strong>@(startIndex++)</strong></td>
+            <td>@record.CraneCode</td>
+            <td data-order="@record.Date.ToString("yyyy-MM-dd")">
+              @record.Date.ToString("dd/MM/yyyy")
+            </td>
+            <td>@record.EntryCount entries</td>
+            <td>@record.TotalHours.ToString("0.0") jam</td>
+            <td>@record.OperatingHours.ToString("0.0") jam</td>
+            <td>@record.DelayHours.ToString("0.0") jam</td>
+            <td>@record.StandbyHours.ToString("0.0") jam</td>
+            <td>@((record.ServiceHours + record.BreakdownHours).ToString("0.0")) jam</td>
+            <td>
+              @if (record.IsFinalized)
+              {
+                <span class="badge bg-success">Difinalisasi</span>
+              }
+              else
+              {
+                <span class="badge bg-warning">Draft</span>
+              }
+            </td>
+            <td class="action-buttons-cell">
+              <div class="action-buttons">
+                <a class="btn btn-sm btn-outline-primary"
+                  href="@Url.Action("Form", "CraneUsage", new { craneId = record.CraneId, date = record.Date.ToString("yyyy-MM-dd") })"
+                  title="Edit Form">
+                  <i class="bx bx-edit-alt"></i>
+                </a>
+                <a class="btn btn-sm btn-outline-info"
+                  href="@Url.Action("MinuteVisualization", "CraneUsage", new { craneId = record.CraneId, date = record.Date.ToString("yyyy-MM-dd") })"
+                  title="Visualisasi">
+                  <i class="bx bx-bar-chart-alt"></i>
+                </a>
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Footer Card dengan Pagination Controls -->
+  <div class="card-footer border-top d-flex justify-content-between align-items-center py-3">
+    <div>
+      @(((Model.PagedRecords.PageNumber - 1) * Model.PagedRecords.PageSize) + 1) to
+      @(Math.Min(Model.PagedRecords.PageNumber * Model.PagedRecords.PageSize, Model.PagedRecords.TotalCount))
+      of @Model.PagedRecords.TotalCount entries
+    </div>
+
+    <div class="pagination-container text-center mx-auto">
+      <div class="btn-group pagination-group">
+        <a href="#" class="btn btn-icon btn-outline-primary @(Model.PagedRecords.HasPreviousPage ? "" : "disabled")"
+          data-page="@(Model.PagedRecords.PageNumber - 1)" aria-label="Previous" @(Model.PagedRecords.HasPreviousPage
+                                                                                         ? "" : "aria-disabled=\"true\"")>
+        <i class="tf-icon bx bx-chevron-left"></i>
+      </a>
+
+      @{
+          int startPage = Math.Max(1, Model.PagedRecords.PageNumber - 2);
+          int endPage = Math.Min(Model.PagedRecords.PageCount, startPage + 4);
+
+          if (endPage - startPage < 4 && endPage < Model.PagedRecords.PageCount)
+          {
+            endPage = Math.Min(Model.PagedRecords.PageCount, endPage + (4 - (endPage - startPage)));
+          }
+
+          if (endPage - startPage < 4 && startPage > 1)
+          {
+            startPage = Math.Max(1, startPage - (4 - (endPage - startPage)));
+          }
+        }
+
+        @for (int i = startPage; i <= endPage; i++)
+        {
+          <a href="#" class="btn @(Model.PagedRecords.PageNumber == i ? "btn-primary" : "btn-outline-primary")"
+            data-page="@i">
+            @i
+          </a>
+        }
+
+        <a href="#" class="btn btn-icon btn-outline-primary @(Model.PagedRecords.HasNextPage ? "" : "disabled")"
+          data-page="@(Model.PagedRecords.PageNumber + 1)" aria-label="Next" @(Model.PagedRecords.HasNextPage ? "" :
+                                                                                     "aria-disabled=\"true\"")>
+        <i class="tf-icon bx bx-chevron-right"></i>
+      </a>
+    </div>
+  </div>
+
+    <div class="page-size-container">
+      <select id="pageSizeSelector" class="form-select form-select-sm" style="width: auto;">
+      @foreach (var size in new[] { 10, 25, 50 })
+        {
+          if (Model.PagedRecords.PageSize == size)
+          {
+            <option value="@size" selected>@size baris</option>
+          }
+          else
+          {
+            <option value="@size">@size baris</option>
+          }
+        }
+      </select>
+    </div>
+  </div>
+}
+else
+{
+  <div class="text-center p-5">
+    <div class="mb-3">
+      <i class="bx bx-calendar-x text-primary" style="font-size: 4rem;"></i>
+    </div>
+    <h5>Tidak ada data penggunaan crane ditemukan</h5>
+    <p class="text-muted">Coba sesuaikan kriteria pencarian atau filter Anda.</p>
+    <div class="mt-3">
+      <a href="@Url.Action("Index", "CraneUsage")" class="btn btn-outline-secondary">
+        <i class="bx bx-reset me-1"></i> Reset Filter
+      </a>
+      <button type="button" class="btn btn-primary ms-2" data-bs-toggle="modal" data-bs-target="#craneSelectionModal">
+        <i class="bx bx-plus me-1"></i> Buat Record Baru
+      </button>
+    </div>
+  </div>
+}

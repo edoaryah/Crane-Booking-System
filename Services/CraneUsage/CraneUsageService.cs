@@ -1,3 +1,4 @@
+using AspnetCoreMvcFull.Models.Common;
 using AspnetCoreMvcFull.Data;
 using AspnetCoreMvcFull.Models;
 using AspnetCoreMvcFull.ViewModels.CraneUsage;
@@ -1077,6 +1078,133 @@ namespace AspnetCoreMvcFull.Services.CraneUsage
       viewModel.Summary = summary;
 
       return viewModel;
+    }
+
+    // Tambahkan method ini di dalam class CraneUsageService
+
+    public async Task<PagedResult<CraneUsageRecordViewModel>> GetPagedCraneUsageRecordsAsync(CraneUsagePagedRequest request)
+    {
+      try
+      {
+        // Start with all records
+        var query = _context.CraneUsageRecords
+            .Include(r => r.Crane)
+            .Include(r => r.Entries)
+            .AsQueryable();
+
+        // Apply filters
+        if (request.CraneId.HasValue && request.CraneId.Value > 0)
+        {
+          query = query.Where(r => r.CraneId == request.CraneId.Value);
+        }
+
+        if (request.StartDate.HasValue)
+        {
+          var startDate = request.StartDate.Value.Date;
+          query = query.Where(r => r.Date >= startDate);
+        }
+
+        if (request.EndDate.HasValue)
+        {
+          var endDate = request.EndDate.Value.Date;
+          query = query.Where(r => r.Date <= endDate);
+        }
+
+        if (request.IsFinalized.HasValue)
+        {
+          query = query.Where(r => r.IsFinalized == request.IsFinalized.Value);
+        }
+
+        // Apply global search
+        if (!string.IsNullOrEmpty(request.GlobalSearch))
+        {
+          var search = request.GlobalSearch.ToLower();
+          query = query.Where(r =>
+              (r.Crane != null && r.Crane.Code.ToLower().Contains(search)) ||
+              (r.FinalizedBy != null && r.FinalizedBy.ToLower().Contains(search)) ||
+              (r.CreatedBy.ToLower().Contains(search))
+          );
+        }
+
+        // Get total count before pagination
+        var totalCount = await query.CountAsync();
+
+        // Apply sorting
+        query = ApplyCraneUsageSorting(query, request.SortBy, request.SortDesc);
+
+        // Apply pagination
+        var items = await query
+            .Skip((request.PageNumber - 1) * request.PageSize)
+            .Take(request.PageSize)
+            .ToListAsync();
+
+        // Map to view models
+        var records = items.Select(r => new CraneUsageRecordViewModel
+        {
+          Id = r.Id,
+          CraneId = r.CraneId,
+          CraneCode = r.Crane?.Code ?? "Unknown",
+          Date = r.Date,
+          IsFinalized = r.IsFinalized,
+          FinalizedBy = r.FinalizedBy,
+          FinalizedAt = r.FinalizedAt,
+          EntryCount = r.Entries.Count,
+          TotalHours = CalculateTotalHours(r.Entries),
+          OperatingHours = CalculateCategoryHours(r.Entries, UsageCategory.Operating),
+          DelayHours = CalculateCategoryHours(r.Entries, UsageCategory.Delay),
+          StandbyHours = CalculateCategoryHours(r.Entries, UsageCategory.Standby),
+          ServiceHours = CalculateCategoryHours(r.Entries, UsageCategory.Service),
+          BreakdownHours = CalculateCategoryHours(r.Entries, UsageCategory.Breakdown)
+        }).ToList();
+
+        // Calculate page count
+        var pageCount = (int)Math.Ceiling(totalCount / (double)request.PageSize);
+
+        // Create and return paged result
+        return new PagedResult<CraneUsageRecordViewModel>
+        {
+          Items = records,
+          TotalCount = totalCount,
+          PageCount = pageCount,
+          PageNumber = request.PageNumber,
+          PageSize = request.PageSize
+        };
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Error getting paged crane usage records: {Message}", ex.Message);
+        throw;
+      }
+    }
+
+    private IQueryable<CraneUsageRecord> ApplyCraneUsageSorting(IQueryable<CraneUsageRecord> query, string sortBy, bool sortDesc)
+    {
+      switch (sortBy?.ToLower())
+      {
+        case "crane":
+        case "cranecode":
+          return sortDesc
+              ? query.OrderByDescending(r => r.Crane != null ? r.Crane.Code : "")
+              : query.OrderBy(r => r.Crane != null ? r.Crane.Code : "");
+        case "date":
+          return sortDesc
+              ? query.OrderByDescending(r => r.Date)
+              : query.OrderBy(r => r.Date);
+        case "isfinalized":
+        case "status":
+          return sortDesc
+              ? query.OrderByDescending(r => r.IsFinalized)
+              : query.OrderBy(r => r.IsFinalized);
+        case "finalizedby":
+          return sortDesc
+              ? query.OrderByDescending(r => r.FinalizedBy ?? "")
+              : query.OrderBy(r => r.FinalizedBy ?? "");
+        case "createdat":
+        default:
+          return sortDesc
+              ? query.OrderByDescending(r => r.CreatedAt)
+              : query.OrderBy(r => r.CreatedAt);
+      }
     }
   }
 }

@@ -1,3 +1,4 @@
+using AspnetCoreMvcFull.Models.Common;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using AspnetCoreMvcFull.Models;
 using AspnetCoreMvcFull.ViewModels.CraneUsage;
@@ -128,5 +129,13 @@ namespace AspnetCoreMvcFull.Services.CraneUsage
     /// <param name="userName">Username of editor</param>
     /// <returns>True if successful</returns>
     Task<bool> SaveBookingUsageFormAsync(BookingUsageFormViewModel viewModel, string userName);
+
+    // Tambahkan method ini di interface
+    /// <summary>
+    /// Gets paged crane usage records with filtering
+    /// </summary>
+    /// <param name="request">Filter and pagination parameters</param>
+    /// <returns>Paged result of crane usage records</returns>
+    Task<PagedResult<CraneUsageRecordViewModel>> GetPagedCraneUsageRecordsAsync(CraneUsagePagedRequest request);
   }
 }

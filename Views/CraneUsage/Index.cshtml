@@ -1,151 +1,150 @@
-@model AspnetCoreMvcFull.ViewModels.CraneUsage.CraneUsageRecordListViewModel
+@model AspnetCoreMvcFull.ViewModels.CraneUsage.CraneUsageHistoryPagedViewModel
 @{
-  ViewData["Title"] = "Crane Usage Records";
+  ViewData["Title"] = "Riwayat Penggunaan Crane";
   Layout = "_ContentNavbarLayout";
 }
 
+<div id="alertContainer">
+  @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+  {
+    <div class="alert alert-success alert-dismissible fade show auto-close-alert" role="alert">
+      @Model.SuccessMessage
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  }
+
+  @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+  {
+    <div class="alert alert-danger alert-dismissible fade show auto-close-alert" role="alert">
+      @Model.ErrorMessage
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  }
+</div>
+
 <!-- Filter Card -->
 <div class="card mb-4">
-  <div class="card-header">
-    <i class="bx bx-filter-alt me-1"></i>
-    Filter
-  </div>
   <div class="card-body">
-    <form asp-action="Index" method="get" id="filterForm">
+    <form id="filterForm" method="get" action="@Url.Action("Index", "CraneUsage")">
       <div class="row g-3">
-        <div class="col-md-4">
-          <label asp-for="Filter.CraneId" class="form-label">Crane</label>
-          <select asp-for="Filter.CraneId" asp-items="Model.Filter.CraneList" class="form-select"
-            onchange="document.getElementById('filterForm').submit()">
-            <option value="">-- All Cranes --</option>
+        <div class="col-md-3">
+          <label class="form-label" for="CraneId">Crane</label>
+          <select name="CraneId" id="CraneId" class="form-select">
+            <option value="">-- Semua Crane --</option>
+            @foreach (var crane in Model.Filter.CraneList)
+            {
+              if (Model.Filter.CraneId.ToString() == crane.Value)
+              {
+                <option value="@crane.Value" selected>@crane.Text</option>
+              }
+              else
+              {
+                <option value="@crane.Value">@crane.Text</option>
+              }
+            }
           </select>
         </div>
-        <div class="col-md-4">
-          <label asp-for="Filter.StartDate" class="form-label">Start Date</label>
-          <input asp-for="Filter.StartDate" class="form-control" type="date"
-            onchange="document.getElementById('filterForm').submit()" />
+        <div class="col-md-3">
+          <label class="form-label" for="StartDate">Dari Tanggal</label>
+          <input name="StartDate" id="StartDate" class="form-control" type="date"
+            value="@(Model.Filter.StartDate?.ToString("yyyy-MM-dd"))" />
         </div>
-        <div class="col-md-4">
-          <label asp-for="Filter.EndDate" class="form-label">End Date</label>
-          <input asp-for="Filter.EndDate" class="form-control" type="date"
-            onchange="document.getElementById('filterForm').submit()" />
+        <div class="col-md-3">
+          <label class="form-label" for="EndDate">Sampai Tanggal</label>
+          <input name="EndDate" id="EndDate" class="form-control" type="date"
+            value="@(Model.Filter.EndDate?.ToString("yyyy-MM-dd"))" />
         </div>
-        <div class="col-md-12 d-flex justify-content-end mt-2">
-          <a href="@Url.Action("Index")" class="btn btn-outline-secondary btn-sm">
-            <i class="bx bx-reset me-1"></i> Reset Filter
-          </a>
+        <div class="col-md-3">
+          <label class="form-label" for="IsFinalized">Status</label>
+          <select name="IsFinalized" id="IsFinalized" class="form-select">
+            <option value="">-- Semua Status --</option>
+            @if (Model.Filter.IsFinalized == true)
+            {
+              <option value="true" selected>Sudah Difinalisasi</option>
+            }
+            else
+            {
+              <option value="true">Sudah Difinalisasi</option>
+            }
+            @if (Model.Filter.IsFinalized == false)
+            {
+              <option value="false" selected>Belum Difinalisasi</option>
+            }
+            else
+            {
+              <option value="false">Belum Difinalisasi</option>
+            }
+          </select>
+        </div>
+        <div class="col-md-12">
+          <label class="form-label" for="GlobalSearch">Cari</label>
+          <input name="GlobalSearch" id="GlobalSearch" class="form-control" placeholder="Ketik kata kunci..."
+            value="@Model.Filter.GlobalSearch" />
+        </div>
+        <div class="col-12 mt-3 d-flex justify-content-between">
+          <div>
+            <button type="button" id="resetFilterBtn" class="btn btn-outline-secondary">
+              <i class="bx bx-reset me-1"></i> Reset
+            </button>
+          </div>
+          <div id="exportButtons" class="d-flex gap-2">
+            <!-- Export buttons akan ditambahkan oleh JavaScript -->
+          </div>
         </div>
       </div>
+
+      <!-- Hidden inputs for pagination and sorting -->
+      <input type="hidden" name="PageNumber" id="PageNumber" value="@Model.Filter.PageNumber" />
+      <input type="hidden" name="PageSize" id="PageSize" value="@Model.Filter.PageSize" />
+      <input type="hidden" name="SortBy" id="SortBy" value="@Model.Filter.SortBy" />
+      <input type="hidden" name="SortDesc" id="SortDesc" value="@Model.Filter.SortDesc.ToString()" />
+
+      <!-- Add a submit button for no-JS fallback, hidden with CSS -->
+      <noscript>
+        <div class="mt-3">
+          <button type="submit" class="btn btn-primary">
+            <i class="bx bx-filter-alt me-1"></i> Terapkan Filter
+          </button>
+        </div>
+      </noscript>
     </form>
   </div>
 </div>
 
-<!-- Records Table Card -->
+<!-- Main Data Card -->
 <div class="card">
   <div class="card-header">
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
-      <div class="mb-2 mb-md-0">
-        <i class="bx bx-table me-1"></i>
-        Crane Usage Records
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <!-- Title Section -->
+      <div class="header-title">
+        <h5 class="mb-0">
+          <!-- Full text for desktop, shortened for mobile -->
+          <span class="d-none d-md-inline">Riwayat Penggunaan Crane</span>
+          <span class="d-md-none">Penggunaan Crane</span>
+        </h5>
       </div>
-      <div class="d-flex flex-wrap gap-2">
-        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#craneSelectionModal">
-          <i class="bx bx-plus me-1"></i> Form
+
+      <!-- Action Buttons -->
+      <div class="header-actions d-flex gap-2">
+        <button type="button" class="btn btn-primary btn-responsive" data-bs-toggle="modal"
+          data-bs-target="#craneSelectionModal" title="Form Baru">
+          <i class="bx bx-plus"></i>
+          <span class="btn-text d-none d-sm-inline ms-1">Form Baru</span>
         </button>
-        <a asp-action="MinuteVisualization" class="btn btn-info text-white">
-          <i class="bx bx-bar-chart-alt-2 me-1"></i> Visualization
+        <a href="@Url.Action("MinuteVisualization", "CraneUsage")" class="btn btn-outline-secondary btn-responsive"
+          title="Visualisasi">
+          <i class="bx bx-bar-chart-alt-2"></i>
+          <span class="btn-text d-none d-sm-inline ms-1">Visualisasi</span>
         </a>
       </div>
     </div>
   </div>
 
-  @if (ViewBag.SuccessMessage != null)
-  {
-    <div class="alert alert-success alert-dismissible mx-4 mt-4" role="alert">
-      @ViewBag.SuccessMessage
-      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-  }
-
-  @if (ViewBag.ErrorMessage != null)
-  {
-    <div class="alert alert-danger alert-dismissible mx-4 mt-4" role="alert">
-      @ViewBag.ErrorMessage
-      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-  }
-
-  @if (Model.Records != null && Model.Records.Any())
-  {
-    <div class="table-responsive text-nowrap">
-      <table class="table table-hover" id="usageTable">
-        <thead>
-          <tr>
-            <th>Crane</th>
-            <th>Date</th>
-            <th>Entries</th>
-            <th>Total Hours</th>
-            <th>Operating</th>
-            <th>Delay</th>
-            <th>Standby</th>
-            <th>Maintenance</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody class="table-border-bottom-0">
-          @foreach (var record in Model.Records)
-          {
-            <tr>
-              <td><strong>@record.CraneCode</strong></td>
-              <td>@record.Date.ToString("dd/MM/yyyy")</td>
-              <td>@record.EntryCount entries</td>
-              <td>@record.TotalHours.ToString("0.0") jam</td>
-              <td>@record.OperatingHours.ToString("0.0") jam</td>
-              <td>@record.DelayHours.ToString("0.0") jam</td>
-              <td>@record.StandbyHours.ToString("0.0") jam</td>
-              <td>@(record.ServiceHours + record.BreakdownHours).ToString("0.0") jam</td>
-              <td>
-                @if (record.IsFinalized)
-                {
-                  <span class="badge bg-success">Finalized</span>
-                }
-                else
-                {
-                  <span class="badge bg-warning">Draft</span>
-                }
-              </td>
-              <td>
-                <div class="dropdown">
-                  <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
-                    <i class="bx bx-dots-vertical-rounded"></i>
-                  </button>
-                  <div class="dropdown-menu">
-                    <a class="dropdown-item"
-                      href="@Url.Action("Form", new { craneId = record.CraneId, date = record.Date.ToString("yyyy-MM-dd") })">
-                      <i class="bx bx-edit-alt me-1"></i> Edit
-                    </a>
-                    <a class="dropdown-item"
-                      href="@Url.Action("MinuteVisualization", new { craneId = record.CraneId, date = record.Date.ToString("yyyy-MM-dd") })">
-                      <i class="bx bx-bar-chart-alt me-1"></i> Visualize
-                    </a>
-                  </div>
-                </div>
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
-  }
-  else
-  {
-    <div class="text-center py-5">
-      <i class="bx bx-calendar-x text-secondary mb-2" style="font-size: 3rem;"></i>
-      <p class="mb-0">No usage records found</p>
-      <p class="text-muted">Click "Form" to create a new usage record</p>
-    </div>
-  }
+  <!-- Table Container - Will be updated by AJAX -->
+  <div id="tableContainer">
+    <!-- Initial content loaded from server -->
+    @await Html.PartialAsync("_CraneUsageTable", Model)
+  </div>
 </div>
 
 <!-- Crane Selection Modal -->
@@ -155,14 +154,14 @@
     <div class="modal-content">
       <form asp-action="SelectCraneAndDate" method="post">
         <div class="modal-header">
-          <h5 class="modal-title" id="craneSelectionModalLabel">Select Crane and Date</h5>
+          <h5 class="modal-title" id="craneSelectionModalLabel">Pilih Crane dan Tanggal</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
           <div class="mb-3">
-            <label for="craneId" class="form-label">Select Crane</label>
+            <label for="craneId" class="form-label">Pilih Crane</label>
             <select name="craneId" id="craneId" class="form-select" required>
-              <option value="">-- Select Crane --</option>
+              <option value="">-- Pilih Crane --</option>
               @foreach (var crane in Model.Filter.CraneList)
               {
                 <option value="@crane.Value">@crane.Text</option>
@@ -170,14 +169,14 @@
             </select>
           </div>
           <div class="mb-3">
-            <label for="date" class="form-label">Select Date</label>
+            <label for="date" class="form-label">Pilih Tanggal</label>
             <input type="date" name="date" id="date" class="form-control" value="@DateTime.Today.ToString("yyyy-MM-dd")"
               required />
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-primary">Continue to Form</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+          <button type="submit" class="btn btn-primary">Lanjutkan ke Form</button>
         </div>
       </form>
     </div>
@@ -185,16 +184,62 @@
 </div>
 
 @section PageScripts {
+  <!-- jQuery -->
+  <script src="~/vendor/libs/jquery/jquery.js"></script>
+
+  <!-- DataTables Core -->
+  <script src="~/vendor/libs/datatables/js/dataTables.js"></script>
+
+  <!-- DataTables Buttons -->
+  <script src="~/vendor/libs/datatables/js/dataTables.buttons.js"></script>
+  <script src="~/vendor/libs/datatables/js/buttons.dataTables.js"></script>
+
+  <!-- Export Libraries -->
+  <script src="~/vendor/libs/datatables/js/jszip.min.js"></script>
+  <script src="~/vendor/libs/datatables/js/pdfmake.min.js"></script>
+  <script src="~/vendor/libs/datatables/js/vfs_fonts.js"></script>
+
+  <!-- HTML5 Export Buttons -->
+  <script src="~/vendor/libs/datatables/js/buttons.html5.min.js"></script>
+
+  <!-- Main page JavaScript -->
+  <script src="~/js/crane-usage-history.js"></script>
+
+  <!-- Inline initialization script -->
   <script>
     $(document).ready(function () {
-      // Initialize DataTable
-      $('#usageTable').DataTable({
-        language: {
-          url: '/lib/datatables/Indonesian.json'
-        },
-        order: [[1, 'desc']], // Sort by date desc
-        responsive: true
+
+      var currentUser = '@(ViewBag.CurrentUser ?? "System")';
+
+      // 1. Initialize dulu
+      CraneUsageHistory.init({
+        // Override config di sini
+        getTableUrl: '@Url.Action("GetTableData", "CraneUsage")',
+        exportTitle: 'Riwayat Penggunaan Crane',
+        companyName: 'PT. KALTIM PRIMA COAL',
+        currentUser: currentUser
       });
+
+      // 2. Set logo SETELAH init
+      CraneUsageHistory.setCompanyLogo('…');
     });
   </script>
 }
+
+<!-- DataTables CSS -->
+@section PageStyles {
+  <!-- DataTables CSS -->
+  <link rel="stylesheet" href="~/vendor/libs/datatables/css/dataTables.dataTables.css">
+
+  <!-- DataTables Buttons CSS -->
+  <link rel="stylesheet" href="~/vendor/libs/datatables/css/buttons.dataTables.css">
+
+  <link rel="stylesheet" href="~/css/crane-usage-history.css">
+}
+
+<!-- Custom style for no-JS fallback -->
+<style noscript>
+  .js-only {
+    display: none;
+  }
+</style>

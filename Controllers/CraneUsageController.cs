@@ -8,6 +8,7 @@ using AspnetCoreMvcFull.ViewModels.CraneUsage;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using AspnetCoreMvcFull.Filters;
+using AspnetCoreMvcFull.Models.Common;
 
 namespace AspnetCoreMvcFull.Controllers
 {
@@ -30,27 +31,159 @@ namespace AspnetCoreMvcFull.Controllers
     }
 
     // GET: CraneUsage
-    public async Task<IActionResult> Index(CraneUsageFilterViewModel filter)
+    // Ganti method Index yang ada dengan ini:
+    public async Task<IActionResult> Index(CraneUsagePagedRequest filter)
     {
       try
       {
-        var recordsViewModel = await _craneUsageService.GetFilteredUsageRecordsAsync(filter);
+        // Initialize filter if null and ensure valid defaults
+        filter ??= new CraneUsagePagedRequest();
 
-        // Menggunakan ViewBag untuk pesan dari TempData
-        ViewBag.SuccessMessage = TempData["CraneUsageSuccessMessage"] as string;
-        ViewBag.ErrorMessage = TempData["CraneUsageErrorMessage"] as string;
+        // Validate pagination parameters
+        if (filter.PageNumber < 1) filter.PageNumber = 1;
+        if (filter.PageSize < 1) filter.PageSize = 10;
+        if (string.IsNullOrEmpty(filter.SortBy)) filter.SortBy = "Date";
 
-        // Hapus TempData setelah digunakan
+        // Set default date range if not provided
+        // if (!filter.StartDate.HasValue && !filter.EndDate.HasValue)
+        // {
+        //   filter.StartDate = DateTime.Today.AddDays(-30);
+        //   filter.EndDate = DateTime.Today;
+        // }
+
+        // Get crane list for dropdown
+        filter.CraneList = await _context.Cranes
+            .OrderBy(c => c.Code)
+            .Select(c => new SelectListItem
+            {
+              Value = c.Id.ToString(),
+              Text = $"{c.Code} - {c.Capacity} Ton"
+            })
+            .ToListAsync();
+
+        // Get status list for dropdown
+        filter.StatusList = new List<SelectListItem>
+    {
+      new SelectListItem { Value = "true", Text = "Sudah Difinalisasi" },
+      new SelectListItem { Value = "false", Text = "Belum Difinalisasi" }
+    };
+
+        // Get paged data
+        var pagedRecords = await _craneUsageService.GetPagedCraneUsageRecordsAsync(filter);
+
+        // Get current user from claims
+        var userName = User.FindFirst(ClaimTypes.Name)?.Value ?? "System";
+
+        // Build view model
+        var viewModel = new CraneUsageHistoryPagedViewModel
+        {
+          PagedRecords = pagedRecords,
+          Filter = filter,
+          SuccessMessage = TempData["CraneUsageSuccessMessage"] as string,
+          ErrorMessage = TempData["CraneUsageErrorMessage"] as string
+        };
+
+        // Pass user info to view
+        ViewBag.CurrentUser = userName;
+
+        // Clear TempData after use
         TempData.Remove("CraneUsageSuccessMessage");
         TempData.Remove("CraneUsageErrorMessage");
 
-        return View(recordsViewModel);
+        return View(viewModel);
       }
       catch (Exception ex)
       {
-        _logger.LogError(ex, "Error retrieving crane usage records");
-        TempData["CraneUsageErrorMessage"] = "Terjadi kesalahan saat mengambil data penggunaan crane: " + ex.Message;
-        return View(new CraneUsageRecordListViewModel());
+        _logger.LogError(ex, "Error loading crane usage records");
+
+        // Create empty model with error message
+        var errorModel = new CraneUsageHistoryPagedViewModel
+        {
+          PagedRecords = new PagedResult<CraneUsageRecordViewModel>
+          {
+            Items = Enumerable.Empty<CraneUsageRecordViewModel>(),
+            TotalCount = 0,
+            PageCount = 0,
+            PageNumber = 1,
+            PageSize = 10
+          },
+          Filter = new CraneUsagePagedRequest
+          {
+            CraneList = await _context.Cranes.Select(c => new SelectListItem
+            {
+              Value = c.Id.ToString(),
+              Text = $"{c.Code} - {c.Capacity} Ton"
+            }).ToListAsync(),
+            StatusList = new List<SelectListItem>
+        {
+          new SelectListItem { Value = "true", Text = "Sudah Difinalisasi" },
+          new SelectListItem { Value = "false", Text = "Belum Difinalisasi" }
+        }
+          },
+          ErrorMessage = "Terjadi kesalahan saat memuat data: " + ex.Message
+        };
+
+        return View(errorModel);
+      }
+    }
+
+    // Tambahkan method baru ini:
+    /// <summary>
+    /// AJAX endpoint to get just the table portion of the page.
+    /// Used for filtering, pagination, etc.
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> GetTableData(CraneUsagePagedRequest filter)
+    {
+      try
+      {
+        // Initialize filter if null and ensure valid defaults
+        filter ??= new CraneUsagePagedRequest();
+
+        // Validate pagination parameters
+        if (filter.PageNumber < 1) filter.PageNumber = 1;
+        if (filter.PageSize < 1) filter.PageSize = 10;
+        if (string.IsNullOrEmpty(filter.SortBy)) filter.SortBy = "Date";
+
+        // Get paged data
+        var pagedRecords = await _craneUsageService.GetPagedCraneUsageRecordsAsync(filter);
+
+        // Get crane list for dropdown (needed for when returning to main view)
+        filter.CraneList = await _context.Cranes
+            .OrderBy(c => c.Code)
+            .Select(c => new SelectListItem
+            {
+              Value = c.Id.ToString(),
+              Text = $"{c.Code} - {c.Capacity} Ton"
+            })
+            .ToListAsync();
+
+        // Get status list for dropdown
+        filter.StatusList = new List<SelectListItem>
+    {
+      new SelectListItem { Value = "true", Text = "Sudah Difinalisasi" },
+      new SelectListItem { Value = "false", Text = "Belum Difinalisasi" }
+    };
+
+        // Build view model for partial
+        var viewModel = new CraneUsageHistoryPagedViewModel
+        {
+          PagedRecords = pagedRecords,
+          Filter = filter
+        };
+
+        // Return partial view
+        return PartialView("_CraneUsageTable", viewModel);
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Error loading crane usage table data");
+
+        // Return error message that will be displayed in the table area
+        return Content("<div class='alert alert-danger m-3'>" +
+                      "<i class='bx bx-error-circle me-2'></i>" +
+                      "Terjadi kesalahan saat memuat data: " + ex.Message +
+                      "</div>", "text/html");
       }
     }
 
