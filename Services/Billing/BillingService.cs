@@ -4,6 +4,7 @@ using AspnetCoreMvcFull.Models;
 using AspnetCoreMvcFull.ViewModels.Billing;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using AspnetCoreMvcFull.Models.Common;
 
 namespace AspnetCoreMvcFull.Services.Billing
 {
@@ -480,6 +481,258 @@ namespace AspnetCoreMvcFull.Services.Billing
         var duration = endTime - startTime;
         return Math.Round(duration.TotalHours, 2);
       }
+    }
+
+    // Services/Billing/BillingService.cs
+    // TAMBAHKAN method ini ke dalam class BillingService
+
+    public async Task<PagedResult<BillingViewModel>> GetPagedBillableBookingsAsync(BillingFilterRequest request)
+    {
+      try
+      {
+        // Mulai dengan query dasar booking yang sudah selesai
+        var baseQuery = _context.Bookings
+            .Include(b => b.Crane)
+            .Where(b => b.Status == BookingStatus.Done || b.Status == BookingStatus.Cancelled)
+            .AsQueryable();
+
+        // Apply filter non-tanggal dan non-search terlebih dahulu
+        if (request.IsBilled.HasValue)
+        {
+          baseQuery = baseQuery.Where(b => b.IsBilled == request.IsBilled.Value);
+        }
+
+        if (request.CraneId.HasValue && request.CraneId.Value > 0)
+        {
+          baseQuery = baseQuery.Where(b => b.CraneId == request.CraneId.Value);
+        }
+
+        if (!string.IsNullOrEmpty(request.Department))
+        {
+          baseQuery = baseQuery.Where(b => b.Department.Contains(request.Department));
+        }
+
+        // Handling filter tanggal berdasarkan usage aktual
+        List<int> filteredBookingIds = new List<int>();
+        bool hasDateFilter = request.StartDate.HasValue || request.EndDate.HasValue;
+
+        if (hasDateFilter)
+        {
+          var usageQuery = _context.CraneUsageEntries
+              .Include(e => e.CraneUsageRecord)
+              .Where(e => e.BookingId.HasValue && e.CraneUsageRecord.IsFinalized)
+              .AsQueryable();
+
+          if (request.StartDate.HasValue)
+          {
+            usageQuery = usageQuery.Where(e => e.CraneUsageRecord.Date >= request.StartDate.Value.Date);
+          }
+
+          if (request.EndDate.HasValue)
+          {
+            usageQuery = usageQuery.Where(e => e.CraneUsageRecord.Date <= request.EndDate.Value.Date);
+          }
+
+          filteredBookingIds = await usageQuery
+              .Select(e => e.BookingId!.Value)
+              .Distinct()
+              .ToListAsync();
+
+          if (!filteredBookingIds.Any())
+          {
+            return CreateEmptyPagedResult(request);
+          }
+
+          baseQuery = baseQuery.Where(b => filteredBookingIds.Contains(b.Id));
+        }
+
+        // Apply global search
+        if (!string.IsNullOrEmpty(request.GlobalSearch))
+        {
+          var search = request.GlobalSearch.ToLower();
+          baseQuery = baseQuery.Where(b =>
+              b.BookingNumber.ToLower().Contains(search) ||
+              b.Name.ToLower().Contains(search) ||
+              b.Department.ToLower().Contains(search) ||
+              b.DocumentNumber.ToLower().Contains(search) ||
+              (b.CraneCode != null && b.CraneCode.ToLower().Contains(search)) ||
+              (b.Crane != null && b.Crane.Code.ToLower().Contains(search))
+          );
+        }
+
+        // Get total count before pagination
+        var totalCount = await baseQuery.CountAsync();
+
+        if (totalCount == 0)
+        {
+          return CreateEmptyPagedResult(request);
+        }
+
+        // Apply sorting
+        baseQuery = ApplyBillingSorting(baseQuery, request.SortBy, request.SortDesc);
+
+        // Get bookings for current page
+        var bookings = await baseQuery
+            .Skip((request.PageNumber - 1) * request.PageSize)
+            .Take(request.PageSize)
+            .ToListAsync();
+
+        // Process usage data for these bookings
+        var billingViewModels = await ProcessBookingsForBilling(bookings, hasDateFilter);
+
+        // Calculate page count
+        var pageCount = (int)Math.Ceiling(totalCount / (double)request.PageSize);
+
+        return new PagedResult<BillingViewModel>
+        {
+          Items = billingViewModels,
+          TotalCount = totalCount,
+          PageCount = pageCount,
+          PageNumber = request.PageNumber,
+          PageSize = request.PageSize
+        };
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Error getting paged billable bookings: {Message}", ex.Message);
+        throw;
+      }
+    }
+
+    private PagedResult<BillingViewModel> CreateEmptyPagedResult(BillingFilterRequest request)
+    {
+      return new PagedResult<BillingViewModel>
+      {
+        Items = new List<BillingViewModel>(),
+        TotalCount = 0,
+        PageCount = 0,
+        PageNumber = request.PageNumber,
+        PageSize = request.PageSize
+      };
+    }
+
+    private IQueryable<Booking> ApplyBillingSorting(IQueryable<Booking> query, string sortBy, bool sortDesc)
+    {
+      switch (sortBy?.ToLower())
+      {
+        case "bookingnumber":
+          return sortDesc
+              ? query.OrderByDescending(b => b.BookingNumber)
+              : query.OrderBy(b => b.BookingNumber);
+        case "name":
+          return sortDesc
+              ? query.OrderByDescending(b => b.Name)
+              : query.OrderBy(b => b.Name);
+        case "department":
+          return sortDesc
+              ? query.OrderByDescending(b => b.Department)
+              : query.OrderBy(b => b.Department);
+        case "cranecode":
+          return sortDesc
+              ? query.OrderByDescending(b => b.CraneCode)
+              : query.OrderBy(b => b.CraneCode);
+        case "status":
+          return sortDesc
+              ? query.OrderByDescending(b => b.IsBilled)
+              : query.OrderBy(b => b.IsBilled);
+        case "enddate":
+        default:
+          return sortDesc
+              ? query.OrderByDescending(b => b.EndDate)
+              : query.OrderBy(b => b.EndDate);
+      }
+    }
+
+    private async Task<List<BillingViewModel>> ProcessBookingsForBilling(List<Booking> bookings, bool hasDateFilter)
+    {
+      var bookingIds = bookings.Select(b => b.Id).ToList();
+      var entries = await _context.CraneUsageEntries
+          .Include(e => e.CraneUsageRecord)
+          .Where(e => e.BookingId.HasValue &&
+                     bookingIds.Contains(e.BookingId.Value) &&
+                     e.CraneUsageRecord.IsFinalized)
+          .ToListAsync();
+
+      var bookingHoursDict = new Dictionary<int, (double TotalHours, double OperatingHours, double DelayHours,
+                                                 double StandbyHours, double ServiceHours, double BreakdownHours)>();
+      var bookingDatesDict = new Dictionary<int, (DateTime FirstDate, DateTime LastDate)>();
+
+      foreach (var entry in entries)
+      {
+        var bookingId = entry.BookingId.Value;
+        var duration = GetDurationHours(entry.StartTime, entry.EndTime);
+        var usageDate = entry.CraneUsageRecord.Date;
+
+        if (!bookingHoursDict.ContainsKey(bookingId))
+        {
+          bookingHoursDict[bookingId] = (0, 0, 0, 0, 0, 0);
+        }
+
+        var currentHours = bookingHoursDict[bookingId];
+        var newHours = currentHours;
+        newHours.TotalHours += duration;
+
+        switch (entry.Category)
+        {
+          case UsageCategory.Operating:
+            newHours.OperatingHours += duration;
+            break;
+          case UsageCategory.Delay:
+            newHours.DelayHours += duration;
+            break;
+          case UsageCategory.Standby:
+            newHours.StandbyHours += duration;
+            break;
+          case UsageCategory.Service:
+            newHours.ServiceHours += duration;
+            break;
+          case UsageCategory.Breakdown:
+            newHours.BreakdownHours += duration;
+            break;
+        }
+
+        bookingHoursDict[bookingId] = newHours;
+
+        if (!bookingDatesDict.ContainsKey(bookingId))
+        {
+          bookingDatesDict[bookingId] = (usageDate, usageDate);
+        }
+        else
+        {
+          var currentDates = bookingDatesDict[bookingId];
+          var newFirstDate = currentDates.FirstDate < usageDate ? currentDates.FirstDate : usageDate;
+          var newLastDate = currentDates.LastDate > usageDate ? currentDates.LastDate : usageDate;
+          bookingDatesDict[bookingId] = (newFirstDate, newLastDate);
+        }
+      }
+
+      return bookings.Select(b => new BillingViewModel
+      {
+        BookingId = b.Id,
+        BookingNumber = b.BookingNumber,
+        DocumentNumber = b.DocumentNumber,
+        RequesterName = b.Name,
+        Department = b.Department,
+        BookingStartDate = b.StartDate,
+        BookingEndDate = b.EndDate,
+        ActualStartDate = bookingDatesDict.ContainsKey(b.Id) ? bookingDatesDict[b.Id].FirstDate : (DateTime?)null,
+        ActualEndDate = bookingDatesDict.ContainsKey(b.Id) ? bookingDatesDict[b.Id].LastDate : (DateTime?)null,
+        CraneCode = b.Crane?.Code ?? b.CraneCode ?? "Unknown",
+        CraneCapacity = b.Crane?.Capacity ?? b.CraneCapacity ?? 0,
+        Status = b.Status,
+        TotalHours = bookingHoursDict.ContainsKey(b.Id) ? bookingHoursDict[b.Id].TotalHours : 0,
+        OperatingHours = bookingHoursDict.ContainsKey(b.Id) ? bookingHoursDict[b.Id].OperatingHours : 0,
+        DelayHours = bookingHoursDict.ContainsKey(b.Id) ? bookingHoursDict[b.Id].DelayHours : 0,
+        StandbyHours = bookingHoursDict.ContainsKey(b.Id) ? bookingHoursDict[b.Id].StandbyHours : 0,
+        ServiceHours = bookingHoursDict.ContainsKey(b.Id) ? bookingHoursDict[b.Id].ServiceHours : 0,
+        BreakdownHours = bookingHoursDict.ContainsKey(b.Id) ? bookingHoursDict[b.Id].BreakdownHours : 0,
+        IsBilled = b.IsBilled,
+        BilledDate = b.BilledDate,
+        BilledBy = b.BilledBy,
+        BillingNotes = b.BillingNotes
+      })
+      .Where(vm => !hasDateFilter || (vm.ActualStartDate.HasValue && vm.ActualEndDate.HasValue))
+      .ToList();
     }
   }
 }

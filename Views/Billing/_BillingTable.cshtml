@@ -1,0 +1,179 @@
+@model AspnetCoreMvcFull.ViewModels.Billing.BillingPagedViewModel
+
+<!-- Loading indicator -->
+<div id="tableLoadingOverlay" class="d-none">
+  <div class="text-center p-5">
+    <div class="spinner-border text-primary" role="status"></div>
+    <p class="mt-2">Memuat data...</p>
+  </div>
+</div>
+
+@if (Model.PagedBookings.Items.Any())
+{
+  <div class="table-responsive text-nowrap">
+    <table class="table table-hover" id="billingTable">
+      <thead class="table-light">
+        <tr>
+          <th>#</th>
+          <th>No. Booking</th>
+          <th>Crane</th>
+          <th>Requester</th>
+          <th>Departemen</th>
+          <th>Tanggal Aktual</th>
+          <th>Status</th>
+          <th class="action-column">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="table-border-bottom-0">
+        @{
+          var startIndex = (Model.PagedBookings.PageNumber - 1) * Model.PagedBookings.PageSize + 1;
+        }
+        @foreach (var booking in Model.PagedBookings.Items)
+        {
+          <tr class="clickable-row"
+            data-url="@Url.Action("Details", "Billing", new { documentNumber = booking.DocumentNumber })">
+            <td><strong>@(startIndex++)</strong></td>
+            <td><strong>@booking.BookingNumber</strong></td>
+            <td>
+              <strong>@booking.CraneCode</strong><br />
+              <small class="text-muted">@booking.CraneCapacity Ton</small>
+            </td>
+            <td>@booking.RequesterName</td>
+            <td>@booking.Department</td>
+            <td>
+              @if (booking.ActualStartDate.HasValue && booking.ActualEndDate.HasValue)
+              {
+                <strong>@booking.ActualStartDate.Value.ToString("dd/MM/yyyy")</strong>
+                @if (booking.ActualStartDate.Value.Date != booking.ActualEndDate.Value.Date)
+                {
+                  <text> - </text>
+
+                  <strong>@booking.ActualEndDate.Value.ToString("dd/MM/yyyy")</strong>
+                }
+                <br />
+                <small class="text-muted">
+                  Booking: @booking.BookingStartDate.ToString("dd/MM") - @booking.BookingEndDate.ToString("dd/MM")
+                </small>
+              }
+              else
+              {
+                <span class="text-muted">Belum ada penggunaan</span>
+
+                <br />
+                <small class="text-muted">
+                  Booking: @booking.BookingStartDate.ToString("dd/MM") - @booking.BookingEndDate.ToString("dd/MM")
+                </small>
+              }
+            </td>
+            <td>
+              @if (booking.IsBilled)
+              {
+                <span class="badge bg-success">
+                  <i class="bx bx-check me-1"></i>Sudah Ditagih
+                </span>
+                @if (booking.BilledDate.HasValue)
+                {
+                  <br />
+
+                  <small class="text-muted">@booking.BilledDate.Value.ToString("dd/MM/yyyy")</small>
+                }
+              }
+              else
+              {
+                <span class="badge bg-warning">
+                  <i class="bx bx-time me-1"></i>Belum Ditagih
+                </span>
+              }
+            </td>
+            <td class="action-buttons-cell">
+              <div class="action-buttons">
+                <a class="btn btn-sm btn-info text-white"
+                  href="@Url.Action("Details", "Billing", new { documentNumber = booking.DocumentNumber })"
+                  title="Lihat detail billing untuk @booking.BookingNumber">
+                  <i class="bx bx-detail me-1"></i> Detail
+                </a>
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Footer Card dengan Pagination Controls -->
+  <div class="card-footer border-top d-flex justify-content-between align-items-center py-3">
+    <div>
+      @(((Model.PagedBookings.PageNumber - 1) * Model.PagedBookings.PageSize) + 1) to
+      @(Math.Min(Model.PagedBookings.PageNumber * Model.PagedBookings.PageSize, Model.PagedBookings.TotalCount))
+      of @Model.PagedBookings.TotalCount entries
+    </div>
+
+    <div class="pagination-container text-center mx-auto">
+      <div class="btn-group pagination-group">
+        <a href="#" class="btn btn-icon btn-outline-primary @(Model.PagedBookings.HasPreviousPage ? "" : "disabled")"
+          data-page="@(Model.PagedBookings.PageNumber - 1)" aria-label="Previous" @(Model.PagedBookings.HasPreviousPage
+                                                                                           ? "" : "aria-disabled=\"true\"")>
+        <i class="tf-icon bx bx-chevron-left"></i>
+      </a>
+
+      @{
+          int startPage = Math.Max(1, Model.PagedBookings.PageNumber - 2);
+          int endPage = Math.Min(Model.PagedBookings.PageCount, startPage + 4);
+
+          if (endPage - startPage < 4 && endPage < Model.PagedBookings.PageCount)
+          {
+            endPage = Math.Min(Model.PagedBookings.PageCount, endPage + (4 - (endPage - startPage)));
+          }
+
+          if (endPage - startPage < 4 && startPage > 1)
+          {
+            startPage = Math.Max(1, startPage - (4 - (endPage - startPage)));
+          }
+        }
+
+        @for (int i = startPage; i <= endPage; i++)
+        {
+          <a href="#" class="btn @(Model.PagedBookings.PageNumber == i ? "btn-primary" : "btn-outline-primary")"
+            data-page="@i">
+            @i
+          </a>
+        }
+
+        <a href="#" class="btn btn-icon btn-outline-primary @(Model.PagedBookings.HasNextPage ? "" : "disabled")"
+          data-page="@(Model.PagedBookings.PageNumber + 1)" aria-label="Next" @(Model.PagedBookings.HasNextPage ? "" :
+                                                                                       "aria-disabled=\"true\"")>
+        <i class="tf-icon bx bx-chevron-right"></i>
+      </a>
+    </div>
+  </div>
+
+    <div class="page-size-container">
+      <select id="pageSizeSelector" class="form-select form-select-sm" style="width: auto;">
+      @foreach (var size in new[] { 10, 25, 50 })
+        {
+          if (Model.PagedBookings.PageSize == size)
+          {
+            <option value="@size" selected>@size baris</option>
+          }
+          else
+          {
+            <option value="@size">@size baris</option>
+          }
+        }
+      </select>
+    </div>
+  </div>
+}
+else
+{
+  <div class="text-center p-5">
+    <div class="mb-3">
+      <i class="bx bx-receipt text-primary" style="font-size: 4rem;"></i>
+    </div>
+    <h5>Tidak ada data penagihan ditemukan</h5>
+    <p class="text-muted">Coba sesuaikan kriteria pencarian atau filter Anda.</p>
+    <a href="@Url.Action("Index", "Billing")" class="btn btn-outline-secondary mt-3">
+      <i class="bx bx-reset me-1"></i> Reset Filter
+    </a>
+  </div>
+}

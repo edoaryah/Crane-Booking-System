@@ -1,5 +1,7 @@
 // ViewModels/Billing/BillingViewModel.cs
 using AspnetCoreMvcFull.Models;
+using AspnetCoreMvcFull.Models.Common;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using System.ComponentModel.DataAnnotations;
 
 namespace AspnetCoreMvcFull.ViewModels.Billing
@@ -115,5 +117,42 @@ namespace AspnetCoreMvcFull.ViewModels.Billing
     [Display(Name = "Catatan Penagihan")]
     [StringLength(500, ErrorMessage = "Catatan tidak boleh lebih dari 500 karakter")]
     public string? BillingNotes { get; set; }
+  }
+
+  // TAMBAHKAN: Filter request dengan pagination
+  public class BillingFilterRequest : PagedRequest
+  {
+    [Display(Name = "Status Penagihan")]
+    public bool? IsBilled { get; set; }
+
+    [Display(Name = "Tanggal Mulai")]
+    [DataType(DataType.Date)]
+    public DateTime? StartDate { get; set; }
+
+    [Display(Name = "Tanggal Akhir")]
+    [DataType(DataType.Date)]
+    public DateTime? EndDate { get; set; }
+
+    [Display(Name = "Crane")]
+    public int? CraneId { get; set; }
+
+    [Display(Name = "Departemen")]
+    public string? Department { get; set; }
+
+    [Display(Name = "Pencarian")]
+    public string? GlobalSearch { get; set; }
+
+    // For UI Display
+    public List<SelectListItem> CraneList { get; set; } = new List<SelectListItem>();
+    public List<SelectListItem> DepartmentList { get; set; } = new List<SelectListItem>();
+  }
+
+  // TAMBAHKAN: Paged view model
+  public class BillingPagedViewModel
+  {
+    public PagedResult<BillingViewModel> PagedBookings { get; set; } = new PagedResult<BillingViewModel>();
+    public BillingFilterRequest Filter { get; set; } = new BillingFilterRequest();
+    public string? SuccessMessage { get; set; }
+    public string? ErrorMessage { get; set; }
   }
 }

@@ -1,4 +1,5 @@
 // Services/Billing/IBillingService.cs
+using AspnetCoreMvcFull.Models.Common;
 using AspnetCoreMvcFull.ViewModels.Billing;
 
 namespace AspnetCoreMvcFull.Services.Billing
@@ -41,5 +42,7 @@ namespace AspnetCoreMvcFull.Services.Billing
     /// <param name="bookingId">ID booking</param>
     /// <returns>True jika berhasil</returns>
     Task<bool> UnmarkBookingAsBilledAsync(int bookingId);
+
+    Task<PagedResult<BillingViewModel>> GetPagedBillableBookingsAsync(BillingFilterRequest request);
   }
 }

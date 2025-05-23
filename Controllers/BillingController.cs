@@ -1,6 +1,8 @@
 // Controllers/BillingController.cs
+using AspnetCoreMvcFull.Models.Common;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using AspnetCoreMvcFull.Filters;
 using AspnetCoreMvcFull.Services.Billing;
 using AspnetCoreMvcFull.ViewModels.Billing;
@@ -21,18 +23,44 @@ namespace AspnetCoreMvcFull.Controllers
       _logger = logger;
     }
 
-    // GET: /Billing
-    public async Task<IActionResult> Index(BillingFilterViewModel filter)
+    /// <summary>
+    /// Main entry point for the billing page.
+    /// Displays the full page with filters and data table.
+    /// </summary>
+    public async Task<IActionResult> Index(BillingFilterRequest filter)
     {
       try
       {
-        var viewModel = await _billingService.GetBillableBookingsAsync(filter);
+        // Initialize filter if null and ensure valid defaults
+        filter ??= new BillingFilterRequest();
 
-        // Tampilkan pesan dari TempData
-        ViewBag.SuccessMessage = TempData["BillingSuccessMessage"] as string;
-        ViewBag.ErrorMessage = TempData["BillingErrorMessage"] as string;
+        // Validate pagination parameters
+        if (filter.PageNumber < 1) filter.PageNumber = 1;
+        if (filter.PageSize < 1) filter.PageSize = 10;
+        if (string.IsNullOrEmpty(filter.SortBy)) filter.SortBy = "EndDate";
 
-        // Hapus TempData setelah digunakan
+        // Get dropdown lists for filters
+        await PopulateFilterDropdowns(filter);
+
+        // Get paged data
+        var pagedBookings = await _billingService.GetPagedBillableBookingsAsync(filter);
+
+        // Get current user from claims
+        var userName = User.FindFirst(ClaimTypes.Name)?.Value ?? User.FindFirst("ldapuser")?.Value ?? "System";
+
+        // Build view model
+        var viewModel = new BillingPagedViewModel
+        {
+          PagedBookings = pagedBookings,
+          Filter = filter,
+          SuccessMessage = TempData["BillingSuccessMessage"] as string,
+          ErrorMessage = TempData["BillingErrorMessage"] as string
+        };
+
+        // Pass user info to view
+        ViewBag.CurrentUser = userName;
+
+        // Clear TempData after use
         TempData.Remove("BillingSuccessMessage");
         TempData.Remove("BillingErrorMessage");
 
@@ -40,9 +68,70 @@ namespace AspnetCoreMvcFull.Controllers
       }
       catch (Exception ex)
       {
-        _logger.LogError(ex, "Error retrieving billing data");
-        ViewBag.ErrorMessage = "Terjadi kesalahan saat mengambil data penagihan: " + ex.Message;
-        return View(new BillingListViewModel());
+        _logger.LogError(ex, "Error loading billing data");
+
+        // Create empty model with error message
+        var errorModel = new BillingPagedViewModel
+        {
+          PagedBookings = new PagedResult<BillingViewModel>
+          {
+            Items = new List<BillingViewModel>(),
+            TotalCount = 0,
+            PageCount = 0,
+            PageNumber = 1,
+            PageSize = 10
+          },
+          Filter = new BillingFilterRequest(),
+          ErrorMessage = "Terjadi kesalahan saat memuat data: " + ex.Message
+        };
+
+        await PopulateFilterDropdowns(errorModel.Filter);
+        return View(errorModel);
+      }
+    }
+
+    /// <summary>
+    /// AJAX endpoint to get just the table portion of the page.
+    /// Used for filtering, pagination, search, etc.
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> GetTableData(BillingFilterRequest filter)
+    {
+      try
+      {
+        // Initialize filter if null and ensure valid defaults
+        filter ??= new BillingFilterRequest();
+
+        // Validate pagination parameters
+        if (filter.PageNumber < 1) filter.PageNumber = 1;
+        if (filter.PageSize < 1) filter.PageSize = 10;
+        if (string.IsNullOrEmpty(filter.SortBy)) filter.SortBy = "EndDate";
+
+        // Get paged data
+        var pagedBookings = await _billingService.GetPagedBillableBookingsAsync(filter);
+
+        // Get dropdown lists for filters (needed for when returning to main view)
+        await PopulateFilterDropdowns(filter);
+
+        // Build view model for partial
+        var viewModel = new BillingPagedViewModel
+        {
+          PagedBookings = pagedBookings,
+          Filter = filter
+        };
+
+        // Return partial view
+        return PartialView("_BillingTable", viewModel);
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Error loading billing table data");
+
+        // Return error message that will be displayed in the table area
+        return Content("<div class='alert alert-danger m-3'>" +
+                      "<i class='bx bx-error-circle me-2'></i>" +
+                      "Terjadi kesalahan saat memuat data: " + ex.Message +
+                      "</div>", "text/html");
       }
     }
 
@@ -194,6 +283,27 @@ namespace AspnetCoreMvcFull.Controllers
         TempData["BillingErrorMessage"] = "Terjadi kesalahan saat membatalkan status penagihan booking";
         return RedirectToAction(nameof(Index));
       }
+    }
+
+    /// <summary>
+    /// Helper method to populate filter dropdowns.
+    /// </summary>
+    private async Task PopulateFilterDropdowns(BillingFilterRequest filter)
+    {
+      // Get old implementation data for dropdowns
+      var oldFilter = new BillingFilterViewModel
+      {
+        IsBilled = filter.IsBilled,
+        StartDate = filter.StartDate,
+        EndDate = filter.EndDate,
+        CraneId = filter.CraneId,
+        Department = filter.Department
+      };
+
+      var oldResult = await _billingService.GetBillableBookingsAsync(oldFilter);
+
+      filter.CraneList = oldResult.Filter.CraneList;
+      filter.DepartmentList = oldResult.Filter.DepartmentList;
     }
   }
 }
