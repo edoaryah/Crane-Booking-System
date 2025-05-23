@@ -1,6 +1,6 @@
 /**
  * CraneUsageHistory module - Complete Implementation
- * Based on MaintenanceHistory module
+ * Updated to match MaintenanceHistory layout (Portrait orientation)
  * Manages the crane usage history page with AJAX loading, filtering, pagination and export
  */
 var CraneUsageHistory = (function () {
@@ -26,6 +26,9 @@ var CraneUsageHistory = (function () {
   var searchTimeout = null;
 
   // ===== LOGO HANDLING FUNCTIONS =====
+  /**
+   * Set company logo dengan format yang benar
+   */
   function setCompanyLogo(logoData) {
     if (!logoData) {
       config.companyLogo = '';
@@ -33,22 +36,29 @@ var CraneUsageHistory = (function () {
       return;
     }
 
+    // Jika sudah berupa data URI
     if (logoData.startsWith('data:')) {
       config.companyLogo = logoData;
       config.logoType = 'image';
-    } else if (logoData.startsWith('PHN2Zy')) {
+    }
+    // Jika berupa base64 SVG (seperti yang user punya)
+    else if (logoData.startsWith('PHN2Zy')) {
       try {
-        config.companyLogo = atob(logoData);
+        config.companyLogo = atob(logoData); // Decode ke SVG string
         config.logoType = 'svg';
       } catch (error) {
         console.error('Error decoding SVG base64:', error);
         config.companyLogo = 'data:image/svg+xml;base64,' + logoData;
         config.logoType = 'image';
       }
-    } else if (logoData.includes('<svg')) {
+    }
+    // Jika berupa SVG string langsung
+    else if (logoData.includes('<svg')) {
       config.companyLogo = logoData;
       config.logoType = 'svg';
-    } else {
+    }
+    // Default: treat as base64 image
+    else {
       config.companyLogo = 'data:image/png;base64,' + logoData;
       config.logoType = 'image';
     }
@@ -57,6 +67,9 @@ var CraneUsageHistory = (function () {
   }
 
   // ===== PDF FUNCTIONS =====
+  /**
+   * Get current filter information for PDF header
+   */
   function getFilterInfo() {
     var crane = $('#CraneId option:selected').text();
     var startDate = $('#StartDate').val();
@@ -88,6 +101,9 @@ var CraneUsageHistory = (function () {
     return filterParts.length > 0 ? filterParts.join(' | ') : 'Semua Data';
   }
 
+  /**
+   * Create proper document definition sesuai dokumentasi pdfMake (Portrait Layout)
+   */
   function createDocumentDefinition(tableData) {
     var currentFilterInfo = getFilterInfo();
     var currentDate = new Date().toLocaleDateString('id-ID', {
@@ -97,11 +113,14 @@ var CraneUsageHistory = (function () {
       day: 'numeric'
     });
 
+    // Document definition object sesuai dokumentasi pdfMake
     var docDefinition = {
+      // Page configuration - PORTRAIT seperti maintenance history
       pageSize: 'A4',
-      pageOrientation: 'portrait', // Landscape untuk table yang lebih lebar
-      pageMargins: [40, config.companyLogo ? 100 : 80, 40, 60],
+      pageOrientation: 'portrait',
+      pageMargins: [40, config.companyLogo ? 100 : 80, 40, 60], // Dynamic top margin based on logo
 
+      // Document metadata
       info: {
         title: config.exportTitle,
         author: config.companyName,
@@ -109,12 +128,14 @@ var CraneUsageHistory = (function () {
         creator: 'Crane Booking System'
       },
 
+      // Header function (dynamic) - Logo di kiri, Title di kanan
       header: function (currentPage, pageCount, pageSize) {
         var headerContent = {
           columns: [],
           margin: [40, 20, 40, 20]
         };
 
+        // Logo column (jika ada)
         if (config.companyLogo) {
           if (config.logoType === 'svg') {
             headerContent.columns.push({
@@ -130,12 +151,14 @@ var CraneUsageHistory = (function () {
             });
           }
 
+          // Spacer column - PENTING untuk push content ke kanan
           headerContent.columns.push({
             width: '*',
-            text: ''
+            text: '' // Empty spacer
           });
         }
 
+        // Page info column - sekarang akan benar-benar di kanan
         headerContent.columns.push({
           width: 'auto',
           stack: [
@@ -159,6 +182,7 @@ var CraneUsageHistory = (function () {
         return headerContent;
       },
 
+      // Footer function (dynamic)
       footer: function (currentPage, pageCount) {
         return {
           columns: [
@@ -176,38 +200,48 @@ var CraneUsageHistory = (function () {
         };
       },
 
+      // Main content
       content: [
+        // Filter information
         {
           text: 'Filter: ' + currentFilterInfo,
           style: 'filterInfo',
           margin: [0, 0, 0, 15]
         },
 
+        // Main table dengan layout zebra tanpa border bold
+        // OPTIMIZED UNTUK PORTRAIT - Mengurangi kolom dan menyesuaikan lebar
         {
           style: 'tableExample',
           table: {
             headerRows: 1,
-            // Table widths untuk landscape
-            widths: [25, 'auto', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto'],
+            // Table widths untuk PORTRAIT - disesuaikan dengan jumlah kolom yang lebih sedikit
+            // Menggabungkan beberapa kolom untuk menghemat space
+            widths: [25, 'auto', 'auto', 50, 50, 50, 50, 50, '*'],
             body: tableData
           },
           layout: {
             fillColor: function (rowIndex, node, columnIndex) {
+              // Header row
               if (rowIndex === 0) {
-                return '#3498db';
+                return '#3498db'; // Blue header background
               }
-              return rowIndex % 2 === 0 ? null : '#f8f9fa';
+              // Alternating body rows (zebra striping)
+              return rowIndex % 2 === 0 ? null : '#f8f9fa'; // Every even row gets light gray
             }
           }
         }
       ],
 
+      // Default style untuk seluruh dokumen - SAMA seperti maintenance history
       defaultStyle: {
-        fontSize: 8, // Smaller font for landscape
+        fontSize: 9,
         color: '#2c3e50'
       },
 
+      // Style dictionary - SAMA seperti maintenance history
       styles: {
+        // Company information styles
         companyName: {
           fontSize: 12,
           bold: true,
@@ -218,6 +252,8 @@ var CraneUsageHistory = (function () {
           color: '#7f8c8d',
           italics: true
         },
+
+        // Document title styles
         documentTitle: {
           fontSize: 16,
           bold: true,
@@ -227,41 +263,53 @@ var CraneUsageHistory = (function () {
           fontSize: 8,
           color: '#95a5a6'
         },
+
+        // Filter and content styles
         filterInfo: {
           fontSize: 10,
           italics: true,
           color: '#7f8c8d',
           background: '#ecf0f1'
         },
+
+        // Table styles
         tableExample: {
           margin: [0, 5, 0, 15]
         },
+
+        // Table header style
         tableHeader: {
           bold: true,
-          fontSize: 9,
+          fontSize: 10,
           color: 'white',
           alignment: 'center'
         },
+
+        // Table header center style (untuk kolom No.)
         tableHeaderCenter: {
           bold: true,
-          fontSize: 9,
+          fontSize: 10,
           color: 'white',
           alignment: 'center'
         },
+
+        // Table cell styles
         tableCell: {
-          fontSize: 8,
+          fontSize: 9,
           color: '#2c3e50'
         },
         tableCellCenter: {
-          fontSize: 8,
+          fontSize: 9,
           color: '#2c3e50',
           alignment: 'center'
         },
         tableCellRight: {
-          fontSize: 8,
+          fontSize: 9,
           color: '#2c3e50',
           alignment: 'right'
         },
+
+        // Footer styles
         footerLeft: {
           fontSize: 8,
           color: '#95a5a6'
@@ -276,6 +324,9 @@ var CraneUsageHistory = (function () {
     return docDefinition;
   }
 
+  /**
+   * Process table data untuk PDF export - OPTIMIZED untuk Portrait
+   */
   function processTableDataForPDF() {
     var tableData = [];
     var $table = $('#craneUsageHistoryTable');
@@ -285,25 +336,56 @@ var CraneUsageHistory = (function () {
       return [['Tidak ada data untuk diekspor']];
     }
 
-    // Process header
+    // Process header - OPTIMIZED: Menggabungkan beberapa kolom untuk Portrait
     var headerRow = [];
+    var skipColumns = []; // Kolom yang akan di-skip untuk menghemat space
+
     $table.find('thead th').each(function (index) {
       var $th = $(this);
 
+      // Skip action column dan beberapa kolom yang tidak penting untuk PDF
       if (!$th.hasClass('action-column') && !$th.text().toLowerCase().includes('aksi')) {
         var headerText = $th.text().trim();
 
+        // Kolom pertama jadi "No." dan center
         if (index === 0) {
           headerRow.push({
             text: 'No.',
             style: 'tableHeaderCenter'
           });
+        }
+        // Untuk menghemat space, kita bisa menggabungkan atau menyingkat header
+        else if (headerText === 'Total Jam') {
+          headerRow.push({
+            text: 'Total',
+            style: 'tableHeader'
+          });
+        } else if (headerText === 'Operating') {
+          headerRow.push({
+            text: 'Operating',
+            style: 'tableHeader'
+          });
+        } else if (headerText === 'Standby') {
+          headerRow.push({
+            text: 'Standby',
+            style: 'tableHeader'
+          });
+        } else if (headerText === 'Maintenance') {
+          headerRow.push({
+            text: 'Maint.',
+            style: 'tableHeader'
+          });
+        } else if (headerText === 'Entries') {
+          // Skip entries column untuk menghemat space
+          skipColumns.push(index);
         } else {
           headerRow.push({
             text: headerText,
             style: 'tableHeader'
           });
         }
+      } else {
+        skipColumns.push(index);
       }
     });
 
@@ -319,15 +401,26 @@ var CraneUsageHistory = (function () {
       $row.find('td').each(function (index) {
         var $td = $(this);
 
-        if (!$td.hasClass('action-column') && !$td.hasClass('action-buttons-cell')) {
+        // Skip columns that we marked to skip
+        if (skipColumns.indexOf(index) === -1) {
           var cellText = $td.text().trim();
 
+          // Kolom pertama (No.) dibuat center
           if (index === 0) {
             rowData.push({
               text: cellText,
               style: 'tableCellCenter'
             });
+          }
+          // Format jam columns untuk lebih ringkas
+          else if (cellText.includes(' jam')) {
+            rowData.push(cellText.replace(' jam', ''));
+          }
+          // Format entries untuk lebih ringkas
+          else if (cellText.includes(' entries')) {
+            // Skip entries column
           } else {
+            // Kolom lainnya simple string
             rowData.push(cellText);
           }
         }
@@ -338,11 +431,12 @@ var CraneUsageHistory = (function () {
       }
     });
 
+    // Jika tidak ada data
     if (tableData.length <= 1) {
       tableData.push([
         {
           text: 'Tidak ada data yang tersedia',
-          colSpan: headerRow.length || 10,
+          colSpan: headerRow.length || 9,
           alignment: 'center',
           style: 'tableCell'
         }
@@ -353,7 +447,11 @@ var CraneUsageHistory = (function () {
   }
 
   // ===== DATATABLE FUNCTIONS =====
+  /**
+   * Initialize DataTable for export functionality dengan perbaikan pdfMake
+   */
   function initDataTable() {
+    // Destroy previous instance if exists
     if (dataTable) {
       dataTable.destroy();
     }
@@ -384,9 +482,13 @@ var CraneUsageHistory = (function () {
           },
           customize: function (doc) {
             try {
+              // Get processed table data
               var tableData = processTableDataForPDF();
+
+              // Create new document definition
               var newDocDef = createDocumentDefinition(tableData);
 
+              // Replace the entire doc object properties
               Object.keys(doc).forEach(function (key) {
                 delete doc[key];
               });
@@ -399,6 +501,7 @@ var CraneUsageHistory = (function () {
             } catch (error) {
               console.error('Error in PDF customize function:', error);
 
+              // Fallback: minimal PDF structure
               doc.content = [
                 {
                   text: config.exportTitle,
@@ -418,11 +521,17 @@ var CraneUsageHistory = (function () {
     return dataTable;
   }
 
+  /**
+   * Create and add export buttons
+   */
   function setupExportButtons() {
+    // Clear previous buttons
     $('#' + config.exportContainerId).empty();
 
+    // Create button group container
     var buttonGroup = $('<div class="btn-group" role="group"></div>');
 
+    // Create buttons dengan improved styling (hanya Excel dan PDF)
     var excelBtn = $(
       '<button type="button" class="btn btn-sm btn-success">' + '<i class="bx bx-file me-1"></i> Excel</button>'
     );
@@ -430,14 +539,18 @@ var CraneUsageHistory = (function () {
       '<button type="button" class="btn btn-sm btn-danger">' + '<i class="bx bx-file me-1"></i> PDF</button>'
     );
 
+    // Add to button group
     buttonGroup.append(excelBtn).append(pdfBtn);
+
+    // Add to container
     $('#' + config.exportContainerId).append(buttonGroup);
 
+    // Add click handlers with improved error handling
     excelBtn.on('click', function (e) {
       e.preventDefault();
       if (dataTable) {
         try {
-          dataTable.button(0).trigger();
+          dataTable.button(0).trigger(); // Excel
         } catch (error) {
           console.error('Excel export error:', error);
           showExportError('Excel', error.message);
@@ -449,11 +562,12 @@ var CraneUsageHistory = (function () {
       e.preventDefault();
       if (dataTable) {
         try {
+          // Ensure pdfMake is loaded
           if (typeof window.pdfMake === 'undefined') {
             throw new Error('pdfMake library is not loaded');
           }
 
-          dataTable.button(1).trigger();
+          dataTable.button(1).trigger(); // PDF
         } catch (error) {
           console.error('PDF export error:', error);
           showExportError('PDF', error.message);
@@ -461,6 +575,7 @@ var CraneUsageHistory = (function () {
       }
     });
 
+    // Enhanced CSS for buttons
     if (!$('#datatables-export-style').length) {
       $(
         '<style id="datatables-export-style">' +
@@ -476,6 +591,9 @@ var CraneUsageHistory = (function () {
     }
   }
 
+  /**
+   * Show export error message
+   */
   function showExportError(exportType, errorMessage) {
     var errorHtml =
       '<div class="alert alert-danger alert-dismissible fade show mt-3" role="alert">' +
@@ -488,6 +606,7 @@ var CraneUsageHistory = (function () {
       '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
       '</div>';
 
+    // Show error in export container or table container
     var $container = $('#' + config.exportContainerId).parent();
     if ($container.length === 0) {
       $container = $('#' + config.tableContainerId);
@@ -495,6 +614,7 @@ var CraneUsageHistory = (function () {
 
     $container.prepend(errorHtml);
 
+    // Auto remove after 10 seconds
     setTimeout(function () {
       $container.find('.alert-danger').fadeOut('slow', function () {
         $(this).remove();
@@ -503,10 +623,14 @@ var CraneUsageHistory = (function () {
   }
 
   // ===== AJAX & UI FUNCTIONS =====
+  /**
+   * Load table data via AJAX
+   */
   function loadTableData() {
     var formData = $('#' + config.formId).serialize();
     console.log('Loading table with params:', formData);
 
+    // Show loading indicator
     $('#tableLoadingOverlay').removeClass('d-none');
 
     $.ajax({
@@ -515,8 +639,10 @@ var CraneUsageHistory = (function () {
       data: formData,
       cache: false,
       success: function (response) {
+        // Replace table container with new HTML
         $('#' + config.tableContainerId).html(response);
 
+        // Initialize DataTable for export after content is loaded
         setTimeout(function () {
           try {
             initDataTable();
@@ -525,9 +651,11 @@ var CraneUsageHistory = (function () {
           }
         }, 100);
 
+        // Update URL to allow bookmarking state
         updateBrowserUrl();
       },
       error: function (xhr, status, error) {
+        // Show error message
         $('#' + config.tableContainerId).html(
           '<div class="alert alert-danger m-3">' +
             '<i class="bx bx-error-circle me-2"></i>' +
@@ -540,11 +668,15 @@ var CraneUsageHistory = (function () {
         console.error('AJAX Error:', status, error);
       },
       complete: function () {
+        // Hide loading indicator
         $('#tableLoadingOverlay').addClass('d-none');
       }
     });
   }
 
+  /**
+   * Update browser URL without page reload
+   */
   function updateBrowserUrl() {
     if (window.history && window.history.pushState) {
       var formData = $('#' + config.formId).serialize();
@@ -554,19 +686,32 @@ var CraneUsageHistory = (function () {
     }
   }
 
+  /**
+   * Reset form and load fresh data
+   */
   function resetFilters() {
+    // Reset form
     document.getElementById(config.formId).reset();
+
+    // Reset hidden fields
     $('#' + config.pageNumberId).val(1);
+
+    // Load fresh data
     loadTableData();
   }
 
+  /**
+   * Initialize event handlers
+   */
   function bindEvents() {
+    // Table row click for navigation
     $(document).on('click', '.clickable-row', function (e) {
       if (!$(e.target).closest('.action-buttons-cell').length) {
         window.location = $(this).data('url');
       }
     });
 
+    // Pagination click
     $(document).on('click', '.pagination-group a', function (e) {
       e.preventDefault();
 
@@ -579,25 +724,29 @@ var CraneUsageHistory = (function () {
       loadTableData();
     });
 
+    // Page size change
     $(document).on('change', '#pageSizeSelector', function () {
       $('#' + config.pageSizeId).val($(this).val());
-      $('#' + config.pageNumberId).val(1);
+      $('#' + config.pageNumberId).val(1); // Reset to page 1
       loadTableData();
     });
 
+    // Filter inputs change
     $(document).on('change', config.filterInputSelector, function () {
-      $('#' + config.pageNumberId).val(1);
+      $('#' + config.pageNumberId).val(1); // Reset to page 1
       loadTableData();
     });
 
+    // Search input with debounce
     $(document).on('keyup', '#' + config.searchInputId, function () {
       clearTimeout(searchTimeout);
       searchTimeout = setTimeout(function () {
-        $('#' + config.pageNumberId).val(1);
+        $('#' + config.pageNumberId).val(1); // Reset to page 1
         loadTableData();
       }, 500);
     });
 
+    // Reset button
     $('#' + config.resetBtnId).on('click', function (e) {
       e.preventDefault();
       resetFilters();
@@ -606,23 +755,33 @@ var CraneUsageHistory = (function () {
 
   // ===== PUBLIC API =====
   return {
+    /**
+     * Initialize the crane usage history page
+     * @param {Object} options - Configuration options
+     */
     init: function (options) {
+      // Merge options with defaults
       config = $.extend(config, options || {});
 
+      // Check required dependencies
       if (typeof window.pdfMake === 'undefined') {
         console.warn('pdfMake is not loaded. PDF export may not work.');
       }
 
+      // Initialize export buttons
       setupExportButtons();
 
+      // Initial DataTable setup
       try {
         initDataTable();
       } catch (error) {
         console.error('Initial DataTable setup error:', error);
       }
 
+      // Bind events
       bindEvents();
 
+      // Auto-close alerts after 5 seconds
       setTimeout(function () {
         $('.auto-close-alert').fadeOut('slow', function () {
           $(this).remove();
@@ -632,22 +791,39 @@ var CraneUsageHistory = (function () {
       console.log('CraneUsageHistory initialized successfully');
     },
 
+    /**
+     * Manually reload the table data
+     */
     reloadTable: function () {
       loadTableData();
     },
 
+    /**
+     * Update company logo dengan format yang benar
+     * @param {string} logoData - Base64 encoded logo, SVG string, atau data URI
+     */
     setCompanyLogo: function (logoData) {
       setCompanyLogo(logoData);
     },
 
+    /**
+     * Update company name
+     * @param {string} companyName - Company name
+     */
     setCompanyName: function (companyName) {
       config.companyName = companyName;
     },
 
+    /**
+     * Get current configuration
+     */
     getConfig: function () {
       return config;
     },
 
+    /**
+     * Test PDF generation (untuk debugging)
+     */
     testPDFGeneration: function () {
       try {
         var tableData = processTableDataForPDF();
@@ -665,13 +841,17 @@ var CraneUsageHistory = (function () {
       }
     },
 
+    /**
+     * Set logo dari URL
+     * @param {string} logoUrl - URL to logo image
+     */
     setCompanyLogoFromUrl: function (logoUrl) {
       fetch(logoUrl)
         .then(response => response.blob())
         .then(blob => {
           const reader = new FileReader();
           reader.onload = function () {
-            setCompanyLogo(reader.result);
+            setCompanyLogo(reader.result); // Data URI format
           };
           reader.readAsDataURL(blob);
         })

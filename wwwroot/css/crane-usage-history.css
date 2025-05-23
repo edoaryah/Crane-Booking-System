@@ -142,7 +142,7 @@
 }
 
 /* Table responsive improvements */
-@media (max-width: 992px) {
+/* @media (max-width: 992px) {
   #craneUsageHistoryTable th:nth-child(5),
   #craneUsageHistoryTable th:nth-child(6),
   #craneUsageHistoryTable th:nth-child(7),
@@ -155,4 +155,4 @@
   #craneUsageHistoryTable td:nth-child(9) {
     display: none;
   }
-}
+} */

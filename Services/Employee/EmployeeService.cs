@@ -2,6 +2,8 @@
 using Microsoft.Data.SqlClient;
 using AspnetCoreMvcFull.Models;
 using AspnetCoreMvcFull.Models.Auth;
+using AspnetCoreMvcFull.Models.Role;
+using AspnetCoreMvcFull.Services.Role;
 
 namespace AspnetCoreMvcFull.Services
 {
@@ -9,12 +11,14 @@ namespace AspnetCoreMvcFull.Services
   {
     private readonly string _connectionString;
     private readonly ILogger<EmployeeService> _logger;
+    private readonly IRoleService _roleService; // ✅ Tambahkan dependency
 
-    public EmployeeService(IConfiguration configuration, ILogger<EmployeeService> logger)
+    public EmployeeService(IConfiguration configuration, ILogger<EmployeeService> logger, IRoleService roleService)
     {
       _connectionString = configuration.GetConnectionString("SqlServerConnection")
           ?? throw new InvalidOperationException("SQL Server connection string 'SqlServerConnection' not found");
       _logger = logger;
+      _roleService = roleService; // ✅ Assign dependency
     }
 
     public async Task<IEnumerable<EmployeeDetails>> GetAllEmployeesAsync()
@@ -114,25 +118,61 @@ namespace AspnetCoreMvcFull.Services
       }
     }
 
+    // public async Task<IEnumerable<EmployeeDetails>> GetPicCraneAsync()
+    // {
+    //   var picEmployees = new List<EmployeeDetails>();
+
+    //   try
+    //   {
+    //     using (var connection = new SqlConnection(_connectionString))
+    //     {
+    //       await connection.OpenAsync();
+
+    //       string query = "SELECT * FROM SP_EMPLIST WHERE DEPARTMENT = 'Stores & Inventory Control' AND POSITION_LVL = 'SUPV_LVL' AND EMP_STATUS = 'KPC'";
+    //       using (var command = new SqlCommand(query, connection))
+    //       {
+    //         using (var reader = await command.ExecuteReaderAsync())
+    //         {
+    //           while (await reader.ReadAsync())
+    //           {
+    //             picEmployees.Add(MapEmployeeFromReader(reader));
+    //           }
+    //         }
+    //       }
+    //     }
+
+    //     return picEmployees;
+    //   }
+    //   catch (Exception ex)
+    //   {
+    //     _logger.LogError(ex, "Error fetching PIC Crane employees");
+    //     throw;
+    //   }
+    // }
+
+    // Di Services/Employee/EmployeeService.cs
     public async Task<IEnumerable<EmployeeDetails>> GetPicCraneAsync()
     {
       var picEmployees = new List<EmployeeDetails>();
 
       try
       {
-        using (var connection = new SqlConnection(_connectionString))
-        {
-          await connection.OpenAsync();
+        // ❌ HAPUS cara lama ini:
+        // string query = "SELECT * FROM SP_EMPLIST WHERE DEPARTMENT = 'Stores & Inventory Control' AND POSITION_LVL = 'SUPV_LVL' AND EMP_STATUS = 'KPC'";
 
-          string query = "SELECT * FROM SP_EMPLIST WHERE DEPARTMENT = 'Stores & Inventory Control' AND POSITION_LVL = 'SUPV_LVL' AND EMP_STATUS = 'KPC'";
-          using (var command = new SqlCommand(query, connection))
+        // ✅ GUNAKAN cara baru dengan RoleService:
+        // Dapatkan semua user dengan role PIC
+        var picUsers = await _roleService.GetUsersByRoleNameAsync(Roles.PIC);
+
+        foreach (var picUser in picUsers)
+        {
+          if (!string.IsNullOrEmpty(picUser.LdapUser))
           {
-            using (var reader = await command.ExecuteReaderAsync())
+            // Dapatkan detail employee berdasarkan LDAP user
+            var employee = await GetEmployeeByLdapUserAsync(picUser.LdapUser);
+            if (employee != null && employee.EmpStatus == "KPC") // Pastikan masih aktif
             {
-              while (await reader.ReadAsync())
-              {
-                picEmployees.Add(MapEmployeeFromReader(reader));
-              }
+              picEmployees.Add(employee);
             }
           }
         }
@@ -141,7 +181,7 @@ namespace AspnetCoreMvcFull.Services
       }
       catch (Exception ex)
       {
-        _logger.LogError(ex, "Error fetching PIC Crane employees");
+        _logger.LogError(ex, "Error fetching PIC Crane employees using role management");
         throw;
       }
     }

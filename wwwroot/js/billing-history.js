@@ -320,16 +320,14 @@ var BillingHistory = (function () {
       return [['Tidak ada data untuk diekspor']];
     }
 
-    // Process header
+    // Process header (tidak berubah)
     var headerRow = [];
     $table.find('thead th').each(function (index) {
       var $th = $(this);
 
-      // Skip action column
       if (!$th.hasClass('action-column') && !$th.text().toLowerCase().includes('actions')) {
         var headerText = $th.text().trim();
 
-        // Kolom pertama jadi "No." dan center
         if (index === 0) {
           headerRow.push({
             text: 'No.',
@@ -356,21 +354,36 @@ var BillingHistory = (function () {
       $row.find('td').each(function (index) {
         var $td = $(this);
 
-        // Skip action column
         if (!$td.hasClass('action-buttons-cell')) {
           var cellText = $td.text().trim();
 
-          // Clean up cell text (remove extra whitespace and line breaks)
+          // KHUSUS UNTUK KOLOM TANGGAL AKTUAL (index 5)
+          // Hilangkan text yang mengandung "Booking:"
+          if (index === 5) {
+            // Split berdasarkan baris dan filter yang tidak mengandung "Booking:"
+            var lines = cellText.split('\n');
+            var filteredLines = [];
+
+            for (var i = 0; i < lines.length; i++) {
+              var line = lines[i].trim();
+              // Hanya ambil baris yang TIDAK mengandung "Booking:"
+              if (line && !line.toLowerCase().includes('booking:')) {
+                filteredLines.push(line);
+              }
+            }
+
+            cellText = filteredLines.join(' ').trim();
+          }
+
+          // Clean up whitespace
           cellText = cellText.replace(/\s+/g, ' ').trim();
 
-          // Kolom pertama (No.) dibuat center
           if (index === 0) {
             rowData.push({
               text: cellText,
               style: 'tableCellCenter'
             });
           } else {
-            // Kolom lainnya simple string
             rowData.push(cellText);
           }
         }
@@ -381,7 +394,6 @@ var BillingHistory = (function () {
       }
     });
 
-    // Jika tidak ada data
     if (tableData.length <= 1) {
       tableData.push([
         {
