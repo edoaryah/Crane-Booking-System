@@ -94,7 +94,7 @@
 
           <div class="row mt-4">
             <div class="col-12 d-flex justify-content-end">
-              <a href="@Url.Action("Details", "Maintenance", new { documentNumber = documentNumber })"
+              <a href="@Url.Action("Index", "MaintenanceHistory", new { documentNumber = documentNumber })"
                 class="btn btn-outline-secondary me-3">
                 <i class="bx bx-x me-1"></i> Cancel
               </a>
@@ -174,17 +174,17 @@
 
         // Create table HTML
         let tableHtml = `
-                        <div class="table-responsive">
-                            <table class="table table-bordered">
-                                <thead>
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>Day</th>
-                                        <th>Shifts</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                    `;
+                          <div class="table-responsive">
+                              <table class="table table-bordered">
+                                  <thead>
+                                      <tr>
+                                          <th>Date</th>
+                                          <th>Day</th>
+                                          <th>Shifts</th>
+                                      </tr>
+                                  </thead>
+                                  <tbody>
+                      `;
 
         // Create rows for each date
         dateRange.forEach((date, index) => {
@@ -202,46 +202,46 @@
           const selectedShifts = existingDates[dateKey] || [];
 
           tableHtml += `
-                            <tr>
-                                <td>${formattedDate}</td>
-                                <td>${dayOfWeek}</td>
-                                <td>
-                                    <input type="hidden" name="ShiftSelections[${index}].Date" value="${dateString}">
-                                    <div class="row">
-                        `;
+                              <tr>
+                                  <td>${formattedDate}</td>
+                                  <td>${dayOfWeek}</td>
+                                  <td>
+                                      <input type="hidden" name="ShiftSelections[${index}].Date" value="${dateString}">
+                                      <div class="row">
+                          `;
 
           // Create checkboxes for each shift
           shiftDefinitions.forEach(shift => {
             const isChecked = selectedShifts.includes(shift.id);
 
             tableHtml += `
-                                <div class="col-md-4 mb-2">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox"
-                                            id="shift_${index}_${shift.id}"
-                                            name="ShiftSelections[${index}].SelectedShiftIds"
-                                            value="${shift.id}"
-                                            ${isChecked ? 'checked' : ''}>
-                                        <label class="form-check-label" for="shift_${index}_${shift.id}">
-                                            ${shift.name} (${shift.formattedStartTime} - ${shift.formattedEndTime})
-                                        </label>
-                                    </div>
-                                </div>
-                            `;
+                                  <div class="col-md-4 mb-2">
+                                      <div class="form-check">
+                                          <input class="form-check-input" type="checkbox"
+                                              id="shift_${index}_${shift.id}"
+                                              name="ShiftSelections[${index}].SelectedShiftIds"
+                                              value="${shift.id}"
+                                              ${isChecked ? 'checked' : ''}>
+                                          <label class="form-check-label" for="shift_${index}_${shift.id}">
+                                              ${shift.name} (${shift.formattedStartTime} - ${shift.formattedEndTime})
+                                          </label>
+                                      </div>
+                                  </div>
+                              `;
           });
 
           tableHtml += `
-                                    </div>
-                                </td>
-                            </tr>
-                        `;
+                                      </div>
+                                  </td>
+                              </tr>
+                          `;
         });
 
         tableHtml += `
-                                </tbody>
-                            </table>
-                        </div>
-                    `;
+                                  </tbody>
+                              </table>
+                          </div>
+                      `;
 
         // Add table to DOM
         shiftSelectionTable.innerHTML = tableHtml;

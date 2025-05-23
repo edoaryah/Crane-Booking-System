@@ -1,4 +1,5 @@
 using AspnetCoreMvcFull.Models;
+using AspnetCoreMvcFull.Models.Common;
 using AspnetCoreMvcFull.ViewModels.BookingManagement;
 
 namespace AspnetCoreMvcFull.Services
@@ -46,5 +47,9 @@ namespace AspnetCoreMvcFull.Services
 
     // Add this to the IBookingService interface (Services/Booking/IBookingService.cs)
     Task<IEnumerable<BookingViewModel>> SearchBookingsAsync(string searchTerm, string currentUser, bool isPic, bool isAdmin);
+
+    // Add to existing interface
+    Task<PagedResult<BookingViewModel>> GetPagedBookingsAsync(BookingListFilterRequest request);
+    Task<IEnumerable<string>> GetDistinctDepartmentsAsync();
   }
 }

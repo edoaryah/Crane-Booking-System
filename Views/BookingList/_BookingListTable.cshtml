@@ -1,0 +1,172 @@
+@model AspnetCoreMvcFull.ViewModels.BookingManagement.BookingListPagedViewModel
+
+@if (Model.PagedBookings.Items.Any())
+{
+  <div class="table-responsive text-nowrap">
+    <table class="table table-hover" id="bookingListTable">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Kode Booking</th>
+          <th>Requestor</th>
+          <th>Crane</th>
+          <th>Departemen</th>
+          <th>Tanggal Mulai</th>
+          <th>Tanggal Selesai</th>
+          <th>Status</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
+      <tbody class="table-border-bottom-0">
+        @{
+          var startIndex = (Model.PagedBookings.PageNumber - 1) * Model.PagedBookings.PageSize + 1;
+        }
+        @foreach (var booking in Model.PagedBookings.Items)
+        {
+          <tr class="clickable-row"
+            data-url="@Url.Action("Details", "Booking", new { documentNumber = booking.DocumentNumber })">
+            <td><strong>@(startIndex++)</strong></td>
+            <td>@booking.BookingNumber</td>
+            <td>@booking.Name</td>
+            <td>@booking.CraneCode</td>
+            <td>@booking.Department</td>
+            <td data-order="@booking.StartDate.ToString("yyyy-MM-dd")">
+              @booking.StartDate.ToString("dd/MM/yyyy")
+            </td>
+            <td data-order="@booking.EndDate.ToString("yyyy-MM-dd")">
+              @booking.EndDate.ToString("dd/MM/yyyy")
+            </td>
+            <td>
+              @{
+                var statusClass = booking.Status switch
+                {
+                  AspnetCoreMvcFull.Models.BookingStatus.PendingApproval => "bg-warning",
+                  AspnetCoreMvcFull.Models.BookingStatus.ManagerApproved => "bg-info",
+                  AspnetCoreMvcFull.Models.BookingStatus.ManagerRejected => "bg-danger",
+                  AspnetCoreMvcFull.Models.BookingStatus.PICApproved => "bg-success",
+                  AspnetCoreMvcFull.Models.BookingStatus.PICRejected => "bg-danger",
+                  AspnetCoreMvcFull.Models.BookingStatus.Cancelled => "bg-secondary",
+                  AspnetCoreMvcFull.Models.BookingStatus.Done => "bg-primary",
+                  _ => "bg-light"
+                };
+
+                var statusText = booking.Status switch
+                {
+                  AspnetCoreMvcFull.Models.BookingStatus.PendingApproval => "Menunggu Persetujuan",
+                  AspnetCoreMvcFull.Models.BookingStatus.ManagerApproved => "Disetujui Manager",
+                  AspnetCoreMvcFull.Models.BookingStatus.ManagerRejected => "Ditolak Manager",
+                  AspnetCoreMvcFull.Models.BookingStatus.PICApproved => "Disetujui PIC",
+                  AspnetCoreMvcFull.Models.BookingStatus.PICRejected => "Ditolak PIC",
+                  AspnetCoreMvcFull.Models.BookingStatus.Cancelled => "Dibatalkan",
+                  AspnetCoreMvcFull.Models.BookingStatus.Done => "Selesai",
+                  _ => booking.Status.ToString()
+                };
+              }
+              <span class="badge @statusClass">@statusText</span>
+            </td>
+            <td class="action-buttons-cell">
+              <div class="action-buttons">
+                <a class="btn btn-sm btn-outline-primary"
+                  href="@Url.Action("Details", "Booking", new { documentNumber = booking.DocumentNumber })"
+                  title="Lihat Detail">
+                  <i class="bx bx-show-alt"></i>
+                </a>
+                <a class="btn btn-sm btn-outline-success"
+                  href="@Url.Action("Edit", "Booking", new { documentNumber = booking.DocumentNumber })" title="Edit">
+                  <i class="bx bx-edit-alt"></i>
+                </a>
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Footer Card dengan Pagination Controls -->
+  <div class="card-footer border-top d-flex justify-content-between align-items-center py-3">
+    <div>
+      @(((Model.PagedBookings.PageNumber - 1) * Model.PagedBookings.PageSize) + 1) to
+      @(Math.Min(Model.PagedBookings.PageNumber * Model.PagedBookings.PageSize, Model.PagedBookings.TotalCount))
+      of @Model.PagedBookings.TotalCount entries
+    </div>
+
+    <div class="pagination-container text-center mx-auto">
+      <div class="btn-group pagination-group">
+        <a href="#" class="btn btn-icon btn-outline-primary @(Model.PagedBookings.HasPreviousPage ? "" : "disabled")"
+          data-page="@(Model.PagedBookings.PageNumber - 1)" aria-label="Previous" @(Model.PagedBookings.HasPreviousPage
+                                                                                        ? "" : "aria-disabled=\"true\"")>
+        <i class="tf-icon bx bx-chevron-left"></i>
+      </a>
+
+      @{
+          int startPage = Math.Max(1, Model.PagedBookings.PageNumber - 2);
+          int endPage = Math.Min(Model.PagedBookings.PageCount, startPage + 4);
+
+          if (endPage - startPage < 4 && endPage < Model.PagedBookings.PageCount)
+          {
+            endPage = Math.Min(Model.PagedBookings.PageCount, endPage + (4 - (endPage - startPage)));
+          }
+
+          if (endPage - startPage < 4 && startPage > 1)
+          {
+            startPage = Math.Max(1, startPage - (4 - (endPage - startPage)));
+          }
+        }
+
+        @for (int i = startPage; i <= endPage; i++)
+        {
+          <a href="#" class="btn @(Model.PagedBookings.PageNumber == i ? "btn-primary" : "btn-outline-primary")"
+            data-page="@i">
+            @i
+          </a>
+        }
+
+        <a href="#" class="btn btn-icon btn-outline-primary @(Model.PagedBookings.HasNextPage ? "" : "disabled")"
+          data-page="@(Model.PagedBookings.PageNumber + 1)" aria-label="Next" @(Model.PagedBookings.HasNextPage ? "" :
+                                                                                      "aria-disabled=\"true\"")>
+        <i class="tf-icon bx bx-chevron-right"></i>
+      </a>
+    </div>
+  </div>
+
+    <div class="page-size-container">
+      <select id="pageSizeSelector" class="form-select form-select-sm" style="width: auto;">
+      @foreach (var size in new[] { 10, 25, 50 })
+        {
+          if (Model.PagedBookings.PageSize == size)
+          {
+            <option value="@size" selected>@size baris</option>
+          }
+          else
+          {
+            <option value="@size">@size baris</option>
+          }
+        }
+      </select>
+    </div>
+  </div>
+}
+else
+{
+  <div class="text-center p-5">
+    <div class="mb-3">
+      <i class="bx bx-calendar-x text-primary" style="font-size: 4rem;"></i>
+    </div>
+    <h5>Tidak ada data booking ditemukan</h5>
+    @if (ViewBag.CraneName != null)
+    {
+      <p class="text-muted">Tidak ada booking yang ditemukan untuk Crane @ViewBag.CraneName.</p>
+      <a href="@Url.Action("Index", "Booking", new { craneId = ViewBag.CraneId })" class="btn btn-primary mt-3">
+        <i class="bx bx-plus me-1"></i> Buat Booking untuk Crane Ini
+      </a>
+    }
+    else
+    {
+      <p class="text-muted">Coba sesuaikan kriteria pencarian atau filter Anda.</p>
+      <a href="@Url.Action("Index", "BookingList")" class="btn btn-outline-secondary mt-3">
+        <i class="bx bx-reset me-1"></i> Reset Filter
+      </a>
+    }
+  </div>
+}

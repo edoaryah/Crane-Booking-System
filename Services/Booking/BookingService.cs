@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using AspnetCoreMvcFull.Data;
 using AspnetCoreMvcFull.Models;
+using AspnetCoreMvcFull.Models.Common;
 using AspnetCoreMvcFull.ViewModels.BookingManagement;
 using AspnetCoreMvcFull.ViewModels.HazardManagement;
 // using AspnetCoreMvcFull.Events;
@@ -901,128 +902,6 @@ namespace AspnetCoreMvcFull.Services
       }
     }
 
-    // public async Task<IEnumerable<BookedShiftViewModel>> GetBookedShiftsByCraneAndDateRangeAsync(
-    // int craneId, DateTime startDate, DateTime endDate)
-    // {
-    //   var bookingShifts = await _context.BookingShifts
-    //       .Include(bs => bs.Booking)
-    //       .Where(bs =>
-    //           bs.Booking != null &&
-    //           bs.Booking.Status != BookingStatus.Cancelled &&
-    //           bs.Booking.CraneId == craneId &&
-    //           bs.Date.Date >= startDate.Date &&
-    //           bs.Date.Date <= endDate.Date)
-    //       .Select(bs => new BookedShiftViewModel
-    //       {
-    //         CraneId = bs.Booking!.CraneId,
-    //         Date = bs.Date,
-    //         ShiftDefinitionId = bs.ShiftDefinitionId ?? 0
-    //       })
-    //       .ToListAsync();
-
-    //   return bookingShifts;
-    // }
-
-    // public async Task<IEnumerable<BookedShiftViewModel>> GetBookedShiftsByCraneAndDateRangeAsync(
-    // int craneId, DateTime startDate, DateTime endDate)
-    // {
-    //   // Dapatkan semua booking shifts yang ada dalam rentang tanggal
-    //   var existingBookings = await _context.BookingShifts
-    //       .Include(bs => bs.Booking)
-    //       .Where(bs =>
-    //           bs.Booking != null &&
-    //           bs.Booking.Status != BookingStatus.Cancelled &&
-    //           bs.Booking.CraneId == craneId &&
-    //           bs.Date.Date >= startDate.Date.AddDays(-1) && // Tambah 1 hari ke belakang untuk mengatasi shift yang melewati tengah malam
-    //           bs.Date.Date <= endDate.Date)
-    //       .ToListAsync();
-
-    //   // Dapatkan semua definisi shift aktif
-    //   var activeShifts = await _context.ShiftDefinitions
-    //       .Where(sd => sd.IsActive)
-    //       .ToListAsync();
-
-    //   var result = new List<BookedShiftViewModel>();
-
-    //   // Tambahkan booking yang sudah ada berdasarkan ShiftDefinitionId (perilaku original)
-    //   foreach (var booking in existingBookings)
-    //   {
-    //     // Untuk compatibility, tambahkan booking dengan ShiftDefinitionId yang sama
-    //     result.Add(new BookedShiftViewModel
-    //     {
-    //       CraneId = craneId,
-    //       Date = booking.Date,
-    //       ShiftDefinitionId = booking.ShiftDefinitionId
-    //     });
-    //   }
-
-    //   // Periksa untuk overlap berdasarkan rentang waktu dengan shift saat ini
-    //   foreach (var shift in activeShifts)
-    //   {
-    //     foreach (var date in Enumerable.Range(0, (endDate - startDate).Days + 1)
-    //                         .Select(d => startDate.AddDays(d)))
-    //     {
-    //       // Cek apakah kombinasi shift dan tanggal ini sudah ada di result
-    //       if (result.Any(r => r.Date.Date == date.Date && r.ShiftDefinitionId == shift.Id))
-    //       {
-    //         continue; // Sudah ada di hasil, lewati
-    //       }
-
-    //       // Rentang waktu shift saat ini
-    //       DateTime currStartTime = date.Date.Add(shift.StartTime);
-    //       DateTime currEndTime = date.Date.Add(shift.EndTime);
-    //       if (shift.EndTime < shift.StartTime)
-    //       {
-    //         currEndTime = currEndTime.AddDays(1); // Shift melewati tengah malam
-    //       }
-
-    //       // Cek overlap dengan booking yang ada
-    //       bool hasOverlap = false;
-
-    //       foreach (var bs in existingBookings)
-    //       {
-    //         // Periksa apakah bs.Date relevan dengan shift saat ini
-    //         if (!(bs.Date.Date == date.Date ||
-    //               // Jika shift saat ini melewati tengah malam, periksa hari sebelumnya
-    //               (shift.EndTime < shift.StartTime && bs.Date.Date == date.Date.AddDays(-1)) ||
-    //               // Jika booking shift melewati tengah malam, periksa hari berikutnya
-    //               (bs.ShiftEndTime < bs.ShiftStartTime && bs.Date.Date == date.Date.AddDays(-1))))
-    //         {
-    //           continue; // Tanggal tidak relevan, lewati
-    //         }
-
-    //         // Hitung rentang waktu booking yang ada
-    //         DateTime bookStartTime = bs.Date.Date.Add(bs.ShiftStartTime);
-    //         DateTime bookEndTime = bs.Date.Date.Add(bs.ShiftEndTime);
-    //         if (bs.ShiftEndTime < bs.ShiftStartTime)
-    //         {
-    //           bookEndTime = bookEndTime.AddDays(1); // Booking melewati tengah malam
-    //         }
-
-    //         // Cek overlap dengan formula standar
-    //         if (currStartTime < bookEndTime && currEndTime > bookStartTime)
-    //         {
-    //           hasOverlap = true;
-    //           break;
-    //         }
-    //       }
-
-    //       // Jika ada overlap, tambahkan shift ini ke hasil
-    //       if (hasOverlap)
-    //       {
-    //         result.Add(new BookedShiftViewModel
-    //         {
-    //           CraneId = craneId,
-    //           Date = date,
-    //           ShiftDefinitionId = shift.Id
-    //         });
-    //       }
-    //     }
-    //   }
-
-    //   return result;
-    // }
-
     public async Task<IEnumerable<BookedShiftViewModel>> GetBookedShiftsByCraneAndDateRangeAsync(
     int craneId, DateTime startDate, DateTime endDate)
     {
@@ -1180,6 +1059,173 @@ namespace AspnetCoreMvcFull.Services
       {
         _logger.LogError(ex, "Error searching bookings with term: {SearchTerm}", searchTerm);
         throw;
+      }
+    }
+
+    public async Task<PagedResult<BookingViewModel>> GetPagedBookingsAsync(BookingListFilterRequest request)
+    {
+      try
+      {
+        // Start with all records
+        var query = _context.Bookings
+            .Include(b => b.Crane)
+            .AsQueryable();
+
+        // Apply filters
+        if (request.CraneId.HasValue && request.CraneId.Value > 0)
+        {
+          query = query.Where(b => b.CraneId == request.CraneId.Value);
+        }
+        else if (!string.IsNullOrEmpty(request.CraneCode))
+        {
+          query = query.Where(b => b.CraneCode.Contains(request.CraneCode) ||
+                                (b.Crane != null && b.Crane.Code.Contains(request.CraneCode)));
+        }
+
+        if (!string.IsNullOrEmpty(request.Department))
+        {
+          query = query.Where(b => b.Department.Contains(request.Department));
+        }
+
+        if (request.StartDate.HasValue)
+        {
+          var startDate = request.StartDate.Value.Date;
+          query = query.Where(b => b.EndDate >= startDate);
+        }
+
+        if (request.EndDate.HasValue)
+        {
+          var endDate = request.EndDate.Value.Date.AddDays(1).AddSeconds(-1);
+          query = query.Where(b => b.StartDate <= endDate);
+        }
+
+        if (request.Status.HasValue)
+        {
+          query = query.Where(b => b.Status == request.Status.Value);
+        }
+
+        // Apply global search
+        if (!string.IsNullOrEmpty(request.GlobalSearch))
+        {
+          var search = request.GlobalSearch.ToLower();
+          query = query.Where(b =>
+              b.BookingNumber.ToLower().Contains(search) ||
+              b.Name.ToLower().Contains(search) ||
+              b.Department.ToLower().Contains(search) ||
+              b.DocumentNumber.ToLower().Contains(search) ||
+              (b.CraneCode != null && b.CraneCode.ToLower().Contains(search)) ||
+              (b.Crane != null && b.Crane.Code.ToLower().Contains(search))
+          );
+        }
+
+        // Get total count before pagination
+        var totalCount = await query.CountAsync();
+
+        // Apply sorting
+        query = ApplyBookingSorting(query, request.SortBy, request.SortDesc);
+
+        // Apply pagination
+        var items = await query
+            .Skip((request.PageNumber - 1) * request.PageSize)
+            .Take(request.PageSize)
+            .ToListAsync();
+
+        // Map to view models
+        var bookings = items.Select(b => new BookingViewModel
+        {
+          Id = b.Id,
+          BookingNumber = b.BookingNumber,
+          DocumentNumber = b.DocumentNumber,
+          Name = b.Name,
+          Department = b.Department,
+          CraneId = b.CraneId ?? 0,
+          CraneCode = b.CraneId.HasValue ? b.Crane?.Code : b.CraneCode,
+          StartDate = b.StartDate,
+          EndDate = b.EndDate,
+          SubmitTime = b.SubmitTime,
+          Location = b.Location,
+          Status = b.Status,
+          ProjectSupervisor = b.ProjectSupervisor,
+          CostCode = b.CostCode,
+          PhoneNumber = b.PhoneNumber,
+          Description = b.Description
+        }).ToList();
+
+        // Calculate page count
+        var pageCount = (int)Math.Ceiling(totalCount / (double)request.PageSize);
+
+        // Create and return paged result
+        return new PagedResult<BookingViewModel>
+        {
+          Items = bookings,
+          TotalCount = totalCount,
+          PageCount = pageCount,
+          PageNumber = request.PageNumber,
+          PageSize = request.PageSize
+        };
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Error getting paged bookings: {Message}", ex.Message);
+        throw;
+      }
+    }
+
+    public async Task<IEnumerable<string>> GetDistinctDepartmentsAsync()
+    {
+      try
+      {
+        return await _context.Bookings
+            .Where(b => !string.IsNullOrEmpty(b.Department))
+            .Select(b => b.Department)
+            .Distinct()
+            .OrderBy(d => d)
+            .ToListAsync();
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Error getting distinct departments: {Message}", ex.Message);
+        throw;
+      }
+    }
+
+    private IQueryable<Booking> ApplyBookingSorting(IQueryable<Booking> query, string sortBy, bool sortDesc)
+    {
+      switch (sortBy?.ToLower())
+      {
+        case "bookingnumber":
+          return sortDesc
+              ? query.OrderByDescending(b => b.BookingNumber)
+              : query.OrderBy(b => b.BookingNumber);
+        case "name":
+          return sortDesc
+              ? query.OrderByDescending(b => b.Name)
+              : query.OrderBy(b => b.Name);
+        case "department":
+          return sortDesc
+              ? query.OrderByDescending(b => b.Department)
+              : query.OrderBy(b => b.Department);
+        case "cranecode":
+          return sortDesc
+              ? query.OrderByDescending(b => b.CraneCode)
+              : query.OrderBy(b => b.CraneCode);
+        case "startdate":
+          return sortDesc
+              ? query.OrderByDescending(b => b.StartDate)
+              : query.OrderBy(b => b.StartDate);
+        case "enddate":
+          return sortDesc
+              ? query.OrderByDescending(b => b.EndDate)
+              : query.OrderBy(b => b.EndDate);
+        case "status":
+          return sortDesc
+              ? query.OrderByDescending(b => b.Status)
+              : query.OrderBy(b => b.Status);
+        case "submittime":
+        default:
+          return sortDesc
+              ? query.OrderByDescending(b => b.SubmitTime)
+              : query.OrderBy(b => b.SubmitTime);
       }
     }
 

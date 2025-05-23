@@ -146,30 +146,30 @@ namespace AspnetCoreMvcFull.Controllers
     /// <summary>
     /// Display details for a specific maintenance schedule.
     /// </summary>
-    [HttpGet]
-    public async Task<IActionResult> Details(string documentNumber)
-    {
-      try
-      {
-        if (string.IsNullOrEmpty(documentNumber))
-        {
-          return BadRequest("Document number is required");
-        }
+    // [HttpGet]
+    // public async Task<IActionResult> Details(string documentNumber)
+    // {
+    //   try
+    //   {
+    //     if (string.IsNullOrEmpty(documentNumber))
+    //     {
+    //       return BadRequest("Document number is required");
+    //     }
 
-        var schedule = await _maintenanceService.GetMaintenanceScheduleByDocumentNumberAsync(documentNumber);
-        return View(schedule);
-      }
-      catch (KeyNotFoundException)
-      {
-        return NotFound("Maintenance schedule not found");
-      }
-      catch (Exception ex)
-      {
-        _logger.LogError(ex, "Error loading maintenance schedule details for document number: {DocumentNumber}", documentNumber);
-        TempData["ErrorMessage"] = "Error loading maintenance details: " + ex.Message;
-        return RedirectToAction(nameof(Index));
-      }
-    }
+    //     var schedule = await _maintenanceService.GetMaintenanceScheduleByDocumentNumberAsync(documentNumber);
+    //     return View(schedule);
+    //   }
+    //   catch (KeyNotFoundException)
+    //   {
+    //     return NotFound("Maintenance schedule not found");
+    //   }
+    //   catch (Exception ex)
+    //   {
+    //     _logger.LogError(ex, "Error loading maintenance schedule details for document number: {DocumentNumber}", documentNumber);
+    //     TempData["ErrorMessage"] = "Error loading maintenance details: " + ex.Message;
+    //     return RedirectToAction(nameof(Index));
+    //   }
+    // }
 
     /// <summary>
     /// Filter maintenance history for a specific crane.

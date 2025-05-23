@@ -91,8 +91,8 @@
           <th>Requester</th>
           <th>Departemen</th>
           <th>Tanggal</th>
-          <th>Jam Operasional</th>
-          <th>Total Jam</th>
+          @* <th>Jam Operasional</th>
+          <th>Total Jam</th> *@
           <th>Status</th>
           <th>Actions</th>
         </tr>
@@ -119,8 +119,8 @@
                   <span class="text-muted">Belum ada penggunaan aktual</span>
                 }
               </td>
-              <td>@booking.OperatingHours.ToString("0.0") jam</td>
-              <td>@booking.TotalHours.ToString("0.0") jam</td>
+              @* <td>@booking.OperatingHours.ToString("0.0") jam</td>
+              <td>@booking.TotalHours.ToString("0.0") jam</td> *@
               <td>
                 @if (booking.IsBilled)
                 {

@@ -283,14 +283,16 @@
                   {
                     @if (Model.Status == BookingStatus.ManagerRejected || Model.Status == BookingStatus.PICRejected)
                     {
-                      <a href="@Url.Action("Edit", "Booking", new { documentNumber = Model.DocumentNumber })" class="btn btn-warning me-2">
+                      <a href="@Url.Action("Edit", "Booking", new { documentNumber = Model.DocumentNumber })"
+                        class="btn btn-warning me-2">
                         <i class="bx bx-edit me-1"></i> Edit Booking
                       </a>
                     }
 
                     @if (Model.Status != BookingStatus.Cancelled && Model.Status != BookingStatus.Done)
                     {
-                      <a href="@Url.Action("Cancel", "BookingAction", new { documentNumber = Model.DocumentNumber })" class="btn btn-danger me-2">
+                      <a href="@Url.Action("Cancel", "BookingAction", new { documentNumber = Model.DocumentNumber })"
+                        class="btn btn-danger me-2">
                         <i class="bx bx-x-circle me-1"></i> Batalkan Booking
                       </a>
                     }
@@ -321,7 +323,8 @@
 
                     @if (Model.Status != BookingStatus.Cancelled && Model.Status != BookingStatus.Done)
                     {
-                      <a href="@Url.Action("Cancel", "BookingAction", new { documentNumber = Model.DocumentNumber })" class="btn btn-danger me-2">
+                      <a href="@Url.Action("Cancel", "BookingAction", new { documentNumber = Model.DocumentNumber })"
+                        class="btn btn-danger me-2">
                         <i class="bx bx-x-circle me-1"></i> Batalkan Booking
                       </a>
                     }
@@ -331,13 +334,14 @@
                   @if (isBookingCreator && (isPic || isAdmin) && (Model.Status == BookingStatus.ManagerRejected ||
                                   Model.Status == BookingStatus.PICRejected))
                   {
-                    <a href="@Url.Action("Edit", "Booking", new { documentNumber = Model.DocumentNumber })" class="btn btn-warning me-2">
+                    <a href="@Url.Action("Edit", "Booking", new { documentNumber = Model.DocumentNumber })"
+                      class="btn btn-warning me-2">
                       <i class="bx bx-edit me-1"></i> Edit Booking
                     </a>
                   }
 
                   <!-- Back button for everyone -->
-                  <a href="@Url.Action("List", "Booking")" class="btn btn-outline-secondary">
+                  <a href="@Url.Action("Index", "BookingList")" class="btn btn-outline-secondary">
                     <i class="bx bx-arrow-back me-1"></i> Kembali
                   </a>
                 </div>
