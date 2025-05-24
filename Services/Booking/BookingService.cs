@@ -598,11 +598,243 @@ namespace AspnetCoreMvcFull.Services
       }
     }
 
+    // public async Task<BookingDetailViewModel> UpdateBookingAsync(int id, BookingUpdateViewModel bookingViewModel)
+    // {
+    //   try
+    //   {
+    //     _logger.LogInformation("Updating booking ID: {Id}", id);
+
+    //     var booking = await _context.Bookings
+    //         .Include(r => r.BookingShifts)
+    //         .Include(r => r.BookingItems)
+    //         .Include(r => r.BookingHazards)
+    //         .FirstOrDefaultAsync(r => r.Id == id);
+
+    //     if (booking == null)
+    //     {
+    //       throw new KeyNotFoundException($"Booking with ID {id} not found");
+    //     }
+
+    //     // Validate crane exists if changing crane
+    //     var crane = await _context.Cranes.FindAsync(bookingViewModel.CraneId);
+    //     if (crane == null)
+    //     {
+    //       throw new KeyNotFoundException($"Crane with ID {bookingViewModel.CraneId} not found");
+    //     }
+
+    //     // Get crane code for conflict checking
+    //     string craneCode = crane.Code;
+
+    //     // Validate crane is available if changing crane
+    //     if (booking.CraneId != bookingViewModel.CraneId && crane.Status == CraneStatus.Maintenance)
+    //     {
+    //       throw new InvalidOperationException($"Cannot reserve crane with ID {bookingViewModel.CraneId} because it is currently under maintenance");
+    //     }
+
+    //     // Update booking.CraneId and historical data if changing crane
+    //     if (booking.CraneId != bookingViewModel.CraneId)
+    //     {
+    //       booking.CraneId = bookingViewModel.CraneId;
+    //       booking.CraneCode = crane.Code;
+    //       booking.CraneCapacity = crane.Capacity;
+    //     }
+
+    //     // Gunakan tanggal lokal tanpa konversi UTC
+    //     var startDate = bookingViewModel.StartDate.Date;
+    //     var endDate = bookingViewModel.EndDate.Date;
+
+    //     // Validate date range
+    //     if (startDate > endDate)
+    //     {
+    //       throw new ArgumentException("Start date must be before or equal to end date");
+    //     }
+
+    //     // Validate shift selections
+    //     if (bookingViewModel.ShiftSelections == null || !bookingViewModel.ShiftSelections.Any())
+    //     {
+    //       throw new ArgumentException("At least one shift selection is required");
+    //     }
+
+    //     // Check if all dates in the range have shift selections
+    //     var dateRange = Enumerable.Range(0, (endDate - startDate).Days + 1)
+    //         .Select(d => startDate.AddDays(d))
+    //         .ToList();
+
+    //     var selectedDates = bookingViewModel.ShiftSelections
+    //         .Select(s => s.Date.Date)
+    //         .ToList();
+
+    //     if (!dateRange.All(d => selectedDates.Contains(d)))
+    //     {
+    //       throw new ArgumentException("All dates in the range must have shift selections");
+    //     }
+
+    //     // Validate each shift selection has at least one shift selected
+    //     foreach (var selection in bookingViewModel.ShiftSelections)
+    //     {
+    //       if (selection.SelectedShiftIds == null || !selection.SelectedShiftIds.Any())
+    //       {
+    //         throw new ArgumentException($"At least one shift must be selected for date {selection.Date.ToShortDateString()}");
+    //       }
+
+    //       // Gunakan tanggal lokal untuk pengecekan konflik
+    //       var dateLocal = selection.Date.Date;
+
+    //       // Check for scheduling conflicts for each selected shift
+    //       foreach (var shiftId in selection.SelectedShiftIds)
+    //       {
+    //         // Verify the shift definition exists
+    //         if (!await _shiftDefinitionService.ShiftDefinitionExistsAsync(shiftId))
+    //         {
+    //           throw new KeyNotFoundException($"Shift definition with ID {shiftId} not found");
+    //         }
+
+    //         bool hasConflict = await _scheduleConflictService.IsBookingConflictAsync(
+    //             bookingViewModel.CraneId,
+    //             dateLocal,
+    //             shiftId,
+    //             id,  // Exclude current booking
+    //             craneCode);  // Teruskan craneCode
+
+    //         if (hasConflict)
+    //         {
+    //           // Get shift name for better error message
+    //           var shift = await _context.ShiftDefinitions.FindAsync(shiftId);
+    //           throw new InvalidOperationException($"Scheduling conflict detected for date {dateLocal.ToShortDateString()} and shift {shift?.Name ?? shiftId.ToString()}");
+    //         }
+
+    //         // Periksa konflik dengan jadwal maintenance
+    //         bool hasMaintenanceConflict = await _scheduleConflictService.IsMaintenanceConflictAsync(
+    //             bookingViewModel.CraneId,
+    //             dateLocal,
+    //             shiftId,
+    //             null,
+    //             craneCode);  // Teruskan craneCode
+
+    //         if (hasMaintenanceConflict)
+    //         {
+    //           // Get shift name for better error message
+    //           var shift = await _context.ShiftDefinitions.FindAsync(shiftId);
+    //           throw new InvalidOperationException($"Scheduling conflict with maintenance schedule detected for date {dateLocal.ToShortDateString()} and shift {shift?.Name ?? shiftId.ToString()}");
+    //         }
+    //       }
+    //     }
+
+    //     // Update booking
+    //     booking.Name = bookingViewModel.Name;
+    //     booking.Department = bookingViewModel.Department;
+    //     booking.StartDate = startDate;
+    //     booking.EndDate = endDate;
+    //     booking.CustomHazard = bookingViewModel.CustomHazard;
+    //     booking.Location = bookingViewModel.Location;
+    //     booking.ProjectSupervisor = bookingViewModel.ProjectSupervisor;
+    //     booking.CostCode = bookingViewModel.CostCode;
+    //     booking.PhoneNumber = bookingViewModel.PhoneNumber;
+    //     booking.Description = bookingViewModel.Description;
+    //     // SubmitTime is not updated
+
+    //     // Remove existing shift selections
+    //     _context.BookingShifts.RemoveRange(booking.BookingShifts);
+
+    //     // Remove existing hazards
+    //     _context.BookingHazards.RemoveRange(booking.BookingHazards);
+
+    //     // Create new shift selections with historical data
+    //     foreach (var selection in bookingViewModel.ShiftSelections)
+    //     {
+    //       var dateLocal = selection.Date.Date;
+
+    //       foreach (var shiftId in selection.SelectedShiftIds)
+    //       {
+    //         // Dapatkan informasi shift saat ini
+    //         var shiftDefinition = await _context.ShiftDefinitions.FindAsync(shiftId);
+    //         if (shiftDefinition == null)
+    //         {
+    //           throw new KeyNotFoundException($"Shift definition with ID {shiftId} not found");
+    //         }
+
+    //         var bookingShift = new BookingShift
+    //         {
+    //           BookingId = booking.Id,
+    //           Date = dateLocal,
+    //           ShiftDefinitionId = shiftId,
+    //           // Simpan juga data historis shift
+    //           ShiftName = shiftDefinition.Name,
+    //           ShiftStartTime = shiftDefinition.StartTime,
+    //           ShiftEndTime = shiftDefinition.EndTime
+    //         };
+
+    //         _context.BookingShifts.Add(bookingShift);
+    //       }
+    //     }
+
+    //     // Remove existing items
+    //     _context.BookingItems.RemoveRange(booking.BookingItems);
+
+    //     // Add new items
+    //     if (bookingViewModel.Items != null && bookingViewModel.Items.Any())
+    //     {
+    //       foreach (var itemViewModel in bookingViewModel.Items)
+    //       {
+    //         var item = new BookingItem
+    //         {
+    //           BookingId = booking.Id,
+    //           ItemName = itemViewModel.ItemName,
+    //           Weight = itemViewModel.Weight,
+    //           Height = itemViewModel.Height,
+    //           Quantity = itemViewModel.Quantity
+    //         };
+
+    //         _context.BookingItems.Add(item);
+    //       }
+    //     }
+
+    //     // Handle predefined hazards
+    //     if (bookingViewModel.HazardIds != null && bookingViewModel.HazardIds.Any())
+    //     {
+    //       foreach (var hazardId in bookingViewModel.HazardIds)
+    //       {
+    //         // Validasi hazard exists
+    //         var hazard = await _context.Hazards.FindAsync(hazardId);
+    //         if (hazard != null)
+    //         {
+    //           var bookingHazard = new BookingHazard
+    //           {
+    //             BookingId = booking.Id,
+    //             HazardId = hazardId,
+    //             HazardName = hazard.Name // Simpan nama hazard
+    //           };
+    //           _context.BookingHazards.Add(bookingHazard);
+    //         }
+    //       }
+    //     }
+
+    //     await _context.SaveChangesAsync();
+
+    //     // Return the updated booking with details
+    //     return await GetBookingByIdAsync(booking.Id);
+    //   }
+    //   catch (Exception ex)
+    //   {
+    //     _logger.LogError(ex, "Error updating booking: {Message}", ex.Message);
+    //     throw;
+    //   }
+    // }
+
+    // Add these methods to Services/Booking/BookingService.cs
+    // Replace the existing UpdateBookingAsync method with these two overloads
+
     public async Task<BookingDetailViewModel> UpdateBookingAsync(int id, BookingUpdateViewModel bookingViewModel)
+    {
+      // Call the overloaded method with default "System" as modifiedBy
+      return await UpdateBookingAsync(id, bookingViewModel, "System");
+    }
+
+    public async Task<BookingDetailViewModel> UpdateBookingAsync(int id, BookingUpdateViewModel bookingViewModel, string modifiedBy)
     {
       try
       {
-        _logger.LogInformation("Updating booking ID: {Id}", id);
+        _logger.LogInformation("Updating booking ID: {Id} by {ModifiedBy}", id, modifiedBy);
 
         var booking = await _context.Bookings
             .Include(r => r.BookingShifts)
@@ -720,7 +952,12 @@ namespace AspnetCoreMvcFull.Services
           }
         }
 
-        // Update booking
+        // ✅ Update tracking fields
+        booking.RevisionCount++;
+        booking.LastModifiedAt = DateTime.Now;
+        booking.LastModifiedBy = modifiedBy;
+
+        // Update booking fields
         booking.Name = bookingViewModel.Name;
         booking.Department = bookingViewModel.Department;
         booking.StartDate = startDate;
@@ -810,6 +1047,9 @@ namespace AspnetCoreMvcFull.Services
         }
 
         await _context.SaveChangesAsync();
+
+        _logger.LogInformation("Booking ID: {Id} successfully updated by {ModifiedBy}. Revision count: {RevisionCount}",
+            id, modifiedBy, booking.RevisionCount);
 
         // Return the updated booking with details
         return await GetBookingByIdAsync(booking.Id);

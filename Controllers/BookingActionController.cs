@@ -2,8 +2,10 @@
 using Microsoft.AspNetCore.Mvc;
 using AspnetCoreMvcFull.Filters;
 using AspnetCoreMvcFull.Services;
+using AspnetCoreMvcFull.Services.Role;
 using AspnetCoreMvcFull.Models;
 using AspnetCoreMvcFull.ViewModels;
+using AspnetCoreMvcFull.ViewModels.BookingManagement;
 using System.Security.Claims;
 
 namespace AspnetCoreMvcFull.Controllers
@@ -13,43 +15,125 @@ namespace AspnetCoreMvcFull.Controllers
   {
     private readonly IBookingService _bookingService;
     private readonly IBookingApprovalService _approvalService;
+    private readonly IRoleService _roleService;
+    private readonly ICraneService _craneService;
+    private readonly IShiftDefinitionService _shiftService;
+    private readonly IHazardService _hazardService;
     private readonly ILogger<BookingActionController> _logger;
 
     public BookingActionController(
         IBookingService bookingService,
         IBookingApprovalService approvalService,
+        IRoleService roleService,
+        ICraneService craneService,
+        IShiftDefinitionService shiftService,
+        IHazardService hazardService,
         ILogger<BookingActionController> logger)
     {
       _bookingService = bookingService;
       _approvalService = approvalService;
+      _roleService = roleService;
+      _craneService = craneService;
+      _shiftService = shiftService;
+      _hazardService = hazardService;
       _logger = logger;
     }
 
-    // GET: /BookingAction/Edit/5
+    // GET: /BookingAction/Edit/{documentNumber}
     [HttpGet]
-    public async Task<IActionResult> Edit(int id)
+    public async Task<IActionResult> Edit(string documentNumber)
     {
       try
       {
-        var booking = await _bookingService.GetBookingByIdAsync(id);
+        var booking = await _bookingService.GetBookingByDocumentNumberAsync(documentNumber);
 
-        // Check if user is authorized to edit this booking
-        string currentUser = User.FindFirst("ldapuser")?.Value ?? "";
-        if (booking.Name != currentUser)
+        // Get current user info
+        string currentLdapUser = User.FindFirst("ldapuser")?.Value ?? "";
+        string currentUserName = User.FindFirst(ClaimTypes.Name)?.Value ?? "";
+
+        if (string.IsNullOrEmpty(currentLdapUser))
         {
-          return Forbid();
+          _logger.LogWarning("User LDAP username not found in claims");
+          return RedirectToAction("Login", "Auth", new { returnUrl = Url.Action("Edit", "BookingAction", new { documentNumber }) });
         }
 
-        // Check if booking is in a status that can be edited
-        if (booking.Status != BookingStatus.ManagerRejected && booking.Status != BookingStatus.PICRejected)
+        // Check user roles
+        bool isPic = await _roleService.UserHasRoleAsync(currentLdapUser, "pic");
+        bool isBookingCreator = booking.Name == currentUserName;
+
+        // Authorization check: Only booking creator or PIC can edit
+        if (!isBookingCreator && !isPic)
         {
-          TempData["ErrorMessage"] = "Booking tidak dapat diedit karena statusnya saat ini.";
-          return RedirectToAction("Details", "BookingHistory", new { id = id });
+          _logger.LogWarning("User {LdapUser} attempted to edit booking {DocumentNumber} without authorization", currentLdapUser, documentNumber);
+          TempData["ErrorMessage"] = "Anda tidak memiliki izin untuk mengedit booking ini.";
+          return RedirectToAction("Details", "Booking", new { documentNumber = documentNumber });
         }
 
-        // TODO: Create a view model for editing the booking
-        // For now, just pass the booking details to the view
-        return View(booking);
+        // Check edit conditions based on role
+        bool canEdit = false;
+        string reasonCannotEdit = "";
+
+        if (isBookingCreator && !isPic)
+        {
+          // Booking creator can only edit when rejected
+          canEdit = booking.Status == BookingStatus.ManagerRejected || booking.Status == BookingStatus.PICRejected;
+          if (!canEdit)
+          {
+            reasonCannotEdit = "Booking hanya dapat diedit ketika mendapat penolakan dari Manager atau PIC.";
+          }
+        }
+        else if (isPic)
+        {
+          // PIC can edit unless Cancelled or Done
+          canEdit = booking.Status != BookingStatus.Cancelled && booking.Status != BookingStatus.Done;
+          if (!canEdit)
+          {
+            reasonCannotEdit = "Booking tidak dapat diedit karena sudah dibatalkan atau selesai.";
+          }
+        }
+
+        if (!canEdit)
+        {
+          TempData["ErrorMessage"] = reasonCannotEdit;
+          return RedirectToAction("Details", "Booking", new { documentNumber = documentNumber });
+        }
+
+        // Convert to update view model
+        var viewModel = new BookingUpdateViewModel
+        {
+          Name = booking.Name,
+          Department = booking.Department,
+          CraneId = booking.CraneId,
+          StartDate = booking.StartDate,
+          EndDate = booking.EndDate,
+          Location = booking.Location,
+          ProjectSupervisor = booking.ProjectSupervisor,
+          CostCode = booking.CostCode,
+          PhoneNumber = booking.PhoneNumber,
+          Description = booking.Description,
+          CustomHazard = booking.CustomHazard,
+          ShiftSelections = ConvertShiftsToSelections(booking),
+          Items = booking.Items.Select(i => new BookingItemCreateViewModel
+          {
+            ItemName = i.ItemName,
+            Weight = i.Weight,
+            Height = i.Height,
+            Quantity = i.Quantity
+          }).ToList(),
+          HazardIds = booking.SelectedHazards.Select(h => h.Id).ToList()
+        };
+
+        // Pass data to view
+        ViewBag.Cranes = await _craneService.GetAllCranesAsync();
+        ViewBag.ShiftDefinitions = await _shiftService.GetAllShiftDefinitionsAsync();
+        ViewBag.Hazards = await _hazardService.GetAllHazardsAsync();
+        ViewBag.DocumentNumber = booking.DocumentNumber;
+        ViewBag.BookingId = booking.Id;
+        ViewBag.IsPicEdit = isPic;
+        ViewBag.IsCreatorEdit = isBookingCreator && !isPic;
+        ViewBag.CurrentStatus = booking.Status;
+
+        return View(viewModel);
       }
       catch (KeyNotFoundException)
       {
@@ -57,13 +141,97 @@ namespace AspnetCoreMvcFull.Controllers
       }
       catch (Exception ex)
       {
-        _logger.LogError(ex, "Error loading booking for edit with ID: {Id}", id);
+        _logger.LogError(ex, "Error loading booking for edit with document number: {DocumentNumber}", documentNumber);
         TempData["ErrorMessage"] = "Terjadi kesalahan saat mengambil data booking.";
-        return RedirectToAction("Index", "BookingHistory");
+        return RedirectToAction("Details", "Booking", new { documentNumber = documentNumber });
       }
     }
 
-    // POST: /BookingAction/SubmitRevision/5
+    // POST: /BookingAction/Edit
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Edit(string documentNumber, BookingUpdateViewModel viewModel)
+    {
+      try
+      {
+        if (!ModelState.IsValid)
+        {
+          // Reload form data if validation fails
+          ViewBag.Cranes = await _craneService.GetAllCranesAsync();
+          ViewBag.ShiftDefinitions = await _shiftService.GetAllShiftDefinitionsAsync();
+          ViewBag.Hazards = await _hazardService.GetAllHazardsAsync();
+          ViewBag.DocumentNumber = documentNumber;
+          return View(viewModel);
+        }
+
+        // Get current booking to check permissions again
+        var currentBooking = await _bookingService.GetBookingByDocumentNumberAsync(documentNumber);
+
+        // Get current user info
+        string currentLdapUser = User.FindFirst("ldapuser")?.Value ?? "";
+        string currentUserName = User.FindFirst(ClaimTypes.Name)?.Value ?? "";
+
+        // Check user roles
+        bool isPic = await _roleService.UserHasRoleAsync(currentLdapUser, "pic");
+        bool isBookingCreator = currentBooking.Name == currentUserName;
+
+        // Re-check authorization
+        if (!isBookingCreator && !isPic)
+        {
+          TempData["ErrorMessage"] = "Anda tidak memiliki izin untuk mengedit booking ini.";
+          return RedirectToAction("Details", "Booking", new { documentNumber = documentNumber });
+        }
+
+        // Update the booking with tracking info
+        var updatedBooking = await _bookingService.UpdateBookingAsync(currentBooking.Id, viewModel, currentUserName);
+
+        // Handle post-edit logic based on who edited
+        await HandlePostEditLogic(currentBooking.Id, isPic, isBookingCreator, currentUserName);
+
+        TempData["SuccessMessage"] = "Booking berhasil diperbarui.";
+        return RedirectToAction("Details", "Booking", new { documentNumber = updatedBooking.DocumentNumber });
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Error updating booking with document number: {DocumentNumber}", documentNumber);
+        ModelState.AddModelError("", "Error updating booking: " + ex.Message);
+
+        // Reload form data
+        ViewBag.Cranes = await _craneService.GetAllCranesAsync();
+        ViewBag.ShiftDefinitions = await _shiftService.GetAllShiftDefinitionsAsync();
+        ViewBag.Hazards = await _hazardService.GetAllHazardsAsync();
+        ViewBag.DocumentNumber = documentNumber;
+
+        return View(viewModel);
+      }
+    }
+
+    // Helper method to handle post-edit logic
+    private async Task HandlePostEditLogic(int bookingId, bool isPicEdit, bool isCreatorEdit, string editorName)
+    {
+      try
+      {
+        if (isCreatorEdit && !isPicEdit)
+        {
+          // If booking creator edited, submit revision (reset to PendingApproval)
+          await _approvalService.ReviseRejectedBookingAsync(bookingId, editorName);
+          _logger.LogInformation("Booking {BookingId} revised by creator {EditorName}", bookingId, editorName);
+        }
+        else if (isPicEdit)
+        {
+          // If PIC edited, just update tracking info (no status change needed)
+          // The UpdateBookingAsync already handles LastModifiedAt and LastModifiedBy
+          _logger.LogInformation("Booking {BookingId} edited by PIC {EditorName}", bookingId, editorName);
+        }
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Error in post-edit logic for booking {BookingId}", bookingId);
+        // Don't throw here, as the main edit was successful
+      }
+    }
+
+    // POST: /BookingAction/SubmitRevision/{id}
     [HttpPost]
     public async Task<IActionResult> SubmitRevision(int id)
     {
@@ -77,19 +245,32 @@ namespace AspnetCoreMvcFull.Controllers
         if (result)
         {
           TempData["SuccessMessage"] = "Revisi booking berhasil diajukan.";
-          return RedirectToAction("Details", "BookingHistory", new { id = id });
+
+          // Get booking to redirect to details page
+          var booking = await _bookingService.GetBookingByIdAsync(id);
+          return RedirectToAction("Details", "Booking", new { documentNumber = booking.DocumentNumber });
         }
         else
         {
           TempData["ErrorMessage"] = "Gagal mengajukan revisi booking.";
-          return RedirectToAction("Edit", new { id = id });
+          var booking = await _bookingService.GetBookingByIdAsync(id);
+          return RedirectToAction("Edit", new { documentNumber = booking.DocumentNumber });
         }
       }
       catch (Exception ex)
       {
         _logger.LogError(ex, "Error submitting booking revision with ID: {Id}", id);
         TempData["ErrorMessage"] = "Terjadi kesalahan saat mengajukan revisi booking.";
-        return RedirectToAction("Edit", new { id = id });
+
+        try
+        {
+          var booking = await _bookingService.GetBookingByIdAsync(id);
+          return RedirectToAction("Edit", new { documentNumber = booking.DocumentNumber });
+        }
+        catch
+        {
+          return RedirectToAction("Index", "Booking");
+        }
       }
     }
 
@@ -105,7 +286,7 @@ namespace AspnetCoreMvcFull.Controllers
         if (booking.Status == BookingStatus.Done || booking.Status == BookingStatus.Cancelled)
         {
           TempData["ErrorMessage"] = "Booking tidak dapat dibatalkan karena statusnya saat ini.";
-          return RedirectToAction("Details", "BookingHistory", new { documentNumber = documentNumber });
+          return RedirectToAction("Details", "Booking", new { documentNumber = documentNumber });
         }
 
         // Prepare cancellation view model
@@ -126,61 +307,9 @@ namespace AspnetCoreMvcFull.Controllers
       {
         _logger.LogError(ex, "Error loading cancellation page for booking with document number: {DocumentNumber}", documentNumber);
         TempData["ErrorMessage"] = "Terjadi kesalahan saat memuat halaman pembatalan.";
-        return RedirectToAction("Index", "BookingHistory");
+        return RedirectToAction("Details", "Booking", new { documentNumber = documentNumber });
       }
     }
-
-    // // POST: /BookingAction/ConfirmCancel
-    // [HttpPost]
-    // public async Task<IActionResult> ConfirmCancel(BookingCancellationViewModel model)
-    // {
-    //   if (!ModelState.IsValid)
-    //   {
-    //     return View("Cancel", model);
-    //   }
-
-    //   try
-    //   {
-    //     string currentUser = User.FindFirst("ldapuser")?.Value ?? "";
-    //     string userName = User.FindFirst(ClaimTypes.Name)?.Value ?? currentUser;
-
-    //     // Determine who's cancelling the booking
-    //     BookingCancelledBy cancelledBy;
-    //     if (User.IsInRole("pic"))
-    //     {
-    //       cancelledBy = BookingCancelledBy.PIC;
-    //     }
-    //     else
-    //     {
-    //       cancelledBy = BookingCancelledBy.User;
-    //     }
-
-    //     var result = await _approvalService.CancelBookingAsync(
-    //         model.BookingId,
-    //         cancelledBy,
-    //         userName,
-    //         model.CancelReason);
-
-    //     if (result)
-    //     {
-    //       TempData["SuccessMessage"] = "Booking berhasil dibatalkan.";
-    //       return RedirectToAction("Details", "Booking", new { id = model.BookingId });
-    //     }
-    //     else
-    //     {
-    //       TempData["ErrorMessage"] = "Gagal membatalkan booking.";
-    //       return View("Cancel", model);
-    //     }
-    //   }
-    //   catch (Exception ex)
-    //   {
-    //     _logger.LogError(ex, "Error cancelling booking ID: {Id}", model.BookingId);
-    //     TempData["ErrorMessage"] = "Terjadi kesalahan saat membatalkan booking.";
-    //     return View("Cancel", model);
-    //   }
-    // }
-
-    // Controllers/BookingActionController.cs - Fixed ConfirmCancel method
 
     // POST: /BookingAction/ConfirmCancel
     [HttpPost]
@@ -196,19 +325,14 @@ namespace AspnetCoreMvcFull.Controllers
         string currentUser = User.FindFirst("ldapuser")?.Value ?? "";
         string userName = User.FindFirst(ClaimTypes.Name)?.Value ?? currentUser;
 
-        // ✅ TAMBAH: Dapatkan booking untuk mendapatkan documentNumber
+        // Get booking for document number
         var booking = await _bookingService.GetBookingByIdAsync(model.BookingId);
 
+        // Check if user has PIC role
+        bool isPic = await _roleService.UserHasRoleAsync(currentUser, "pic");
+
         // Determine who's cancelling the booking
-        BookingCancelledBy cancelledBy;
-        if (User.IsInRole("pic"))
-        {
-          cancelledBy = BookingCancelledBy.PIC;
-        }
-        else
-        {
-          cancelledBy = BookingCancelledBy.User;
-        }
+        BookingCancelledBy cancelledBy = isPic ? BookingCancelledBy.PIC : BookingCancelledBy.User;
 
         var result = await _approvalService.CancelBookingAsync(
             model.BookingId,
@@ -219,7 +343,6 @@ namespace AspnetCoreMvcFull.Controllers
         if (result)
         {
           TempData["SuccessMessage"] = "Booking berhasil dibatalkan.";
-          // ✅ FIXED: Gunakan documentNumber bukan ID
           return RedirectToAction("Details", "Booking", new { documentNumber = booking.DocumentNumber });
         }
         else
@@ -238,6 +361,41 @@ namespace AspnetCoreMvcFull.Controllers
         _logger.LogError(ex, "Error cancelling booking ID: {Id}", model.BookingId);
         TempData["ErrorMessage"] = "Terjadi kesalahan saat membatalkan booking.";
         return View("Cancel", model);
+      }
+    }
+
+    // Helper method to convert shifts to selections
+    private List<DailyShiftSelectionViewModel> ConvertShiftsToSelections(BookingDetailViewModel booking)
+    {
+      try
+      {
+        if (booking?.Shifts == null || !booking.Shifts.Any())
+        {
+          return new List<DailyShiftSelectionViewModel>();
+        }
+
+        // Group shifts by date
+        var groupedShifts = booking.Shifts
+            .GroupBy(s => s.Date.Date)
+            .Select(g => new
+            {
+              Date = g.Key,
+              ShiftIds = g.Select(s => s.ShiftDefinitionId).ToList()
+            })
+            .OrderBy(g => g.Date)
+            .ToList();
+
+        // Convert to selection view models
+        return groupedShifts.Select(g => new DailyShiftSelectionViewModel
+        {
+          Date = g.Date,
+          SelectedShiftIds = g.ShiftIds
+        }).ToList();
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Error converting shifts to selections for booking {BookingId}", booking?.Id);
+        return new List<DailyShiftSelectionViewModel>();
       }
     }
   }

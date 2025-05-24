@@ -243,57 +243,57 @@ namespace AspnetCoreMvcFull.Controllers
       }
     }
 
-    // GET: /Booking/Edit/{documentNumber}
-    public async Task<IActionResult> Edit(string documentNumber)
-    {
-      try
-      {
-        var booking = await _bookingService.GetBookingByDocumentNumberAsync(documentNumber);
+    // // GET: /Booking/Edit/{documentNumber}
+    // public async Task<IActionResult> Edit(string documentNumber)
+    // {
+    //   try
+    //   {
+    //     var booking = await _bookingService.GetBookingByDocumentNumberAsync(documentNumber);
 
-        // Convert to update view model
-        var viewModel = new BookingUpdateViewModel
-        {
-          Name = booking.Name,
-          Department = booking.Department,
-          CraneId = booking.CraneId,
-          StartDate = booking.StartDate,
-          EndDate = booking.EndDate,
-          Location = booking.Location,
-          ProjectSupervisor = booking.ProjectSupervisor,
-          CostCode = booking.CostCode,
-          PhoneNumber = booking.PhoneNumber,
-          Description = booking.Description,
-          CustomHazard = booking.CustomHazard,
-          ShiftSelections = ConvertShiftsToSelections(booking),
-          Items = booking.Items.Select(i => new BookingItemCreateViewModel
-          {
-            ItemName = i.ItemName,
-            Weight = i.Weight,
-            Height = i.Height,
-            Quantity = i.Quantity
-          }).ToList(),
-          HazardIds = booking.SelectedHazards.Select(h => h.Id).ToList()
-        };
+    //     // Convert to update view model
+    //     var viewModel = new BookingUpdateViewModel
+    //     {
+    //       Name = booking.Name,
+    //       Department = booking.Department,
+    //       CraneId = booking.CraneId,
+    //       StartDate = booking.StartDate,
+    //       EndDate = booking.EndDate,
+    //       Location = booking.Location,
+    //       ProjectSupervisor = booking.ProjectSupervisor,
+    //       CostCode = booking.CostCode,
+    //       PhoneNumber = booking.PhoneNumber,
+    //       Description = booking.Description,
+    //       CustomHazard = booking.CustomHazard,
+    //       ShiftSelections = ConvertShiftsToSelections(booking),
+    //       Items = booking.Items.Select(i => new BookingItemCreateViewModel
+    //       {
+    //         ItemName = i.ItemName,
+    //         Weight = i.Weight,
+    //         Height = i.Height,
+    //         Quantity = i.Quantity
+    //       }).ToList(),
+    //       HazardIds = booking.SelectedHazards.Select(h => h.Id).ToList()
+    //     };
 
-        ViewBag.Cranes = await _craneService.GetAllCranesAsync();
-        ViewBag.ShiftDefinitions = await _shiftService.GetAllShiftDefinitionsAsync();
-        ViewBag.Hazards = await _hazardService.GetAllHazardsAsync();
-        ViewBag.DocumentNumber = booking.DocumentNumber;
-        ViewBag.BookingId = booking.Id;
+    //     ViewBag.Cranes = await _craneService.GetAllCranesAsync();
+    //     ViewBag.ShiftDefinitions = await _shiftService.GetAllShiftDefinitionsAsync();
+    //     ViewBag.Hazards = await _hazardService.GetAllHazardsAsync();
+    //     ViewBag.DocumentNumber = booking.DocumentNumber;
+    //     ViewBag.BookingId = booking.Id;
 
-        return View(viewModel);
-      }
-      catch (KeyNotFoundException)
-      {
-        return NotFound();
-      }
-      catch (Exception ex)
-      {
-        _logger.LogError(ex, "Error loading booking for edit with document number: {DocumentNumber}", documentNumber);
-        TempData["BookingErrorMessage"] = "Error loading booking: " + ex.Message;
-        return RedirectToAction(nameof(List));
-      }
-    }
+    //     return View(viewModel);
+    //   }
+    //   catch (KeyNotFoundException)
+    //   {
+    //     return NotFound();
+    //   }
+    //   catch (Exception ex)
+    //   {
+    //     _logger.LogError(ex, "Error loading booking for edit with document number: {DocumentNumber}", documentNumber);
+    //     TempData["BookingErrorMessage"] = "Error loading booking: " + ex.Message;
+    //     return RedirectToAction(nameof(List));
+    //   }
+    // }
 
     // POST: /Booking/Edit/{id}
     [HttpPost]

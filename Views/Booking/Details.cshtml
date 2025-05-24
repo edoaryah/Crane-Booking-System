@@ -12,6 +12,22 @@
 
   // Token anti-pemalsuan untuk form POST
   string? antiForgeryToken = Html.AntiForgeryToken()?.ToString();
+
+  // ✅ TAMBAHKAN DI SINI - Enhanced Edit Logic
+  bool canEditAsCreator = isBookingCreator && !isPic &&
+  (Model.Status == AspnetCoreMvcFull.Models.BookingStatus.ManagerRejected ||
+  Model.Status == AspnetCoreMvcFull.Models.BookingStatus.PICRejected);
+
+  bool canEditAsPic = isPic &&
+  (Model.Status != AspnetCoreMvcFull.Models.BookingStatus.Cancelled &&
+  Model.Status != AspnetCoreMvcFull.Models.BookingStatus.Done);
+
+  bool showEditButton = canEditAsCreator || canEditAsPic;
+
+  // Determine edit button text and style
+  string editButtonText = canEditAsPic ? "Edit Booking" : "Revise Booking";
+  string editButtonClass = canEditAsPic ? "btn-warning" : "btn-primary";
+  string editButtonIcon = canEditAsPic ? "bx-wrench" : "bx-edit-alt";
 }
 
 @section PageStyles
@@ -275,7 +291,7 @@
                 </div>
               </div>
 
-              <!-- Action Buttons Section -->
+              @* <!-- Action Buttons Section -->
               <div class="row mb-4">
                 <div class="col-12">
                   <!-- Buttons for users who created the booking -->
@@ -344,6 +360,149 @@
                   <a href="@Url.Action("Index", "BookingList")" class="btn btn-outline-secondary">
                     <i class="bx bx-arrow-back me-1"></i> Kembali
                   </a>
+                </div>
+              </div> *@
+              <!-- ✅ ENHANCED ACTION BUTTONS SECTION -->
+              <div class="row mb-4">
+                <div class="col-12">
+                  <div class="d-flex flex-wrap gap-2 justify-content-start">
+
+                    @* ✅ ENHANCED EDIT BUTTON - Show based on role and status *@
+                    @if (showEditButton)
+                    {
+                      <a href="@Url.Action("Edit", "BookingAction", new { documentNumber = Model.DocumentNumber })"
+                        class="btn @editButtonClass">
+                        <i class="bx @editButtonIcon me-1"></i>
+                        @editButtonText
+                      </a>
+                    }
+
+                    @* ✅ CANCEL BUTTON - Show for booking creator and PIC (if not already cancelled/done) *@
+                    @if ((isBookingCreator || isPic) &&
+                                      Model.Status != AspnetCoreMvcFull.Models.BookingStatus.Cancelled &&
+                                      Model.Status != AspnetCoreMvcFull.Models.BookingStatus.Done)
+                    {
+                      <a href="@Url.Action("Cancel", "BookingAction", new { documentNumber = Model.DocumentNumber })"
+                        class="btn btn-outline-danger">
+                        <i class="bx bx-x me-1"></i>
+                        Cancel Booking
+                      </a>
+                    }
+
+                    @* ✅ PIC APPROVAL BUTTONS *@
+                    @if (isPic || isAdmin)
+                    {
+                      @if (Model.Status == BookingStatus.ManagerApproved)
+                      {
+                        <button type="button" class="btn btn-success me-2" data-bs-toggle="modal"
+                          data-bs-target="#approveModal">
+                          <i class="bx bx-check me-1"></i> Setujui
+                        </button>
+
+                        <button type="button" class="btn btn-danger me-2" data-bs-toggle="modal"
+                          data-bs-target="#rejectModal">
+                          <i class="bx bx-x me-1"></i> Tolak
+                        </button>
+                      }
+
+                      @if (Model.Status == BookingStatus.PICApproved)
+                      {
+                        <button type="button" class="btn btn-success me-2" data-bs-toggle="modal"
+                          data-bs-target="#markDoneModal">
+                          <i class="bx bx-check-double me-1"></i> Tandai Selesai
+                        </button>
+                      }
+                    }
+
+                    @* ✅ PRINT/EXPORT BUTTON - Available for all viewers *@
+                    <button type="button" class="btn btn-outline-secondary" onclick="window.print()">
+                      <i class="bx bx-printer me-1"></i>
+                      Print
+                    </button>
+
+                    @* ✅ BACK BUTTON *@
+                    <a href="@Url.Action("Calendar", "Booking")" class="btn btn-outline-secondary">
+                      <i class="bx bx-arrow-back me-1"></i>
+                      Back
+                    </a>
+                  </div>
+
+                  @* ✅ EDIT PERMISSION INFORMATION *@
+                  @if (!showEditButton && (isBookingCreator || isPic))
+                  {
+                    <div class="mt-3">
+                      @if (isBookingCreator && !isPic)
+                      {
+                        @if (Model.Status == AspnetCoreMvcFull.Models.BookingStatus.PendingApproval)
+                        {
+                          <div class="alert alert-info mb-0">
+                            <i class="bx bx-info-circle me-1"></i>
+                            <strong>Booking sedang menunggu approval.</strong> Edit akan tersedia jika mendapat penolakan.
+                          </div>
+                        }
+                        else if (Model.Status == AspnetCoreMvcFull.Models.BookingStatus.ManagerApproved)
+                        {
+                          <div class="alert alert-info mb-0">
+                            <i class="bx bx-info-circle me-1"></i>
+                            <strong>Booking telah disetujui Manager.</strong> Edit akan tersedia jika PIC menolak.
+                          </div>
+                        }
+                        else if (Model.Status == AspnetCoreMvcFull.Models.BookingStatus.PICApproved)
+                        {
+                          <div class="alert alert-success mb-0">
+                            <i class="bx bx-check-circle me-1"></i>
+                            <strong>Booking telah disetujui sepenuhnya.</strong> Tidak dapat diubah lagi.
+                          </div>
+                        }
+                        else if (Model.Status == AspnetCoreMvcFull.Models.BookingStatus.Done)
+                        {
+                          <div class="alert alert-secondary mb-0">
+                            <i class="bx bx-check-circle me-1"></i>
+                            <strong>Booking telah selesai.</strong> Tidak dapat diubah lagi.
+                          </div>
+                        }
+                        else if (Model.Status == AspnetCoreMvcFull.Models.BookingStatus.Cancelled)
+                        {
+                          <div class="alert alert-secondary mb-0">
+                            <i class="bx bx-x-circle me-1"></i>
+                            <strong>Booking telah dibatalkan.</strong> Tidak dapat diubah lagi.
+                          </div>
+                        }
+                      }
+                      else if (isPic)
+                      {
+                        @if (Model.Status == AspnetCoreMvcFull.Models.BookingStatus.Cancelled)
+                        {
+                          <div class="alert alert-secondary mb-0">
+                            <i class="bx bx-x-circle me-1"></i>
+                            <strong>Booking telah dibatalkan.</strong> Tidak dapat diubah lagi.
+                          </div>
+                        }
+                        else if (Model.Status == AspnetCoreMvcFull.Models.BookingStatus.Done)
+                        {
+                          <div class="alert alert-secondary mb-0">
+                            <i class="bx bx-check-circle me-1"></i>
+                            <strong>Booking telah selesai.</strong> Tidak dapat diubah lagi.
+                          </div>
+                        }
+                      }
+                    </div>
+                  }
+
+                  @* ✅ EDIT CAPABILITY SUMMARY FOR ADMIN/DEBUG *@
+                  @if (isAdmin)
+                  {
+                    <div class="mt-3">
+                      <div class="alert alert-light border">
+                        <small class="text-muted">
+                          <strong>Admin Info:</strong>
+                          Creator can edit: @(canEditAsCreator ? "Yes" : "No") |
+                          PIC can edit: @(canEditAsPic ? "Yes" : "No") |
+                          Current user is: @(isPic ? "PIC" : isBookingCreator ? "Creator" : "Other")
+                        </small>
+                      </div>
+                    </div>
+                  }
                 </div>
               </div>
 

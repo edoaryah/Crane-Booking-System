@@ -50,6 +50,12 @@ namespace AspnetCoreMvcFull.Services
 
     // Add to existing interface
     Task<PagedResult<BookingViewModel>> GetPagedBookingsAsync(BookingListFilterRequest request);
+
     Task<IEnumerable<string>> GetDistinctDepartmentsAsync();
+
+    // ✅ Updated method signatures for tracking support
+    // Task<BookingDetailViewModel> UpdateBookingAsync(int id, BookingUpdateViewModel bookingViewModel);
+
+    Task<BookingDetailViewModel> UpdateBookingAsync(int id, BookingUpdateViewModel bookingViewModel, string modifiedBy);
   }
 }
