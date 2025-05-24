@@ -407,7 +407,7 @@
     const editBookingForm = document.getElementById('editBookingForm');
     const shiftLabel = document.getElementById('shiftLabel');
 
-    // ✅ TAMBAHAN: Ambil booking ID yang sedang diedit
+    // Ambil booking ID yang sedang diedit
     const currentBookingId = @(ViewBag.BookingId ?? 0);
 
     function loadShiftDefinitions() {
@@ -439,7 +439,7 @@
       }
     }
 
-    // ✅ FUNGSI SAMA SEPERTI DI INDEX - Cek apakah shift sudah dibooking
+    // Cek apakah shift sudah dibooking
     function isShiftBooked(craneId, date, shiftId) {
       if (!bookedShifts || !bookedShifts.length || !craneId) return false;
 
@@ -452,7 +452,7 @@
       );
     }
 
-    // ✅ FUNGSI SAMA SEPERTI DI INDEX - Cek apakah shift sedang maintenance
+    // Cek apakah shift sedang maintenance
     function isShiftMaintenance(craneId, date, shiftId) {
       if (!maintenanceShifts || !maintenanceShifts.length || !craneId) return false;
 
@@ -477,110 +477,7 @@
       return true;
     }
 
-    @* async function generateShiftTable() {
-      if (!shiftTableContainer || !shiftLabel || !startDateInput || !endDateInput || !craneIdSelect) {
-        return;
-      }
-
-      const startDate = startDateInput.value;
-      const endDate = endDateInput.value;
-      const craneId = craneIdSelect.value;
-
-      if (!startDate || !endDate || !craneId) {
-        shiftTableContainer.style.display = 'none';
-        shiftLabel.style.display = 'none';
-        return;
-      }
-
-      if (!validateDates()) {
-        shiftTableContainer.style.display = 'none';
-        shiftLabel.style.display = 'none';
-        return;
-      }
-
-      if (!shiftDefinitions || shiftDefinitions.length === 0) {
-        if (!loadShiftDefinitions()) {
-          return;
-        }
-      }
-
-      // ✅ DEBUG: Log existing shift selections
-      console.log('existingShiftSelections:', existingShiftSelections);
-
-      try {
-        const response = await fetch(`/Booking/GetBookedShifts?craneId=${craneId}&startDate=${startDate}&endDate=${endDate}&excludeBookingId=${currentBookingId}`);
-        if (response.ok) {
-          bookedShifts = await response.json();
-        } else {
-          bookedShifts = [];
-        }
-
-        const maintenanceResponse = await fetch(`/Booking/GetMaintenanceShifts?craneId=${craneId}&startDate=${startDate}&endDate=${endDate}`);
-        if (maintenanceResponse.ok) {
-          maintenanceShifts = await maintenanceResponse.json();
-        } else {
-          maintenanceShifts = [];
-        }
-      } catch (error) {
-        console.error('Error fetching shift data:', error);
-        bookedShifts = [];
-        maintenanceShifts = [];
-      }
-
-      const activeShifts = shiftDefinitions.filter(s =>
-        s.IsActive === true || s.isActive === true
-      );
-
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-      const dateArray = [];
-
-      let currentDate = new Date(start);
-      while (currentDate <= end) {
-        const dateStr = new Date(currentDate).toISOString().split('T')[0];
-
-        // ✅ PERBAIKAN: Tambahkan null checking dan fallback
-        let existingSelection = null;
-
-        if (existingShiftSelections && Array.isArray(existingShiftSelections)) {
-          existingSelection = existingShiftSelections.find(s => {
-            // ✅ Check if s and s.date exist before calling split
-            if (!s || !s.date) {
-              console.warn('Invalid shift selection found:', s);
-              return false;
-            }
-
-            // ✅ Handle both Date object and string formats
-            let selectionDateStr = '';
-            if (typeof s.date === 'string') {
-              selectionDateStr = s.date.split('T')[0];
-            } else if (s.date instanceof Date) {
-              selectionDateStr = s.date.toISOString().split('T')[0];
-            } else {
-              console.warn('Unexpected date format in shift selection:', s.date);
-              return false;
-            }
-
-            return selectionDateStr === dateStr;
-          });
-        }
-
-        // ✅ DEBUG: Log matching process
-        console.log(`Date: ${dateStr}, Found existing selection:`, existingSelection);
-
-        dateArray.push({
-          date: dateStr,
-          selectedShiftIds: existingSelection ? (existingSelection.selectedShiftIds || []) : []
-        });
-        currentDate.setDate(currentDate.getDate() + 1);
-      }
-
-      shiftTableContainer.style.display = 'block';
-      shiftLabel.style.display = 'block';
-
-      renderShiftTableBody(dateArray, craneId);
-    } *@
-
+    // Generate shift table dengan status checking
     async function generateShiftTable() {
       if (!shiftTableContainer || !shiftLabel || !startDateInput || !endDateInput || !craneIdSelect) {
         return;
@@ -608,10 +505,8 @@
         }
       }
 
-      // ✅ DEBUG: Log existing shift selections
-      console.log('existingShiftSelections:', existingShiftSelections);
-
       try {
+        // Kirim excludeBookingId untuk mengecualikan booking yang sedang diedit
         const response = await fetch(`/Booking/GetBookedShifts?craneId=${craneId}&startDate=${startDate}&endDate=${endDate}&excludeBookingId=${currentBookingId}`);
         if (response.ok) {
           bookedShifts = await response.json();
@@ -643,33 +538,25 @@
       while (currentDate <= end) {
         const dateStr = new Date(currentDate).toISOString().split('T')[0];
 
-        // ✅ PERBAIKAN: Handle both lowercase and uppercase property names
+        // Handle both lowercase and uppercase property names
         let existingSelection = null;
 
         if (existingShiftSelections && Array.isArray(existingShiftSelections)) {
           existingSelection = existingShiftSelections.find(s => {
-            // ✅ Check if s exists
-            if (!s) {
-              console.warn('Invalid shift selection found: null or undefined');
-              return false;
-            }
+            if (!s) return false;
 
-            // ✅ Try both lowercase and uppercase property names
+            // Try both lowercase and uppercase property names
             const dateProperty = s.date || s.Date;
 
-            if (!dateProperty) {
-              console.warn('Invalid shift selection found - no date property:', s);
-              return false;
-            }
+            if (!dateProperty) return false;
 
-            // ✅ Handle both Date object and string formats
+            // Handle both Date object and string formats
             let selectionDateStr = '';
             if (typeof dateProperty === 'string') {
               selectionDateStr = dateProperty.split('T')[0];
             } else if (dateProperty instanceof Date) {
               selectionDateStr = dateProperty.toISOString().split('T')[0];
             } else {
-              console.warn('Unexpected date format in shift selection:', dateProperty);
               return false;
             }
 
@@ -677,10 +564,7 @@
           });
         }
 
-        // ✅ DEBUG: Log matching process
-        console.log(`Date: ${dateStr}, Found existing selection:`, existingSelection);
-
-        // ✅ Handle both property name formats for selectedShiftIds
+        // Handle both property name formats for selectedShiftIds
         let selectedShiftIds = [];
         if (existingSelection) {
           selectedShiftIds = existingSelection.selectedShiftIds ||
@@ -701,7 +585,7 @@
       renderShiftTableBody(dateArray, craneId);
     }
 
-    // ✅ FUNGSI SAMA SEPERTI DI INDEX - Render shift table dengan status
+    // Render shift table dengan status
     function renderShiftTableBody(shiftTable, craneId) {
       if (!shiftTableBody) {
         return;
@@ -733,7 +617,7 @@
           const shiftId = shift.Id || shift.id;
           const isSelected = dayShift.selectedShiftIds.includes(shiftId);
 
-          // ✅ SAMA SEPERTI DI INDEX - Cek status availability
+          // Cek status availability
           const isBooked = isShiftBooked(craneId, dayShift.date, shiftId);
           const isMaintenance = isShiftMaintenance(craneId, dayShift.date, shiftId);
 
@@ -776,93 +660,20 @@
       });
     }
 
-    @* function initLiftedItemsTable() {
-      const tbody = document.getElementById('liftedItemsBody');
-      if (!tbody) return;
-
-      tbody.innerHTML = '';
-
-      if (existingItems && existingItems.length > 0) {
-        existingItems.forEach((item, index) => {
-          addLiftedItemRow(item, index);
-        });
-      } else {
-        addLiftedItemRow();
-      }
-    } *@
     function initLiftedItemsTable() {
       const tbody = document.getElementById('liftedItemsBody');
       if (!tbody) return;
 
       tbody.innerHTML = '';
 
-      // ✅ DEBUG: Log existing items data
-      console.log('existingItems:', existingItems);
-      console.log('existingItems type:', typeof existingItems);
-      console.log('existingItems is array:', Array.isArray(existingItems));
-
       if (existingItems && Array.isArray(existingItems) && existingItems.length > 0) {
-        console.log('Processing', existingItems.length, 'existing items');
         existingItems.forEach((item, index) => {
-          console.log(`Item ${index}:`, item);
           addLiftedItemRow(item, index);
         });
       } else {
-        console.log('No existing items found, adding empty row');
         addLiftedItemRow();
       }
     }
-
-    @* function addLiftedItemRow(itemData = null, index = null) {
-      const tbody = document.getElementById('liftedItemsBody');
-      if (!tbody) return;
-
-      const rowIndex = index !== null ? index : tbody.rows.length;
-      const row = document.createElement('tr');
-
-      row.innerHTML = `
-        <td style="min-width: 220px; padding-right: 5px;">
-          <input type="text" class="form-control item-name"
-                name="items[${rowIndex}].itemName"
-                value="${itemData ? itemData.itemName || '' : ''}" required />
-        </td>
-        <td style="min-width: 140px; padding-right: 5px;">
-          <input type="number" class="form-control item-height"
-                name="items[${rowIndex}].height"
-                value="${itemData ? itemData.height || '' : ''}"
-                min="0.01" step="0.01" required />
-        </td>
-        <td style="min-width: 140px; padding-right: 5px;">
-          <input type="number" class="form-control item-weight"
-                name="items[${rowIndex}].weight"
-                value="${itemData ? itemData.weight || '' : ''}"
-                min="0.01" step="0.01" required />
-        </td>
-        <td style="min-width: 140px; padding-right: 5px;">
-          <input type="number" class="form-control item-quantity"
-                name="items[${rowIndex}].quantity"
-                value="${itemData ? itemData.quantity || 1 : 1}"
-                min="1" step="1" required />
-        </td>
-        <td style="width: 1%; white-space: nowrap;">
-          <button type="button" class="btn btn-outline-danger btn-sm remove-item-btn">
-            <i class="bx bx-trash"></i>
-          </button>
-        </td>
-      `;
-
-      const removeBtn = row.querySelector('.remove-item-btn');
-      removeBtn.addEventListener('click', function () {
-        if (tbody.rows.length > 1) {
-          row.remove();
-          updateItemsIndexes();
-        } else {
-          alert('At least one item is required.');
-        }
-      });
-
-      tbody.appendChild(row);
-    } *@
 
     function addLiftedItemRow(itemData = null, index = null) {
       const tbody = document.getElementById('liftedItemsBody');
@@ -871,12 +682,7 @@
       const rowIndex = index !== null ? index : tbody.rows.length;
       const row = document.createElement('tr');
 
-      // ✅ DEBUG: Log item data being processed
-      if (itemData) {
-        console.log(`Adding row ${rowIndex} with data:`, itemData);
-      }
-
-      // ✅ Handle both lowercase and uppercase property names
+      // Handle both lowercase and uppercase property names
       const itemName = itemData ? (itemData.itemName || itemData.ItemName || '') : '';
       const height = itemData ? (itemData.height || itemData.Height || '') : '';
       const weight = itemData ? (itemData.weight || itemData.Weight || '') : '';
@@ -991,10 +797,10 @@
       loadShiftDefinitions();
       initLiftedItemsTable();
 
-      // ✅ LANGSUNG GENERATE SHIFT TABLE SAAT HALAMAN DIMUAT
+      // Langsung generate shift table saat halaman dimuat
       generateShiftTable();
 
-      // ✅ EVENT LISTENERS UNTUK REAL-TIME UPDATE
+      // Event listeners untuk real-time update
       if (startDateInput) {
         startDateInput.addEventListener('change', generateShiftTable);
       }
