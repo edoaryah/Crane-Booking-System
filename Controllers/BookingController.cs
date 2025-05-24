@@ -487,13 +487,30 @@ namespace AspnetCoreMvcFull.Controllers
     }
 
     // GET: /Booking/GetBookedShifts
+    // [HttpGet]
+    // public async Task<IActionResult> GetBookedShifts(int craneId, DateTime startDate, DateTime endDate)
+    // {
+    //   try
+    //   {
+    //     var bookedShifts = await _bookingService.GetBookedShiftsByCraneAndDateRangeAsync(
+    //         craneId, startDate, endDate);
+    //     return Json(bookedShifts);
+    //   }
+    //   catch (Exception ex)
+    //   {
+    //     _logger.LogError(ex, "Error getting booked shifts");
+    //     return StatusCode(500, new { error = ex.Message });
+    //   }
+    // }
+
+    // GET: /Booking/GetBookedShifts
     [HttpGet]
-    public async Task<IActionResult> GetBookedShifts(int craneId, DateTime startDate, DateTime endDate)
+    public async Task<IActionResult> GetBookedShifts(int craneId, DateTime startDate, DateTime endDate, int? excludeBookingId = null)
     {
       try
       {
         var bookedShifts = await _bookingService.GetBookedShiftsByCraneAndDateRangeAsync(
-            craneId, startDate, endDate);
+            craneId, startDate, endDate, excludeBookingId); // Tambahkan parameter excludeBookingId
         return Json(bookedShifts);
       }
       catch (Exception ex)

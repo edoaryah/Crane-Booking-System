@@ -43,7 +43,7 @@ namespace AspnetCoreMvcFull.Services
     Task<IEnumerable<BookingDetailViewModel>> GetBookingsByStatusAsync(BookingStatus status);
 
     // Method baru untuk mendapatkan shift yang sudah dibooking berdasarkan crane dan rentang tanggal
-    Task<IEnumerable<BookedShiftViewModel>> GetBookedShiftsByCraneAndDateRangeAsync(int craneId, DateTime startDate, DateTime endDate);
+    Task<IEnumerable<BookedShiftViewModel>> GetBookedShiftsByCraneAndDateRangeAsync(int craneId, DateTime startDate, DateTime endDate, int? excludeBookingId = null);
 
     // Add this to the IBookingService interface (Services/Booking/IBookingService.cs)
     Task<IEnumerable<BookingViewModel>> SearchBookingsAsync(string searchTerm, string currentUser, bool isPic, bool isAdmin);
