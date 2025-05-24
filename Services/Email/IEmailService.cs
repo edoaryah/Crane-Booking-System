@@ -14,5 +14,8 @@ namespace AspnetCoreMvcFull.Services
     Task SendBookingRejectedEmailAsync(Booking booking, string userEmail, string rejectorName, string rejectReason);
     Task SendBookingCancelledEmailAsync(Booking booking, string userEmail, string cancelledBy, string cancelReason);
     Task SendBookingRevisedEmailAsync(Booking booking, string receiverEmail);
+
+    // Services/Email/IEmailService.cs - Add this method
+    Task SendBookingAffectedByBreakdownEmailAsync(Booking booking, string userEmail, Breakdown breakdown);
   }
 }

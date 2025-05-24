@@ -134,5 +134,13 @@ namespace AspnetCoreMvcFull.Services
       var body = _emailTemplate.BookingRevisedTemplate(booking.Name, booking);
       await SendEmailAsync(receiverEmail, subject, body);
     }
+
+    // Services/Email/EmailService.cs - Add this method
+    public async Task SendBookingAffectedByBreakdownEmailAsync(Booking booking, string userEmail, Breakdown breakdown)
+    {
+      var subject = $"⚠️ Booking #{booking.BookingNumber} Terdampak Breakdown Crane";
+      var body = _emailTemplate.BookingAffectedByBreakdownTemplate(booking.Name, booking, breakdown);
+      await SendEmailAsync(userEmail, subject, body);
+    }
   }
 }

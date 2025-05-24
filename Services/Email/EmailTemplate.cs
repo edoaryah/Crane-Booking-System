@@ -488,5 +488,91 @@ namespace AspnetCoreMvcFull.Services
           </body>
         </html>";
     }
+
+    // Services/Email/EmailTemplate.cs - Add this method
+    public string BookingAffectedByBreakdownTemplate(string userName, Booking booking, Breakdown breakdown)
+    {
+      string detailUrl = $"{_baseUrl}/Booking/Details?documentNumber={booking.DocumentNumber}";
+
+      return $@"<!doctype html>
+    <html lang=""en"">
+      <head>
+        <meta charset=""UTF-8"">
+        <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
+      </head>
+      <body style=""font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f8f9fa;"">
+        <table role=""presentation"" style=""width: 100%; background-color: #f8f9fa;"" cellpadding=""0"" cellspacing=""0"">
+          <tr>
+            <td align=""center"">
+              <table role=""presentation"" class=""card"" style=""border: 1px solid #e0e0e0; border-radius: 4px; max-width: 600px; margin: 20px auto; background-color: white; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);"" cellpadding=""0"" cellspacing=""0"">
+                <tr>
+                  <td style=""background-color: #ff6b6b; color: white; padding: 15px; font-size: 20px; text-align: center; border-radius: 4px 4px 0 0;"">
+                    <strong>⚠️ Booking Terdampak Breakdown Crane</strong>
+                  </td>
+                </tr>
+                <tr>
+                  <td style=""padding: 20px; color: #212529; font-size: 16px;"">
+                    <p>Yth, Bapak/Ibu <strong>{userName}</strong>,</p>
+
+                    <p>Kami informasikan bahwa crane yang Anda booking mengalami breakdown/maintenance dan dapat mempengaruhi jadwal booking Anda.</p>
+
+                    <div style=""background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 4px; margin: 15px 0;"">
+                      <h4 style=""color: #856404; margin-top: 0;"">📋 Detail Booking Anda:</h4>
+                      <ul style=""color: #856404; margin-bottom: 0;"">
+                        <li><strong>Nomor Booking:</strong> {booking.BookingNumber}</li>
+                        <li><strong>Crane:</strong> {booking.CraneCode ?? "Unknown"}</li>
+                        <li><strong>Lokasi:</strong> {booking.Location}</li>
+                        <li><strong>Periode Booking:</strong> {booking.StartDate:dd/MM/yyyy} - {booking.EndDate:dd/MM/yyyy}</li>
+                      </ul>
+                    </div>
+
+                    <div style=""background-color: #f8d7da; border: 1px solid #f5c6cb; padding: 15px; border-radius: 4px; margin: 15px 0;"">
+                      <h4 style=""color: #721c24; margin-top: 0;"">🔧 Detail Breakdown:</h4>
+                      <ul style=""color: #721c24; margin-bottom: 0;"">
+                        <li><strong>Waktu Mulai:</strong> {breakdown.UrgentStartTime:dd/MM/yyyy HH:mm}</li>
+                        <li><strong>Estimasi Selesai:</strong> {breakdown.UrgentEndTime:dd/MM/yyyy HH:mm}</li>
+                        <li><strong>Alasan:</strong> {breakdown.Reasons}</li>
+                      </ul>
+                    </div>
+
+                    <p><strong>Tindakan yang perlu Anda lakukan:</strong></p>
+                    <ol>
+                      <li>Hubungi PIC Crane untuk koordinasi lebih lanjut</li>
+                      <li>Pertimbangkan untuk mengajukan perubahan jadwal jika diperlukan</li>
+                      <li>Monitor status crane melalui sistem</li>
+                    </ol>
+
+                    <p>Silakan klik tombol di bawah untuk melihat detail booking Anda:</p>
+
+                    <table role=""presentation"" border=""0"" cellpadding=""0"" cellspacing=""0"" style=""margin: 20px auto;"">
+                      <tr>
+                        <td align=""center"" style=""border-radius: 4px;"" bgcolor=""#ff6b6b"">
+                          <a href=""{detailUrl}"" target=""_blank"" style=""font-size: 16px; font-family: Arial, sans-serif; color: #ffffff; text-decoration: none; padding: 12px 25px; border-radius: 4px; background-color: #ff6b6b; border: 1px solid #ff6b6b; display: inline-block;"">
+                            📋 Lihat Detail Booking
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <div style=""background-color: #e2e3e5; padding: 15px; border-radius: 4px; margin-top: 20px;"">
+                      <p style=""margin: 0; font-size: 14px; color: #6c757d;"">
+                        <strong>💡 Tips:</strong> Booking Anda tetap aktif. Jika breakdown selesai lebih cepat dari estimasi, crane akan otomatis tersedia kembali.
+                      </p>
+                    </div>
+
+                    <div style=""color: #6c757d; font-size: 14px; margin-top: 25px; border-top: 1px solid #dee2e6; padding-top: 15px;"">
+                      <p>Mohon maaf atas ketidaknyamanan ini.<br>
+                      <strong>Tim Crane Booking System</strong><br>
+                      <em>Terkirim otomatis oleh sistem pada {DateTime.Now:dd/MM/yyyy HH:mm}</em></p>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+    </html>";
+    }
   }
 }

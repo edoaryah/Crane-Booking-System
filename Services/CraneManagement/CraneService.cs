@@ -12,18 +12,19 @@ namespace AspnetCoreMvcFull.Services
   {
     private readonly AppDbContext _context;
     private readonly ILogger<CraneService> _logger;
-    // private readonly IEventPublisher _eventPublisher;
     private readonly IFileStorageService _fileStorage;
+    private readonly IEmailService _emailService;
+    private readonly IEmployeeService _employeeService;
     private const string ContainerName = "cranes";
 
-    // public CraneService(AppDbContext context, ILogger<CraneService> logger, IEventPublisher eventPublisher, IFileStorageService fileStorage)
-    public CraneService(AppDbContext context, ILogger<CraneService> logger, IFileStorageService fileStorage)
+    public CraneService(AppDbContext context, ILogger<CraneService> logger, IFileStorageService fileStorage, IEmailService emailService, IEmployeeService employeeService)
 
     {
       _context = context;
       _logger = logger;
-      // _eventPublisher = eventPublisher;
       _fileStorage = fileStorage;
+      _emailService = emailService;
+      _employeeService = employeeService;
     }
 
     public async Task<IEnumerable<CraneViewModel>> GetAllCranesAsync()
@@ -193,6 +194,9 @@ namespace AspnetCoreMvcFull.Services
           // Save changes to get Breakdown ID
           await _context.SaveChangesAsync();
 
+          // ✅ NEW: Send notifications to affected bookings
+          await SendBreakdownNotificationsAsync(existingCrane.Id, breakdown);
+
           // Calculate the delay time
           TimeSpan delayTime = breakdown.UrgentEndTime - DateTime.Now;
 
@@ -202,15 +206,6 @@ namespace AspnetCoreMvcFull.Services
           // Save JobId to Breakdown
           breakdown.HangfireJobId = jobId;
           await _context.SaveChangesAsync();
-
-          // // Publish event for relocation
-          // await _eventPublisher.PublishAsync(new CraneMaintenanceEvent
-          // {
-          //   CraneId = existingCrane.Id,
-          //   MaintenanceStartTime = breakdown.UrgentStartTime,
-          //   MaintenanceEndTime = breakdown.UrgentEndTime,
-          //   Reason = breakdown.Reasons
-          // });
         }
         else
         {
@@ -261,6 +256,80 @@ namespace AspnetCoreMvcFull.Services
 
       _context.Entry(existingCrane).State = EntityState.Modified;
       await _context.SaveChangesAsync();
+    }
+
+    // CraneService.cs - Add this new method
+    private async Task SendBreakdownNotificationsAsync(int craneId, Breakdown breakdown)
+    {
+      try
+      {
+        _logger.LogInformation("Sending breakdown notifications for crane {CraneId}", craneId);
+
+        // Get crane info for historical data check
+        var crane = await _context.Cranes.FindAsync(craneId);
+        string craneCode = crane?.Code ?? "";
+
+        // Find all active bookings that might be affected by this breakdown
+        var affectedBookings = await _context.Bookings
+            .Include(b => b.BookingShifts)
+            .Where(b =>
+                // Booking untuk crane yang sama (by ID atau Code)
+                (b.CraneId == craneId || b.CraneCode == craneCode) &&
+
+                // Booking yang masih aktif (belum selesai/dibatalkan)
+                b.Status == BookingStatus.PICApproved &&
+
+                // Booking yang overlap dengan periode breakdown
+                b.StartDate <= breakdown.UrgentEndTime.Date &&
+                b.EndDate >= breakdown.UrgentStartTime.Date)
+            .ToListAsync();
+
+        _logger.LogInformation("Found {Count} potentially affected bookings", affectedBookings.Count);
+
+        // Send email to each affected booking owner
+        foreach (var booking in affectedBookings)
+        {
+          try
+          {
+            if (!string.IsNullOrEmpty(booking.LdapUser))
+            {
+              var user = await _employeeService.GetEmployeeByLdapUserAsync(booking.LdapUser);
+              if (user != null && !string.IsNullOrEmpty(user.Email))
+              {
+                await _emailService.SendBookingAffectedByBreakdownEmailAsync(booking, user.Email, breakdown);
+
+                _logger.LogInformation(
+                    "Breakdown notification sent to {UserEmail} for booking {BookingNumber}",
+                    user.Email, booking.BookingNumber);
+              }
+              else
+              {
+                _logger.LogWarning(
+                    "User email not found for LDAP {LdapUser} in booking {BookingNumber}",
+                    booking.LdapUser, booking.BookingNumber);
+              }
+            }
+            else
+            {
+              _logger.LogWarning("LDAP user not available for booking {BookingNumber}", booking.BookingNumber);
+            }
+          }
+          catch (Exception emailEx)
+          {
+            _logger.LogError(emailEx,
+                "Failed to send breakdown notification for booking {BookingNumber}",
+                booking.BookingNumber);
+            // Continue with other bookings even if one fails
+          }
+        }
+
+        _logger.LogInformation("Completed sending breakdown notifications for crane {CraneId}", craneId);
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Error sending breakdown notifications for crane {CraneId}", craneId);
+        // Don't throw - this shouldn't fail the main breakdown operation
+      }
     }
 
     // Method to update only the image
@@ -401,15 +470,6 @@ namespace AspnetCoreMvcFull.Services
 
           await _context.SaveChangesAsync();
           _logger.LogInformation("Crane {CraneId} status automatically changed to Available via Hangfire job", craneId);
-
-          // // Publish event for checking any necessary relocations after maintenance
-          // await _eventPublisher.PublishAsync(new CraneMaintenanceEvent
-          // {
-          //   CraneId = craneId,
-          //   MaintenanceStartTime = latestLog.UrgentStartTime,
-          //   MaintenanceEndTime = DateTime.Now,
-          //   Reason = latestLog.Reasons
-          // });
         }
         else
         {
