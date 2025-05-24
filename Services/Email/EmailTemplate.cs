@@ -25,7 +25,8 @@ namespace AspnetCoreMvcFull.Services
 
     public string BookingSubmittedTemplate(string name, Booking booking)
     {
-      string detailUrl = $"{_baseUrl}/BookingHistory/Details/{booking.Id}";
+      // string detailUrl = $"{_baseUrl}/BookingHistory/Details/{booking.Id}";
+      string detailUrl = $"{_baseUrl}/Booking/Details?documentNumber={booking.DocumentNumber}";
 
       return $@"<!doctype html>
             <html lang=""en"">
@@ -204,7 +205,8 @@ namespace AspnetCoreMvcFull.Services
 
     public string BookingManagerApprovedTemplate(string name, Booking booking)
     {
-      string detailUrl = $"{_baseUrl}/BookingHistory/Details/{booking.Id}";
+      // string detailUrl = $"{_baseUrl}/BookingHistory/Details/{booking.Id}";
+      string detailUrl = $"{_baseUrl}/Booking/Details?documentNumber={booking.DocumentNumber}";
 
       return $@"<!doctype html>
             <html lang=""en"">
@@ -254,7 +256,8 @@ namespace AspnetCoreMvcFull.Services
 
     public string BookingApprovedTemplate(string name, Booking booking)
     {
-      string detailUrl = $"{_baseUrl}/BookingHistory/Details/{booking.Id}";
+      // string detailUrl = $"{_baseUrl}/BookingHistory/Details/{booking.Id}";
+      string detailUrl = $"{_baseUrl}/Booking/Details?documentNumber={booking.DocumentNumber}";
 
       return $@"<!doctype html>
             <html lang=""en"">
@@ -310,7 +313,8 @@ namespace AspnetCoreMvcFull.Services
 
     public string BookingRejectedTemplate(string name, Booking booking, string rejectorName, string rejectReason)
     {
-      string detailUrl = $"{_baseUrl}/BookingHistory/Details/{booking.Id}";
+      // string detailUrl = $"{_baseUrl}/BookingHistory/Details/{booking.Id}";
+      string detailUrl = $"{_baseUrl}/Booking/Details?documentNumber={booking.DocumentNumber}";
 
       return $@"<!doctype html>
             <html lang=""en"">
@@ -370,7 +374,8 @@ namespace AspnetCoreMvcFull.Services
 
     public string BookingCancelledTemplate(string name, Booking booking, string cancelledBy, string cancelReason)
     {
-      string detailUrl = $"{_baseUrl}/BookingHistory/Details/{booking.Id}";
+      // string detailUrl = $"{_baseUrl}/BookingHistory/Details/{booking.Id}";
+      string detailUrl = $"{_baseUrl}/Booking/Details?documentNumber={booking.DocumentNumber}";
 
       return $@"<!doctype html>
         <html lang=""en"">
@@ -426,7 +431,8 @@ namespace AspnetCoreMvcFull.Services
 
     public string BookingRevisedTemplate(string name, Booking booking)
     {
-      string detailUrl = $"{_baseUrl}/BookingHistory/Details/{booking.Id}";
+      // string detailUrl = $"{_baseUrl}/BookingHistory/Details/{booking.Id}";
+      string detailUrl = $"{_baseUrl}/Booking/Details?documentNumber={booking.DocumentNumber}";
 
       return $@"<!doctype html>
         <html lang=""en"">

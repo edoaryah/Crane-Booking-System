@@ -130,6 +130,58 @@ namespace AspnetCoreMvcFull.Controllers
       }
     }
 
+    // // POST: /BookingAction/ConfirmCancel
+    // [HttpPost]
+    // public async Task<IActionResult> ConfirmCancel(BookingCancellationViewModel model)
+    // {
+    //   if (!ModelState.IsValid)
+    //   {
+    //     return View("Cancel", model);
+    //   }
+
+    //   try
+    //   {
+    //     string currentUser = User.FindFirst("ldapuser")?.Value ?? "";
+    //     string userName = User.FindFirst(ClaimTypes.Name)?.Value ?? currentUser;
+
+    //     // Determine who's cancelling the booking
+    //     BookingCancelledBy cancelledBy;
+    //     if (User.IsInRole("pic"))
+    //     {
+    //       cancelledBy = BookingCancelledBy.PIC;
+    //     }
+    //     else
+    //     {
+    //       cancelledBy = BookingCancelledBy.User;
+    //     }
+
+    //     var result = await _approvalService.CancelBookingAsync(
+    //         model.BookingId,
+    //         cancelledBy,
+    //         userName,
+    //         model.CancelReason);
+
+    //     if (result)
+    //     {
+    //       TempData["SuccessMessage"] = "Booking berhasil dibatalkan.";
+    //       return RedirectToAction("Details", "Booking", new { id = model.BookingId });
+    //     }
+    //     else
+    //     {
+    //       TempData["ErrorMessage"] = "Gagal membatalkan booking.";
+    //       return View("Cancel", model);
+    //     }
+    //   }
+    //   catch (Exception ex)
+    //   {
+    //     _logger.LogError(ex, "Error cancelling booking ID: {Id}", model.BookingId);
+    //     TempData["ErrorMessage"] = "Terjadi kesalahan saat membatalkan booking.";
+    //     return View("Cancel", model);
+    //   }
+    // }
+
+    // Controllers/BookingActionController.cs - Fixed ConfirmCancel method
+
     // POST: /BookingAction/ConfirmCancel
     [HttpPost]
     public async Task<IActionResult> ConfirmCancel(BookingCancellationViewModel model)
@@ -143,6 +195,9 @@ namespace AspnetCoreMvcFull.Controllers
       {
         string currentUser = User.FindFirst("ldapuser")?.Value ?? "";
         string userName = User.FindFirst(ClaimTypes.Name)?.Value ?? currentUser;
+
+        // ✅ TAMBAH: Dapatkan booking untuk mendapatkan documentNumber
+        var booking = await _bookingService.GetBookingByIdAsync(model.BookingId);
 
         // Determine who's cancelling the booking
         BookingCancelledBy cancelledBy;
@@ -164,13 +219,19 @@ namespace AspnetCoreMvcFull.Controllers
         if (result)
         {
           TempData["SuccessMessage"] = "Booking berhasil dibatalkan.";
-          return RedirectToAction("Details", "Booking", new { id = model.BookingId });
+          // ✅ FIXED: Gunakan documentNumber bukan ID
+          return RedirectToAction("Details", "Booking", new { documentNumber = booking.DocumentNumber });
         }
         else
         {
           TempData["ErrorMessage"] = "Gagal membatalkan booking.";
           return View("Cancel", model);
         }
+      }
+      catch (KeyNotFoundException)
+      {
+        TempData["ErrorMessage"] = "Booking tidak ditemukan.";
+        return RedirectToAction("Index", "Booking");
       }
       catch (Exception ex)
       {

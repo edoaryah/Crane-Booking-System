@@ -260,11 +260,15 @@ namespace AspnetCoreMvcFull.Services
       }
     }
 
+    // Services/Approval/ApprovalService.cs - Simple CancelBookingAsync method
+
     public async Task<bool> CancelBookingAsync(int bookingId, BookingCancelledBy cancelledBy, string cancelledByName, string cancelReason)
     {
       try
       {
+        // ✅ Include Crane untuk template email
         var booking = await _context.Bookings
+            .Include(b => b.Crane)
             .FirstOrDefaultAsync(b => b.Id == bookingId);
 
         if (booking == null)
@@ -280,6 +284,13 @@ namespace AspnetCoreMvcFull.Services
           return false;
         }
 
+        // ✅ Cek jika booking sudah dibatalkan sebelumnya
+        if (booking.Status == BookingStatus.Cancelled)
+        {
+          _logger.LogWarning("Booking dengan ID {BookingId} sudah dibatalkan sebelumnya", bookingId);
+          return false;
+        }
+
         // Update status booking menjadi Cancelled
         booking.Status = BookingStatus.Cancelled;
         booking.CancelledBy = cancelledBy;
@@ -289,8 +300,26 @@ namespace AspnetCoreMvcFull.Services
 
         await _context.SaveChangesAsync();
 
-        // Kirim notifikasi email ke semua pihak terkait
-        // TODO: Implementasi email notifikasi pembatalan
+        // ✅ SIMPLE: Kirim notifikasi email HANYA ke user yang membuat booking
+        if (!string.IsNullOrEmpty(booking.LdapUser))
+        {
+          var user = await _employeeService.GetEmployeeByLdapUserAsync(booking.LdapUser);
+          if (user != null && !string.IsNullOrEmpty(user.Email))
+          {
+            await _emailService.SendBookingCancelledEmailAsync(booking, user.Email, cancelledByName, cancelReason);
+            _logger.LogInformation("Email pembatalan booking dikirim ke user {UserEmail} untuk booking {BookingNumber}",
+                user.Email, booking.BookingNumber);
+          }
+          else
+          {
+            _logger.LogWarning("Email user tidak ditemukan untuk LDAP {LdapUser} pada booking {BookingNumber}",
+                booking.LdapUser, booking.BookingNumber);
+          }
+        }
+        else
+        {
+          _logger.LogWarning("LDAP user tidak tersedia untuk booking {BookingNumber}", booking.BookingNumber);
+        }
 
         return true;
       }
