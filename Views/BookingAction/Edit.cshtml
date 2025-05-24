@@ -776,7 +776,7 @@
       });
     }
 
-    function initLiftedItemsTable() {
+    @* function initLiftedItemsTable() {
       const tbody = document.getElementById('liftedItemsBody');
       if (!tbody) return;
 
@@ -789,9 +789,31 @@
       } else {
         addLiftedItemRow();
       }
+    } *@
+    function initLiftedItemsTable() {
+      const tbody = document.getElementById('liftedItemsBody');
+      if (!tbody) return;
+
+      tbody.innerHTML = '';
+
+      // ✅ DEBUG: Log existing items data
+      console.log('existingItems:', existingItems);
+      console.log('existingItems type:', typeof existingItems);
+      console.log('existingItems is array:', Array.isArray(existingItems));
+
+      if (existingItems && Array.isArray(existingItems) && existingItems.length > 0) {
+        console.log('Processing', existingItems.length, 'existing items');
+        existingItems.forEach((item, index) => {
+          console.log(`Item ${index}:`, item);
+          addLiftedItemRow(item, index);
+        });
+      } else {
+        console.log('No existing items found, adding empty row');
+        addLiftedItemRow();
+      }
     }
 
-    function addLiftedItemRow(itemData = null, index = null) {
+    @* function addLiftedItemRow(itemData = null, index = null) {
       const tbody = document.getElementById('liftedItemsBody');
       if (!tbody) return;
 
@@ -820,6 +842,68 @@
           <input type="number" class="form-control item-quantity"
                 name="items[${rowIndex}].quantity"
                 value="${itemData ? itemData.quantity || 1 : 1}"
+                min="1" step="1" required />
+        </td>
+        <td style="width: 1%; white-space: nowrap;">
+          <button type="button" class="btn btn-outline-danger btn-sm remove-item-btn">
+            <i class="bx bx-trash"></i>
+          </button>
+        </td>
+      `;
+
+      const removeBtn = row.querySelector('.remove-item-btn');
+      removeBtn.addEventListener('click', function () {
+        if (tbody.rows.length > 1) {
+          row.remove();
+          updateItemsIndexes();
+        } else {
+          alert('At least one item is required.');
+        }
+      });
+
+      tbody.appendChild(row);
+    } *@
+
+    function addLiftedItemRow(itemData = null, index = null) {
+      const tbody = document.getElementById('liftedItemsBody');
+      if (!tbody) return;
+
+      const rowIndex = index !== null ? index : tbody.rows.length;
+      const row = document.createElement('tr');
+
+      // ✅ DEBUG: Log item data being processed
+      if (itemData) {
+        console.log(`Adding row ${rowIndex} with data:`, itemData);
+      }
+
+      // ✅ Handle both lowercase and uppercase property names
+      const itemName = itemData ? (itemData.itemName || itemData.ItemName || '') : '';
+      const height = itemData ? (itemData.height || itemData.Height || '') : '';
+      const weight = itemData ? (itemData.weight || itemData.Weight || '') : '';
+      const quantity = itemData ? (itemData.quantity || itemData.Quantity || 1) : 1;
+
+      row.innerHTML = `
+        <td style="min-width: 220px; padding-right: 5px;">
+          <input type="text" class="form-control item-name"
+                name="items[${rowIndex}].itemName"
+                value="${itemName}" required />
+        </td>
+        <td style="min-width: 140px; padding-right: 5px;">
+          <input type="number" class="form-control item-height"
+                name="items[${rowIndex}].height"
+                value="${height}"
+                min="0.01" step="0.01" required />
+        </td>
+        <td style="min-width: 140px; padding-right: 5px;">
+          <input type="number" class="form-control item-weight"
+                name="items[${rowIndex}].weight"
+                value="${weight}"
+                min="0.01" step="0.01" required />
+        </td>
+        <td style="min-width: 140px; padding-right: 5px;">
+          <input type="number" class="form-control item-quantity"
+                name="items[${rowIndex}].quantity"
+                value="${quantity}"
                 min="1" step="1" required />
         </td>
         <td style="width: 1%; white-space: nowrap;">
