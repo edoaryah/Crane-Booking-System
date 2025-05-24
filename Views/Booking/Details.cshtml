@@ -18,9 +18,14 @@
   (Model.Status == AspnetCoreMvcFull.Models.BookingStatus.ManagerRejected ||
   Model.Status == AspnetCoreMvcFull.Models.BookingStatus.PICRejected);
 
-  bool canEditAsPic = isPic &&
+  @* bool canEditAsPic = isPic &&
   (Model.Status != AspnetCoreMvcFull.Models.BookingStatus.Cancelled &&
-  Model.Status != AspnetCoreMvcFull.Models.BookingStatus.Done);
+  Model.Status != AspnetCoreMvcFull.Models.BookingStatus.Done); *@
+
+  // SESUDAH (benar)
+  bool canEditAsPic = isPic &&
+  (Model.Status == AspnetCoreMvcFull.Models.BookingStatus.ManagerApproved ||
+  Model.Status == AspnetCoreMvcFull.Models.BookingStatus.PICApproved);
 
   bool showEditButton = canEditAsCreator || canEditAsPic;
 
@@ -421,7 +426,7 @@
                     </button>
 
                     @* ✅ BACK BUTTON *@
-                    <a href="@Url.Action("Calendar", "Booking")" class="btn btn-outline-secondary">
+                    <a href="@Url.Action("Index", "BookingList")" class="btn btn-outline-secondary">
                       <i class="bx bx-arrow-back me-1"></i>
                       Back
                     </a>
