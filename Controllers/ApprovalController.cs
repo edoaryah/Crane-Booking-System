@@ -275,64 +275,6 @@ namespace AspnetCoreMvcFull.Controllers
       }
     }
 
-    // // Action untuk Manager menyetujui booking
-    // [HttpPost]
-    // public async Task<IActionResult> ApproveByManager(int bookingId, string managerName)
-    // {
-    //   try
-    //   {
-    //     var result = await _approvalService.ApproveByManagerAsync(bookingId, managerName);
-    //     if (result)
-    //     {
-    //       TempData["SuccessMessage"] = "Booking berhasil disetujui.";
-    //       return RedirectToAction("Success");
-    //     }
-    //     else
-    //     {
-    //       TempData["ErrorMessage"] = "Terjadi kesalahan saat menyetujui booking.";
-    //       return RedirectToAction("Error");
-    //     }
-    //   }
-    //   catch (Exception ex)
-    //   {
-    //     _logger.LogError(ex, "Error approving booking by manager");
-    //     TempData["ErrorMessage"] = "Terjadi kesalahan saat menyetujui booking.";
-    //     return RedirectToAction("Error");
-    //   }
-    // }
-
-    // // Action untuk Manager menolak booking
-    // [HttpPost]
-    // public async Task<IActionResult> RejectByManager(int bookingId, string managerName, string rejectReason)
-    // {
-    //   try
-    //   {
-    //     if (string.IsNullOrWhiteSpace(rejectReason))
-    //     {
-    //       TempData["ErrorMessage"] = "Alasan penolakan tidak boleh kosong.";
-    //       return RedirectToAction("Manager", new { id = bookingId });
-    //     }
-
-    //     var result = await _approvalService.RejectByManagerAsync(bookingId, managerName, rejectReason);
-    //     if (result)
-    //     {
-    //       TempData["SuccessMessage"] = "Booking telah ditolak.";
-    //       return RedirectToAction("Success");
-    //     }
-    //     else
-    //     {
-    //       TempData["ErrorMessage"] = "Terjadi kesalahan saat menolak booking.";
-    //       return RedirectToAction("Error");
-    //     }
-    //   }
-    //   catch (Exception ex)
-    //   {
-    //     _logger.LogError(ex, "Error rejecting booking by manager");
-    //     TempData["ErrorMessage"] = "Terjadi kesalahan saat menolak booking.";
-    //     return RedirectToAction("Error");
-    //   }
-    // }
-
     [HttpPost]
     public async Task<IActionResult> ApproveByPic(int bookingId, string picName)
     {

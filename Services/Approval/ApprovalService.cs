@@ -330,63 +330,6 @@ namespace AspnetCoreMvcFull.Services
       }
     }
 
-    // public async Task<bool> ReviseRejectedBookingAsync(int bookingId, string revisedByName)
-    // {
-    //   try
-    //   {
-    //     var booking = await _context.Bookings
-    //         .FirstOrDefaultAsync(b => b.Id == bookingId);
-
-    //     if (booking == null)
-    //     {
-    //       _logger.LogWarning("Booking dengan ID {BookingId} tidak ditemukan", bookingId);
-    //       return false;
-    //     }
-
-    //     // Memastikan booking dalam status yang bisa direvisi
-    //     if (booking.Status != BookingStatus.ManagerRejected && booking.Status != BookingStatus.PICRejected)
-    //     {
-    //       _logger.LogWarning("Booking dengan ID {BookingId} tidak dalam status yang dapat direvisi", bookingId);
-    //       return false;
-    //     }
-
-    //     // Reset status booking menjadi PendingApproval
-    //     booking.Status = BookingStatus.PendingApproval;
-    //     booking.RevisionCount++;
-    //     booking.LastModifiedAt = DateTime.Now;
-    //     booking.LastModifiedBy = revisedByName;
-
-    //     // Reset approval fields jika perlu
-    //     if (booking.Status == BookingStatus.PICRejected)
-    //     {
-    //       // Jika ditolak oleh PIC, kita perlu reset status approval PIC
-    //       booking.PICRejectReason = null;
-    //       // Tetap mempertahankan approval Manager
-    //     }
-    //     else
-    //     {
-    //       // Jika ditolak oleh Manager, reset semua status approval
-    //       booking.ManagerName = null;
-    //       booking.ManagerApprovalTime = null;
-    //       booking.ManagerRejectReason = null;
-    //     }
-
-    //     await _context.SaveChangesAsync();
-
-    //     // Kirim notifikasi email ke pihak terkait
-    //     // TODO: Implementasi email notifikasi revisi
-
-    //     return true;
-    //   }
-    //   catch (Exception ex)
-    //   {
-    //     _logger.LogError(ex, "Error saat merevisi booking dengan ID {BookingId}", bookingId);
-    //     throw;
-    //   }
-    // }
-
-    // Replace this method in Services/Approval/ApprovalService.cs
-
     public async Task<bool> ReviseRejectedBookingAsync(int bookingId, string revisedByName)
     {
       try
@@ -411,15 +354,16 @@ namespace AspnetCoreMvcFull.Services
 
         var originalStatus = booking.Status;
 
-        // ✅ Reset status booking menjadi PendingApproval untuk semua jenis rejection
+        // ✅ PERBAIKAN: Selalu reset status ke PendingApproval untuk semua jenis revision
         booking.Status = BookingStatus.PendingApproval;
 
         // ✅ Update tracking information
-        booking.RevisionCount++;
-        booking.LastModifiedAt = DateTime.Now;
-        booking.LastModifiedBy = revisedByName;
+        // booking.RevisionCount++;
+        // booking.LastModifiedAt = DateTime.Now;
+        // booking.LastModifiedBy = revisedByName;
 
-        // ✅ Reset rejection fields based on original status
+        // ✅ PERBAIKAN: Reset semua approval fields untuk semua jenis revision
+        // Karena setelah revisi, proses approval harus dimulai ulang dari manager
         if (originalStatus == BookingStatus.ManagerRejected)
         {
           // Reset manager rejection fields
@@ -430,48 +374,37 @@ namespace AspnetCoreMvcFull.Services
         }
         else if (originalStatus == BookingStatus.PICRejected)
         {
-          // Reset only PIC rejection fields, keep manager approval
+          // ✅ PERBAIKAN: Reset SEMUA approval fields (manager dan PIC)
+          // Karena proses approval harus dimulai ulang dari manager
+          booking.ManagerName = null;
+          booking.ManagerApprovalTime = null;
+          booking.ManagerRejectReason = null;
           booking.PICRejectReason = null;
-          _logger.LogInformation("Reset PIC rejection fields for booking {BookingId}, keeping manager approval", bookingId);
+          _logger.LogInformation("Reset all approval fields for booking {BookingId} - revision from PIC rejection", bookingId);
         }
 
         await _context.SaveChangesAsync();
 
-        // ✅ Send notifications based on revision type
+        // ✅ PERBAIKAN: Selalu kirim ke manager dulu untuk semua jenis revision
         try
         {
-          if (originalStatus == BookingStatus.ManagerRejected)
+          // Selalu kirim approval request ke manager untuk memulai proses approval dari awal
+          var manager = await _employeeService.GetManagerByDepartmentAsync(booking.Department);
+          if (manager != null && !string.IsNullOrEmpty(manager.Email) && !string.IsNullOrEmpty(manager.LdapUser))
           {
-            // Revision from manager rejection - notify manager again
-            var manager = await _employeeService.GetManagerByDepartmentAsync(booking.Department);
-            if (manager != null && !string.IsNullOrEmpty(manager.Email) && !string.IsNullOrEmpty(manager.LdapUser))
-            {
-              await _emailService.SendManagerApprovalRequestEmailAsync(
-                  booking,
-                  manager.Email,
-                  manager.Name,
-                  manager.LdapUser);
+            await _emailService.SendManagerApprovalRequestEmailAsync(
+                booking,
+                manager.Email,
+                manager.Name,
+                manager.LdapUser);
 
-              _logger.LogInformation("Manager approval email sent for revised booking {BookingId}", bookingId);
-            }
+            _logger.LogInformation("Manager approval email sent for revised booking {BookingId} (original status: {OriginalStatus})",
+                bookingId, originalStatus);
           }
-          else if (originalStatus == BookingStatus.PICRejected)
+          else
           {
-            // Revision from PIC rejection - notify PIC again
-            var picCranes = await _employeeService.GetPicCraneAsync();
-            foreach (var pic in picCranes)
-            {
-              if (!string.IsNullOrEmpty(pic.Email) && !string.IsNullOrEmpty(pic.LdapUser))
-              {
-                await _emailService.SendPicApprovalRequestEmailAsync(
-                    booking,
-                    pic.Email,
-                    pic.Name,
-                    pic.LdapUser);
-              }
-            }
-
-            _logger.LogInformation("PIC approval emails sent for revised booking {BookingId}", bookingId);
+            _logger.LogWarning("Manager not found for department {Department} for booking {BookingId}",
+                booking.Department, bookingId);
           }
 
           // Send revision notification to user
@@ -488,7 +421,7 @@ namespace AspnetCoreMvcFull.Services
           // Don't fail the revision just because of email issues
         }
 
-        _logger.LogInformation("Booking {BookingId} successfully revised by {RevisedBy}. New revision count: {RevisionCount}",
+        _logger.LogInformation("Booking {BookingId} successfully revised by {RevisedBy}. New revision count: {RevisionCount}. Approval process restarted from manager.",
             bookingId, revisedByName, booking.RevisionCount);
 
         return true;

@@ -69,13 +69,13 @@ namespace AspnetCoreMvcFull.Controllers
           return RedirectToAction("Details", "Booking", new { documentNumber = documentNumber });
         }
 
-        // Check edit conditions based on role
+        // ✅ UPDATED: Check edit conditions based on role and status
         bool canEdit = false;
         string reasonCannotEdit = "";
 
         if (isBookingCreator && !isPic)
         {
-          // Booking creator can only edit when rejected
+          // ✅ Creator: Only edit when rejected (UNCHANGED)
           canEdit = booking.Status == BookingStatus.ManagerRejected || booking.Status == BookingStatus.PICRejected;
           if (!canEdit)
           {
@@ -84,11 +84,32 @@ namespace AspnetCoreMvcFull.Controllers
         }
         else if (isPic)
         {
-          // PIC can edit unless Cancelled or Done
-          canEdit = booking.Status != BookingStatus.Cancelled && booking.Status != BookingStatus.Done;
+          // ✅ PIC: Only edit when ManagerApproved OR PICApproved (CHANGED)
+          canEdit = booking.Status == BookingStatus.ManagerApproved || booking.Status == BookingStatus.PICApproved;
+
           if (!canEdit)
           {
-            reasonCannotEdit = "Booking tidak dapat diedit karena sudah dibatalkan atau selesai.";
+            switch (booking.Status)
+            {
+              case BookingStatus.PendingApproval:
+                reasonCannotEdit = "Booking sedang menunggu approval Manager. Edit tersedia setelah Manager approve.";
+                break;
+              case BookingStatus.ManagerRejected:
+                reasonCannotEdit = "Booking ditolak Manager. Silakan revise melalui user yang mengajukan.";
+                break;
+              case BookingStatus.PICRejected:
+                reasonCannotEdit = "Booking ditolak PIC. Silakan revise melalui user yang mengajukan.";
+                break;
+              case BookingStatus.Done:
+                reasonCannotEdit = "Booking sudah selesai dan tidak dapat diedit lagi.";
+                break;
+              case BookingStatus.Cancelled:
+                reasonCannotEdit = "Booking sudah dibatalkan dan tidak dapat diedit lagi.";
+                break;
+              default:
+                reasonCannotEdit = "Booking tidak dapat diedit pada status saat ini.";
+                break;
+            }
           }
         }
 
