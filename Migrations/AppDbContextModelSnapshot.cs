@@ -145,6 +145,15 @@ namespace AspnetCoreMvcFull.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<bool>("ReminderEmailSent")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("ReminderEmailSentAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("ReminderEmailSentTo")
+                        .HasColumnType("text");
+
                     b.Property<int>("RevisionCount")
                         .HasColumnType("integer");
 

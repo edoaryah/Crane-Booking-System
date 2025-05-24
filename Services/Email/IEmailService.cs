@@ -17,5 +17,8 @@ namespace AspnetCoreMvcFull.Services
 
     // Services/Email/IEmailService.cs - Add this method
     Task SendBookingAffectedByBreakdownEmailAsync(Booking booking, string userEmail, Breakdown breakdown);
+
+    // Services/Email/IEmailService.cs - Add this method
+    Task SendBookingReminderEmailAsync(Booking booking, string userEmail);
   }
 }

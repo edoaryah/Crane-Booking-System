@@ -574,5 +574,106 @@ namespace AspnetCoreMvcFull.Services
       </body>
     </html>";
     }
+
+    // Services/Email/EmailTemplate.cs - Add this method
+    public string BookingReminderTemplate(string userName, Booking booking)
+    {
+      string detailUrl = $"{_baseUrl}/Booking/Details?documentNumber={booking.DocumentNumber}";
+
+      // Format shifts info
+      var shiftsInfo = "";
+      if (booking.BookingShifts?.Any() == true)
+      {
+        var shiftsForFirstDay = booking.BookingShifts
+            .Where(s => s.Date.Date == booking.StartDate.Date)
+            .OrderBy(s => s.ShiftStartTime)
+            .ToList();
+
+        shiftsInfo = string.Join(", ", shiftsForFirstDay.Select(s =>
+        {
+          var startTime = DateTime.Today.Add(s.ShiftStartTime).ToString("HH:mm");
+          var endTime = DateTime.Today.Add(s.ShiftEndTime).ToString("HH:mm");
+          return $"{s.ShiftName} ({startTime}-{endTime})";
+        }));
+      }
+
+      return $@"<!doctype html>
+    <html lang=""en"">
+      <head>
+        <meta charset=""UTF-8"">
+        <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
+      </head>
+      <body style=""font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f8f9fa;"">
+        <table role=""presentation"" style=""width: 100%; background-color: #f8f9fa;"" cellpadding=""0"" cellspacing=""0"">
+          <tr>
+            <td align=""center"">
+              <table role=""presentation"" class=""card"" style=""border: 1px solid #e0e0e0; border-radius: 4px; max-width: 600px; margin: 20px auto; background-color: white; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);"" cellpadding=""0"" cellspacing=""0"">
+                <tr>
+                  <td style=""background-color: #28a745; color: white; padding: 15px; font-size: 20px; text-align: center; border-radius: 4px 4px 0 0;"">
+                    <strong>🔔 Pengingat Booking Crane Besok</strong>
+                  </td>
+                </tr>
+                <tr>
+                  <td style=""padding: 20px; color: #212529; font-size: 16px;"">
+                    <p>Yth, Bapak/Ibu <strong>{userName}</strong>,</p>
+
+                    <p>Kami ingatkan bahwa Anda memiliki booking crane yang akan dimulai <strong>besok</strong>. Mohon persiapkan segala kebutuhan operasional Anda.</p>
+
+                    <div style=""background-color: #d4edda; border: 1px solid #c3e6cb; padding: 15px; border-radius: 4px; margin: 15px 0;"">
+                      <h4 style=""color: #155724; margin-top: 0;"">📋 Detail Booking Besok:</h4>
+                      <ul style=""color: #155724; margin-bottom: 0;"">
+                        <li><strong>Nomor Booking:</strong> {booking.BookingNumber}</li>
+                        <li><strong>Crane:</strong> {booking.CraneCode ?? "Unknown"}</li>
+                        <li><strong>Tanggal:</strong> {booking.StartDate:dddd, dd MMMM yyyy}</li>
+                        <li><strong>Shift:</strong> {shiftsInfo}</li>
+                        <li><strong>Lokasi:</strong> {booking.Location}</li>
+                        <li><strong>Project Supervisor:</strong> {booking.ProjectSupervisor ?? "-"}</li>
+                        <li><strong>Cost Code:</strong> {booking.CostCode ?? "-"}</li>
+                      </ul>
+                    </div>
+
+                    <div style=""background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 4px; margin: 15px 0;"">
+                      <h4 style=""color: #856404; margin-top: 0;"">📝 Checklist Persiapan:</h4>
+                      <ul style=""color: #856404; margin-bottom: 0;"">
+                        <li>✅ Pastikan tim operator dan pengawal sudah siap</li>
+                        <li>✅ Koordinasi dengan PIC Crane untuk briefing keselamatan</li>
+                        <li>✅ Persiapkan peralatan dan material yang akan diangkat</li>
+                        <li>✅ Pastikan area kerja sudah aman dan bebas hambatan</li>
+                        <li>✅ Cek kondisi cuaca dan faktor keselamatan lainnya</li>
+                      </ul>
+                    </div>
+
+                    <p>Jika ada perubahan mendadak atau pembatalan, segera koordinasikan dengan PIC Crane.</p>
+
+                    <table role=""presentation"" border=""0"" cellpadding=""0"" cellspacing=""0"" style=""margin: 20px auto;"">
+                      <tr>
+                        <td align=""center"" style=""border-radius: 4px;"" bgcolor=""#28a745"">
+                          <a href=""{detailUrl}"" target=""_blank"" style=""font-size: 16px; font-family: Arial, sans-serif; color: #ffffff; text-decoration: none; padding: 12px 25px; border-radius: 4px; background-color: #28a745; border: 1px solid #28a745; display: inline-block;"">
+                            📋 Lihat Detail Booking
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <div style=""background-color: #e2e3e5; padding: 15px; border-radius: 4px; margin-top: 20px;"">
+                      <p style=""margin: 0; font-size: 14px; color: #6c757d;"">
+                        <strong>💡 Tips:</strong> Datang 15 menit lebih awal untuk koordinasi dan safety briefing dengan operator crane.
+                      </p>
+                    </div>
+
+                    <div style=""color: #6c757d; font-size: 14px; margin-top: 25px; border-top: 1px solid #dee2e6; padding-top: 15px;"">
+                      <p>Selamat bekerja dan utamakan keselamatan!<br>
+                      <strong>Tim Crane Booking System</strong><br>
+                      <em>Pengingat otomatis - dikirim {DateTime.Now:dd/MM/yyyy HH:mm}</em></p>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+    </html>";
+    }
   }
 }

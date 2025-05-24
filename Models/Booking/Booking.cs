@@ -113,6 +113,11 @@ namespace AspnetCoreMvcFull.Models
     public string? BilledBy { get; set; }
     public string? BillingNotes { get; set; }
 
+    // ✅ Reminder email tracking
+    public bool ReminderEmailSent { get; set; } = false;
+    public DateTime? ReminderEmailSentAt { get; set; }
+    public string? ReminderEmailSentTo { get; set; }
+
     // Navigation properties
     public virtual Crane? Crane { get; set; }
     public virtual ICollection<BookingShift> BookingShifts { get; set; } = new List<BookingShift>();

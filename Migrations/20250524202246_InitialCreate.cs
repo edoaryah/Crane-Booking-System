@@ -105,6 +105,7 @@ namespace AspnetCoreMvcFull.Migrations
                     BookingNumber = table.Column<string>(type: "text", nullable: false),
                     Name = table.Column<string>(type: "text", nullable: false),
                     Department = table.Column<string>(type: "text", nullable: false),
+                    LdapUser = table.Column<string>(type: "text", nullable: false),
                     CraneId = table.Column<int>(type: "integer", nullable: true),
                     CraneCode = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
                     CraneCapacity = table.Column<int>(type: "integer", nullable: true),
@@ -136,7 +137,10 @@ namespace AspnetCoreMvcFull.Migrations
                     IsBilled = table.Column<bool>(type: "boolean", nullable: false),
                     BilledDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     BilledBy = table.Column<string>(type: "text", nullable: true),
-                    BillingNotes = table.Column<string>(type: "text", nullable: true)
+                    BillingNotes = table.Column<string>(type: "text", nullable: true),
+                    ReminderEmailSent = table.Column<bool>(type: "boolean", nullable: false),
+                    ReminderEmailSentAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
+                    ReminderEmailSentTo = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {

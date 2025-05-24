@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace AspnetCoreMvcFull.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250524073138_AddLdapUserToBooking2")]
-    partial class AddLdapUserToBooking2
+    [Migration("20250524202246_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -147,6 +147,15 @@ namespace AspnetCoreMvcFull.Migrations
                     b.Property<string>("ProjectSupervisor")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("ReminderEmailSent")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("ReminderEmailSentAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("ReminderEmailSentTo")
+                        .HasColumnType("text");
 
                     b.Property<int>("RevisionCount")
                         .HasColumnType("integer");

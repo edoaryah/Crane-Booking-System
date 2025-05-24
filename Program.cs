@@ -88,6 +88,8 @@ builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 // Program.cs - tambahkan baris berikut di bagian pendaftaran layanan
 builder.Services.AddScoped<IBookingApprovalService, BookingApprovalService>();
 
+builder.Services.AddScoped<IBookingReminderService, BookingReminderService>();
+
 // Konfigurasi Autentikasi
 builder.Services.AddAuthentication(options =>
 {
@@ -180,6 +182,17 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHangfireDashboard(); // Dashboard untuk memonitor background jobs dengan Hangfire
+
+var witaTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Makassar");
+
+RecurringJob.AddOrUpdate<IBookingReminderService>(
+    "daily-booking-reminders",
+    service => service.SendDailyBookingRemindersAsync(),
+    "0 8 * * *",  // Every day at 8:00 AM WITA
+    new RecurringJobOptions
+    {
+      TimeZone = witaTimeZone
+    });
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
