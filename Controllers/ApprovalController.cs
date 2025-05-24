@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using AspnetCoreMvcFull.Services;
+using AspnetCoreMvcFull.Models;
 using AspnetCoreMvcFull.Models.Role;
 using AspnetCoreMvcFull.Services.Role;
 using AspnetCoreMvcFull.ViewModels;
@@ -76,49 +77,6 @@ namespace AspnetCoreMvcFull.Controllers
         return View("Error");
       }
     }
-
-    // // Halaman approval untuk PIC Crane
-    // [HttpGet]
-    // public async Task<IActionResult> Pic(string document_number, string badge_number, string stage)
-    // {
-    //   try
-    //   {
-    //     // Decode parameter dari Base64
-    //     int bookingId = int.Parse(document_number); ;
-    //     string badgeNumber = DecodeParameter<string>(badge_number);
-
-    //     // Validasi badge number
-    //     var employee = await _employeeService.GetEmployeeByLdapUserAsync(badgeNumber);
-    //     if (employee == null || employee.PositionLvl != "SUPV_LVL" || employee.Department != "Stores & Inventory Control")
-    //     {
-    //       return View("AccessDenied");
-    //     }
-
-    //     // Dapatkan detail booking
-    //     var booking = await _bookingService.GetBookingByIdAsync(bookingId);
-    //     if (booking == null)
-    //     {
-    //       return NotFound();
-    //     }
-
-    //     // Siapkan view model
-    //     var viewModel = new ApprovalViewModel
-    //     {
-    //       BookingId = bookingId,
-    //       BadgeNumber = badgeNumber,
-    //       EmployeeName = employee.Name,
-    //       BookingDetails = booking
-    //     };
-
-    //     return View(viewModel);
-    //   }
-    //   catch (Exception ex)
-    //   {
-    //     _logger.LogError(ex, "Error displaying PIC approval page");
-    //     return View("Error");
-    //   }
-    // }
-    // Halaman approval untuk PIC Crane
 
     // [AllowAnonymous]
     [HttpGet]
@@ -237,12 +195,35 @@ namespace AspnetCoreMvcFull.Controllers
       }
     }
 
-    // Action untuk PIC menyetujui booking
     [HttpPost]
     public async Task<IActionResult> ApproveByPic(int bookingId, string picName)
     {
       try
       {
+        // ✅ Cek status booking terlebih dahulu
+        var booking = await _bookingService.GetBookingByIdAsync(bookingId);
+
+        // ✅ Handle jika booking sudah di-approve oleh PIC lain
+        if (booking.Status == BookingStatus.PICApproved)
+        {
+          TempData["SuccessMessage"] = $"Booking #{booking.BookingNumber} sudah disetujui oleh {booking.ApprovedByPIC} pada {booking.ApprovedAtByPIC?.ToString("dd/MM/yyyy HH:mm")}.";
+          return RedirectToAction("Success");
+        }
+
+        // ✅ Handle jika booking sudah di-reject
+        if (booking.Status == BookingStatus.PICRejected)
+        {
+          TempData["SuccessMessage"] = $"Booking #{booking.BookingNumber} sudah ditolak sebelumnya.";
+          return RedirectToAction("Success");
+        }
+
+        // ✅ Handle jika booking bukan dalam status yang tepat
+        if (booking.Status != BookingStatus.ManagerApproved)
+        {
+          TempData["SuccessMessage"] = $"Booking #{booking.BookingNumber} tidak dapat disetujui karena statusnya saat ini adalah {booking.Status}.";
+          return RedirectToAction("Success");
+        }
+
         var result = await _approvalService.ApproveByPicAsync(bookingId, picName);
         if (result)
         {
@@ -251,19 +232,23 @@ namespace AspnetCoreMvcFull.Controllers
         }
         else
         {
-          TempData["ErrorMessage"] = "Terjadi kesalahan saat menyetujui booking.";
-          return RedirectToAction("Error");
+          TempData["SuccessMessage"] = "Booking tidak dapat disetujui karena mungkin sudah diproses oleh PIC lain.";
+          return RedirectToAction("Success");
         }
+      }
+      catch (KeyNotFoundException)
+      {
+        TempData["SuccessMessage"] = "Booking tidak ditemukan.";
+        return RedirectToAction("Success");
       }
       catch (Exception ex)
       {
         _logger.LogError(ex, "Error approving booking by PIC");
-        TempData["ErrorMessage"] = "Terjadi kesalahan saat menyetujui booking.";
-        return RedirectToAction("Error");
+        TempData["SuccessMessage"] = "Terjadi kesalahan sistem saat menyetujui booking.";
+        return RedirectToAction("Success");
       }
     }
 
-    // Action untuk PIC menolak booking
     [HttpPost]
     public async Task<IActionResult> RejectByPic(int bookingId, string picName, string rejectReason)
     {
@@ -272,7 +257,33 @@ namespace AspnetCoreMvcFull.Controllers
         if (string.IsNullOrWhiteSpace(rejectReason))
         {
           TempData["ErrorMessage"] = "Alasan penolakan tidak boleh kosong.";
-          return RedirectToAction("Pic", new { id = bookingId });
+          // Redirect kembali ke halaman PIC dengan document number
+          var bookingForRedirect = await _bookingService.GetBookingByIdAsync(bookingId);
+          return RedirectToAction("Pic", new { document_number = bookingForRedirect.DocumentNumber });
+        }
+
+        // ✅ Cek status booking terlebih dahulu
+        var booking = await _bookingService.GetBookingByIdAsync(bookingId);
+
+        // ✅ Handle jika booking sudah di-approve oleh PIC lain
+        if (booking.Status == BookingStatus.PICApproved)
+        {
+          TempData["SuccessMessage"] = $"Booking #{booking.BookingNumber} sudah disetujui oleh {booking.ApprovedByPIC} pada {booking.ApprovedAtByPIC?.ToString("dd/MM/yyyy HH:mm")}. Tidak dapat ditolak.";
+          return RedirectToAction("Success");
+        }
+
+        // ✅ Handle jika booking sudah di-reject
+        if (booking.Status == BookingStatus.PICRejected)
+        {
+          TempData["SuccessMessage"] = $"Booking #{booking.BookingNumber} sudah ditolak sebelumnya.";
+          return RedirectToAction("Success");
+        }
+
+        // ✅ Handle jika booking bukan dalam status yang tepat
+        if (booking.Status != BookingStatus.ManagerApproved)
+        {
+          TempData["SuccessMessage"] = $"Booking #{booking.BookingNumber} tidak dapat ditolak karena statusnya saat ini adalah {booking.Status}.";
+          return RedirectToAction("Success");
         }
 
         var result = await _approvalService.RejectByPicAsync(bookingId, picName, rejectReason);
@@ -283,15 +294,20 @@ namespace AspnetCoreMvcFull.Controllers
         }
         else
         {
-          TempData["ErrorMessage"] = "Terjadi kesalahan saat menolak booking.";
-          return RedirectToAction("Error");
+          TempData["SuccessMessage"] = "Booking tidak dapat ditolak karena mungkin sudah diproses oleh PIC lain.";
+          return RedirectToAction("Success");
         }
+      }
+      catch (KeyNotFoundException)
+      {
+        TempData["SuccessMessage"] = "Booking tidak ditemukan.";
+        return RedirectToAction("Success");
       }
       catch (Exception ex)
       {
         _logger.LogError(ex, "Error rejecting booking by PIC");
-        TempData["ErrorMessage"] = "Terjadi kesalahan saat menolak booking.";
-        return RedirectToAction("Error");
+        TempData["SuccessMessage"] = "Terjadi kesalahan sistem saat menolak booking.";
+        return RedirectToAction("Success");
       }
     }
 

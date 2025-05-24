@@ -14,13 +14,59 @@
       <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
           <h5 class="mb-0">Detail Booking #@Model.BookingDetails?.BookingNumber</h5>
+          <span
+            class="badge
+                        @(Model.BookingDetails?.Status == AspnetCoreMvcFull.Models.BookingStatus.PICApproved ? "bg-success" :
+                                      Model.BookingDetails?.Status == AspnetCoreMvcFull.Models.BookingStatus.PICRejected ? "bg-danger" :
+                                      Model.BookingDetails?.Status == AspnetCoreMvcFull.Models.BookingStatus.ManagerApproved ? "bg-warning" : "bg-secondary")">
+            @Model.BookingDetails?.Status
+          </span>
         </div>
         <div class="card-body">
-          <div class="alert alert-info" role="alert">
-            <h6 class="alert-heading mb-1">Informasi</h6>
-            <p class="mb-0">Anda diminta untuk menyetujui atau menolak permintaan booking crane ini sebagai PIC Crane.
-            </p>
-          </div>
+
+          <!-- ✅ Tampilkan status booking dengan informasi lengkap -->
+          @if (Model.BookingDetails?.Status == AspnetCoreMvcFull.Models.BookingStatus.PICApproved)
+          {
+            <div class="alert alert-success" role="alert">
+              <h6 class="alert-heading mb-1">✅ Booking Sudah Disetujui</h6>
+              <p class="mb-0">
+                Booking ini sudah disetujui oleh <strong>@Model.BookingDetails.ApprovedByPIC</strong>
+                pada <strong>@Model.BookingDetails.ApprovedAtByPIC?.ToString("dd/MM/yyyy HH:mm")</strong>.
+                <br><small class="text-muted">Tidak ada tindakan lebih lanjut yang diperlukan.</small>
+              </p>
+            </div>
+          }
+          else if (Model.BookingDetails?.Status == AspnetCoreMvcFull.Models.BookingStatus.PICRejected)
+          {
+            <div class="alert alert-danger" role="alert">
+              <h6 class="alert-heading mb-1">❌ Booking Sudah Ditolak</h6>
+              <p class="mb-0">
+                Booking ini sudah ditolak oleh PIC sebelumnya.
+                <br><small class="text-muted">Tidak ada tindakan lebih lanjut yang diperlukan.</small>
+              </p>
+            </div>
+          }
+          else if (Model.BookingDetails?.Status != AspnetCoreMvcFull.Models.BookingStatus.ManagerApproved)
+          {
+            <div class="alert alert-warning" role="alert">
+              <h6 class="alert-heading mb-1">⚠️ Status Booking Tidak Valid</h6>
+              <p class="mb-0">
+                Booking ini tidak dalam status yang dapat diproses untuk approval PIC.
+                <br><small class="text-muted">Status saat ini: <strong>@Model.BookingDetails?.Status</strong></small>
+              </p>
+            </div>
+          }
+          else
+          {
+            <div class="alert alert-info" role="alert">
+              <h6 class="alert-heading mb-1">📋 Menunggu Persetujuan PIC</h6>
+              <p class="mb-0">
+                Anda diminta untuk menyetujui atau menolak permintaan booking crane ini sebagai PIC Crane.
+                <br><small class="text-muted">⚠️ <strong>Pastikan Anda adalah PIC pertama yang memproses booking
+                    ini!</strong></small>
+              </p>
+            </div>
+          }
 
           <!-- Detail Booking -->
           <div class="row mb-4">
@@ -72,20 +118,66 @@
                   readonly />
               </div>
             </div>
+
+            <!-- ✅ Tampilkan info PIC approval jika sudah ada -->
+            @if (Model.BookingDetails?.Status == AspnetCoreMvcFull.Models.BookingStatus.PICApproved)
+            {
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label class="form-label">Status Persetujuan PIC</label>
+                  <input type="text" class="form-control bg-success text-white"
+                    value="Disetujui oleh @Model.BookingDetails.ApprovedByPIC pada @Model.BookingDetails.ApprovedAtByPIC?.ToString("dd/MM/yyyy HH:mm")"
+                    readonly />
+                </div>
+              </div>
+            }
+            else if (Model.BookingDetails?.Status == AspnetCoreMvcFull.Models.BookingStatus.PICRejected)
+            {
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label class="form-label">Status Persetujuan PIC</label>
+                  <input type="text" class="form-control bg-danger text-white" value="Ditolak oleh PIC" readonly />
+                </div>
+              </div>
+            }
           </div>
 
-          <!-- Action Buttons -->
-          <div class="row mt-4">
-            <div class="col-md-6">
-              <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#approveModal">
-                <i class="bx bx-check me-1"></i> Setujui
-              </button>
-              <button type="button" class="btn btn-danger ms-2" data-bs-toggle="modal" data-bs-target="#rejectModal">
-                <i class="bx bx-x me-1"></i> Tolak
-              </button>
+          <!-- ✅ Action Buttons - HANYA tampilkan jika status ManagerApproved -->
+          @if (Model.BookingDetails?.Status == AspnetCoreMvcFull.Models.BookingStatus.ManagerApproved)
+          {
+            <div class="row mt-4">
+              <div class="col-md-12">
+                <div class="d-flex gap-2">
+                  <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#approveModal">
+                    <i class="bx bx-check me-1"></i> Setujui
+                  </button>
+                  <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal">
+                    <i class="bx bx-x me-1"></i> Tolak
+                  </button>
+                  <small class="text-muted align-self-center ms-3">
+                    ⚠️ Booking akan diproses oleh PIC pertama yang melakukan tindakan
+                  </small>
+                </div>
+              </div>
             </div>
-          </div>
-
+          }
+          else
+          {
+            <!-- ✅ Tampilkan pesan jika tidak bisa diproses -->
+            <div class="row mt-4">
+              <div class="col-md-12">
+                <div class="alert alert-secondary text-center">
+                  <i class="bx bx-info-circle me-2"></i>
+                  <strong>Booking ini tidak dapat diproses lagi.</strong>
+                </div>
+                <div class="text-center">
+                  <a href="/" class="btn btn-outline-primary">
+                    <i class="bx bx-home me-1"></i> Kembali ke Beranda
+                  </a>
+                </div>
+              </div>
+            </div>
+          }
         </div>
       </div>
     </div>
@@ -105,10 +197,22 @@
         </div>
         <div class="modal-body">
           <p>Apakah Anda yakin ingin menyetujui booking crane ini?</p>
+
+          <!-- ✅ Warning message yang jelas -->
+          <div class="alert alert-warning">
+            <h6 class="alert-heading mb-1">⚠️ Perhatian!</h6>
+            <ul class="mb-0">
+              <li>Pastikan Anda adalah PIC <strong>pertama</strong> yang memproses booking ini</li>
+              <li>Jika PIC lain sudah memproses, Anda akan mendapat notifikasi</li>
+              <li>Setelah disetujui, booking tidak dapat diubah lagi</li>
+            </ul>
+          </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
-          <button type="submit" class="btn btn-success">Setujui</button>
+          <button type="submit" class="btn btn-success">
+            <i class="bx bx-check me-1"></i> Ya, Setujui
+          </button>
         </div>
       </form>
     </div>
@@ -129,12 +233,25 @@
         <div class="modal-body">
           <div class="mb-3">
             <label class="form-label">Alasan Penolakan <span class="text-danger">*</span></label>
-            <textarea class="form-control" name="rejectReason" rows="3" required></textarea>
+            <textarea class="form-control" name="rejectReason" rows="3" required
+              placeholder="Berikan alasan penolakan yang jelas..."></textarea>
+          </div>
+
+          <!-- ✅ Warning message -->
+          <div class="alert alert-warning">
+            <h6 class="alert-heading mb-1">⚠️ Perhatian!</h6>
+            <ul class="mb-0">
+              <li>Pastikan booking belum diproses oleh PIC lain</li>
+              <li>Alasan penolakan akan dikirim ke pemohon</li>
+              <li>Setelah ditolak, pemohon dapat merevisi dan mengajukan ulang</li>
+            </ul>
           </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
-          <button type="submit" class="btn btn-danger">Tolak</button>
+          <button type="submit" class="btn btn-danger">
+            <i class="bx bx-x me-1"></i> Ya, Tolak
+          </button>
         </div>
       </form>
     </div>
