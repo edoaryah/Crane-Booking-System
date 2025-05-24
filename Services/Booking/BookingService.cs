@@ -466,6 +466,7 @@ namespace AspnetCoreMvcFull.Services
           BookingNumber = "TEMP", // Temporary value
           DocumentNumber = Guid.NewGuid().ToString(),
           Name = bookingViewModel.Name,
+          LdapUser = bookingViewModel.LdapUser, // ✅ Simpan LDAP user
           Department = bookingViewModel.Department,
           CraneId = bookingViewModel.CraneId,
 
@@ -565,7 +566,7 @@ namespace AspnetCoreMvcFull.Services
         var manager = await _employeeService.GetManagerByDepartmentAsync(booking.Department);
 
         // Dapatkan data user yang melakukan booking
-        var user = await _employeeService.GetEmployeeByLdapUserAsync(booking.Name);
+        var user = await _employeeService.GetEmployeeByLdapUserAsync(bookingViewModel.LdapUser);
 
         // Kirim email notifikasi ke user
         if (user != null && !string.IsNullOrEmpty(user.Email))

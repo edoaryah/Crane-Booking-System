@@ -87,7 +87,7 @@ namespace AspnetCoreMvcFull.Services
       byte[] bytesStage = Encoding.UTF8.GetBytes(stage.ToString());
       string encodedStage = Convert.ToBase64String(bytesStage);
 
-      string approvalUrl = $"{_baseUrl}/Approval/Manager?document_number={booking.Id}&badge_number={encodedBN}&stage={encodedStage}";
+      string approvalUrl = $"{_baseUrl}/Approval/Manager?document_number={booking.DocumentNumber}&badge_number={encodedBN}&stage={encodedStage}";
 
       return $@"<!doctype html>
             <html lang=""en"">
@@ -149,7 +149,7 @@ namespace AspnetCoreMvcFull.Services
       byte[] bytesStage = Encoding.UTF8.GetBytes(stage.ToString());
       string encodedStage = Convert.ToBase64String(bytesStage);
 
-      string approvalUrl = $"{_baseUrl}/Approval/Pic?document_number={booking.Id}&badge_number={encodedBN}&stage={encodedStage}";
+      string approvalUrl = $"{_baseUrl}/Approval/Pic?document_number={booking.DocumentNumber}&badge_number={encodedBN}&stage={encodedStage}";
 
       return $@"<!doctype html>
             <html lang=""en"">

@@ -38,6 +38,8 @@ namespace AspnetCoreMvcFull.Models
     [Required]
     public required string Department { get; set; }
 
+    public string LdapUser { get; set; } = string.Empty;
+
     // Ubah CraneId menjadi nullable
     public int? CraneId { get; set; }
 

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using AspnetCoreMvcFull.Services;
-using AspnetCoreMvcFull.Models;
+using AspnetCoreMvcFull.Models.Role;
+using AspnetCoreMvcFull.Services.Role;
 using AspnetCoreMvcFull.ViewModels;
 using System.Text;
 
@@ -11,17 +12,20 @@ namespace AspnetCoreMvcFull.Controllers
     private readonly IBookingService _bookingService;
     private readonly IBookingApprovalService _approvalService;
     private readonly IEmployeeService _employeeService;
+    private readonly IRoleService _roleService; // ✅ Tambahkan
     private readonly ILogger<ApprovalController> _logger;
 
     public ApprovalController(
         IBookingService bookingService,
         IBookingApprovalService approvalService,
         IEmployeeService employeeService,
+        IRoleService roleService,
         ILogger<ApprovalController> logger)
     {
       _bookingService = bookingService;
       _approvalService = approvalService;
       _employeeService = employeeService;
+      _roleService = roleService;
       _logger = logger;
     }
 
@@ -32,7 +36,7 @@ namespace AspnetCoreMvcFull.Controllers
       try
       {
         // Decode parameter dari Base64
-        int bookingId = int.Parse(document_number); // Atau DecodeParameter<int> jika perlu
+        string documentNumber = document_number; // Sekarang berupa GUID string
         string badgeNumber = DecodeParameter<string>(badge_number);
 
         // Validasi badge number
@@ -43,7 +47,7 @@ namespace AspnetCoreMvcFull.Controllers
         }
 
         // Dapatkan detail booking
-        var booking = await _bookingService.GetBookingByIdAsync(bookingId);
+        var booking = await _bookingService.GetBookingByDocumentNumberAsync(documentNumber);
         if (booking == null)
         {
           return NotFound();
@@ -58,7 +62,7 @@ namespace AspnetCoreMvcFull.Controllers
         // Siapkan view model
         var viewModel = new ApprovalViewModel
         {
-          BookingId = bookingId,
+          BookingId = booking.Id,
           BadgeNumber = badgeNumber,
           EmployeeName = employee.Name,
           BookingDetails = booking
@@ -73,34 +77,94 @@ namespace AspnetCoreMvcFull.Controllers
       }
     }
 
+    // // Halaman approval untuk PIC Crane
+    // [HttpGet]
+    // public async Task<IActionResult> Pic(string document_number, string badge_number, string stage)
+    // {
+    //   try
+    //   {
+    //     // Decode parameter dari Base64
+    //     int bookingId = int.Parse(document_number); ;
+    //     string badgeNumber = DecodeParameter<string>(badge_number);
+
+    //     // Validasi badge number
+    //     var employee = await _employeeService.GetEmployeeByLdapUserAsync(badgeNumber);
+    //     if (employee == null || employee.PositionLvl != "SUPV_LVL" || employee.Department != "Stores & Inventory Control")
+    //     {
+    //       return View("AccessDenied");
+    //     }
+
+    //     // Dapatkan detail booking
+    //     var booking = await _bookingService.GetBookingByIdAsync(bookingId);
+    //     if (booking == null)
+    //     {
+    //       return NotFound();
+    //     }
+
+    //     // Siapkan view model
+    //     var viewModel = new ApprovalViewModel
+    //     {
+    //       BookingId = bookingId,
+    //       BadgeNumber = badgeNumber,
+    //       EmployeeName = employee.Name,
+    //       BookingDetails = booking
+    //     };
+
+    //     return View(viewModel);
+    //   }
+    //   catch (Exception ex)
+    //   {
+    //     _logger.LogError(ex, "Error displaying PIC approval page");
+    //     return View("Error");
+    //   }
+    // }
     // Halaman approval untuk PIC Crane
+
+    // [AllowAnonymous]
     [HttpGet]
     public async Task<IActionResult> Pic(string document_number, string badge_number, string stage)
     {
       try
       {
         // Decode parameter dari Base64
-        int bookingId = int.Parse(document_number); ;
+        string documentNumber = document_number; // Sekarang berupa GUID string
         string badgeNumber = DecodeParameter<string>(badge_number);
 
-        // Validasi badge number
+        // ✅ VALIDASI 1: Cek user exists
         var employee = await _employeeService.GetEmployeeByLdapUserAsync(badgeNumber);
-        if (employee == null || employee.PositionLvl != "SUPV_LVL" || employee.Department != "Stores & Inventory Control")
+        if (employee == null)
         {
+          _logger.LogWarning("Employee not found for LDAP: {BadgeNumber}", badgeNumber);
+          ViewBag.Message = $"User with LDAP '{badgeNumber}' not found.";
           return View("AccessDenied");
         }
 
+        _logger.LogInformation("Employee found: {Name} ({LdapUser}) from {Department}",
+            employee.Name, employee.LdapUser, employee.Department);
+
+        // ✅ VALIDASI 2: Cek role PIC (ganti validasi department)
+        var isPic = await _roleService.UserHasRoleAsync(badgeNumber, Roles.PIC);
+        if (!isPic)
+        {
+          _logger.LogWarning("User {BadgeNumber} ({Name}) does not have PIC role", badgeNumber, employee.Name);
+          ViewBag.Message = $"User '{employee.Name}' doesn't have PIC role permission.";
+          return View("AccessDenied");
+        }
+
+        _logger.LogInformation("User {Name} has PIC role - access granted", employee.Name);
+
         // Dapatkan detail booking
-        var booking = await _bookingService.GetBookingByIdAsync(bookingId);
+        var booking = await _bookingService.GetBookingByDocumentNumberAsync(documentNumber);
         if (booking == null)
         {
+          _logger.LogWarning("Booking not found with DocumentNumber: {DocumentNumber}", documentNumber);
           return NotFound();
         }
 
         // Siapkan view model
         var viewModel = new ApprovalViewModel
         {
-          BookingId = bookingId,
+          BookingId = booking.Id,
           BadgeNumber = badgeNumber,
           EmployeeName = employee.Name,
           BookingDetails = booking

@@ -113,11 +113,14 @@ namespace AspnetCoreMvcFull.ViewModels.BookingManagement
   // ViewModel untuk membuat booking baru
   public class BookingCreateViewModel
   {
-    [Required(ErrorMessage = "Name is required")]
+    // ✅ HAPUS [Required] karena akan di-set dari claims di server
     public string Name { get; set; } = string.Empty;
 
-    [Required(ErrorMessage = "Department is required")]
+    // ✅ HAPUS [Required] karena akan di-set dari claims di server
     public string Department { get; set; } = string.Empty;
+
+    // ✅ TAMBAHKAN LdapUser untuk email
+    public string LdapUser { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Crane is required")]
     public int CraneId { get; set; }

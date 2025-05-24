@@ -188,6 +188,26 @@ namespace AspnetCoreMvcFull.Controllers
     {
       try
       {
+        // ✅ AMBIL DATA USER DARI CLAIM DI SERVER-SIDE (AMAN)
+        var userName = User.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown User";
+        var ldapUser = User.FindFirst("ldapuser")?.Value ?? string.Empty;
+        var userDepartment = User.FindFirst("department")?.Value ?? string.Empty;
+
+        // ✅ Validasi data user dari claim
+        if (string.IsNullOrEmpty(ldapUser))
+        {
+          _logger.LogWarning("LDAP user not found in claims for user: {Name}", userName);
+          TempData["BookingFormErrorMessage"] = "User authentication error. Please login again.";
+          return RedirectToAction("Index");
+        }
+
+        // ✅ SET DATA USER KE VIEWMODEL (DARI CLAIM, BUKAN DARI FORM)
+        viewModel.Name = userName;
+        viewModel.LdapUser = ldapUser;
+        viewModel.Department = userDepartment;
+
+        _logger.LogInformation("Creating booking for user: {Name} (LDAP: {LdapUser})", userName, ldapUser);
+
         if (ModelState.IsValid)
         {
           var createdBooking = await _bookingService.CreateBookingAsync(viewModel);

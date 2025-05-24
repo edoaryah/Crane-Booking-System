@@ -53,7 +53,7 @@ namespace AspnetCoreMvcFull.Services
         await _context.SaveChangesAsync();
 
         // Kirim notifikasi email ke user
-        var user = await _employeeService.GetEmployeeByLdapUserAsync(booking.Name);
+        var user = await _employeeService.GetEmployeeByLdapUserAsync(booking.LdapUser);
         if (user != null && !string.IsNullOrEmpty(user.Email))
         {
           await _emailService.SendBookingManagerApprovedEmailAsync(booking, user.Email);
@@ -112,7 +112,7 @@ namespace AspnetCoreMvcFull.Services
         await _context.SaveChangesAsync();
 
         // Kirim notifikasi email ke user
-        var user = await _employeeService.GetEmployeeByLdapUserAsync(booking.Name);
+        var user = await _employeeService.GetEmployeeByLdapUserAsync(booking.LdapUser);
         if (user != null && !string.IsNullOrEmpty(user.Email))
         {
           await _emailService.SendBookingRejectedEmailAsync(
@@ -160,7 +160,7 @@ namespace AspnetCoreMvcFull.Services
         await _context.SaveChangesAsync();
 
         // Kirim notifikasi email ke user
-        var user = await _employeeService.GetEmployeeByLdapUserAsync(booking.Name);
+        var user = await _employeeService.GetEmployeeByLdapUserAsync(booking.LdapUser);
         if (user != null && !string.IsNullOrEmpty(user.Email))
         {
           await _emailService.SendBookingApprovedEmailAsync(booking, user.Email);
@@ -203,7 +203,7 @@ namespace AspnetCoreMvcFull.Services
         await _context.SaveChangesAsync();
 
         // Kirim notifikasi email ke user
-        var user = await _employeeService.GetEmployeeByLdapUserAsync(booking.Name);
+        var user = await _employeeService.GetEmployeeByLdapUserAsync(booking.LdapUser);
         if (user != null && !string.IsNullOrEmpty(user.Email))
         {
           await _emailService.SendBookingRejectedEmailAsync(

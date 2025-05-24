@@ -149,13 +149,12 @@
             <div class="row mb-3">
               <div class="col-md-6">
                 <label class="form-label required-label">Requestor Name</label>
-                <input id="name" name="name" class="form-control" value="@userName" required readonly />
+                <input id="name" class="form-control" value="@userName" required readonly />
                 <small class="text-muted">Automatically filled based on your login information</small>
               </div>
               <div class="col-md-6">
                 <label class="form-label required-label">Department Name</label>
-                <input id="department" name="department" class="form-control" value="@userDepartment" required
-                  readonly />
+                <input id="department" class="form-control" value="@userDepartment" required readonly />
                 <small class="text-muted">Automatically filled based on your login information</small>
               </div>
             </div>
@@ -677,21 +676,21 @@
 
           const cell = document.createElement('td');
           cell.innerHTML = `
-              <div class="form-check d-flex justify-content-center flex-column align-items-center">
-                <input type="checkbox" class="form-check-input shift-checkbox"
-                  id="shift-${shiftId}-${dayShift.date}"
-                  name="shiftSelections[${index}].selectedShiftIds[]"
-                  value="${shiftId}"
-                  data-date="${dayShift.date}"
-                  data-shift-id="${shiftId}"
-                  ${isSelected ? 'checked' : ''}
-                  ${isDisabled ? 'disabled' : ''} />
-                <span class="shift-status ${statusClass}">
-                  ${statusText}
-                </span>
-                <input type="hidden" name="shiftSelections[${index}].date" value="${dayShift.date}" />
-              </div>
-            `;
+                  <div class="form-check d-flex justify-content-center flex-column align-items-center">
+                    <input type="checkbox" class="form-check-input shift-checkbox"
+                      id="shift-${shiftId}-${dayShift.date}"
+                      name="shiftSelections[${index}].selectedShiftIds[]"
+                      value="${shiftId}"
+                      data-date="${dayShift.date}"
+                      data-shift-id="${shiftId}"
+                      ${isSelected ? 'checked' : ''}
+                      ${isDisabled ? 'disabled' : ''} />
+                    <span class="shift-status ${statusClass}">
+                      ${statusText}
+                    </span>
+                    <input type="hidden" name="shiftSelections[${index}].date" value="${dayShift.date}" />
+                  </div>
+                `;
 
           row.appendChild(cell);
         });
@@ -720,31 +719,31 @@
       const row = document.createElement('tr');
 
       row.innerHTML = `
-          <td style="min-width: 220px; padding-right: 5px;">
-            <input type="text" class="form-control item-name"
-                  name="items[${rowIndex}].itemName" required />
-          </td>
-          <td style="min-width: 140px; padding-right: 5px;">
-            <input type="number" class="form-control item-height"
-                  name="items[${rowIndex}].height"
-                  min="0.01" step="0.01" required />
-          </td>
-          <td style="min-width: 140px; padding-right: 5px;">
-            <input type="number" class="form-control item-weight"
-                  name="items[${rowIndex}].weight"
-                  min="0.01" step="0.01" required />
-          </td>
-          <td style="min-width: 140px; padding-right: 5px;">
-            <input type="number" class="form-control item-quantity"
-                  name="items[${rowIndex}].quantity"
-                  min="1" step="1" value="1" required />
-          </td>
-          <td style="width: 1%; white-space: nowrap;">
-            <button type="button" class="btn btn-outline-danger btn-sm remove-item-btn">
-              <i class="bx bx-trash"></i>
-            </button>
-          </td>
-        `;
+              <td style="min-width: 220px; padding-right: 5px;">
+                <input type="text" class="form-control item-name"
+                      name="items[${rowIndex}].itemName" required />
+              </td>
+              <td style="min-width: 140px; padding-right: 5px;">
+                <input type="number" class="form-control item-height"
+                      name="items[${rowIndex}].height"
+                      min="0.01" step="0.01" required />
+              </td>
+              <td style="min-width: 140px; padding-right: 5px;">
+                <input type="number" class="form-control item-weight"
+                      name="items[${rowIndex}].weight"
+                      min="0.01" step="0.01" required />
+              </td>
+              <td style="min-width: 140px; padding-right: 5px;">
+                <input type="number" class="form-control item-quantity"
+                      name="items[${rowIndex}].quantity"
+                      min="1" step="1" value="1" required />
+              </td>
+              <td style="width: 1%; white-space: nowrap;">
+                <button type="button" class="btn btn-outline-danger btn-sm remove-item-btn">
+                  <i class="bx bx-trash"></i>
+                </button>
+              </td>
+            `;
 
       const removeBtn = row.querySelector('.remove-item-btn');
       removeBtn.addEventListener('click', function () {
@@ -883,20 +882,20 @@
             const successModal = new bootstrap.Modal(document.getElementById('successModal'), {
               backdrop: 'static',
             keyboard: false
-            });
+                    });
             successModal.show();
 
             document.querySelector('#successModal .btn-close').addEventListener('click', function() {
               window.location.href = '@(TempData["BookingDocumentNumber"] != null ? $"/Booking/Details?documentNumber={TempData["BookingDocumentNumber"]}" : "/Booking/Calendar")';
-            });
+                    });
 
             fetch('/Booking/ClearTempData', {
               method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             'X-CSRF-TOKEN': document.querySelector('input[name="__RequestVerificationToken"]').value
-              }
-            });
+                      }
+                    });
           </text>
       }
 
@@ -908,8 +907,8 @@
             headers: {
               'Content-Type': 'application/json',
             'X-CSRF-TOKEN': document.querySelector('input[name="__RequestVerificationToken"]').value
-              }
-            });
+                      }
+                    });
           </text>
       }
 
@@ -920,6 +919,6 @@
             errorModal.show();
           </text>
       }
-      });
+          });
   </script>
 }
