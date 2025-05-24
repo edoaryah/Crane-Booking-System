@@ -137,33 +137,75 @@ namespace AspnetCoreMvcFull.Controllers
       }
     }
 
-    // Action untuk Manager menyetujui booking
+    // Controllers/ApprovalController.cs - Updated Manager methods
+
     [HttpPost]
     public async Task<IActionResult> ApproveByManager(int bookingId, string managerName)
     {
       try
       {
+        // ✅ Cek status booking terlebih dahulu
+        var booking = await _bookingService.GetBookingByIdAsync(bookingId);
+
+        // ✅ Handle jika booking sudah di-approve oleh manager lain
+        if (booking.Status == BookingStatus.ManagerApproved)
+        {
+          TempData["SuccessMessage"] = $"Booking #{booking.BookingNumber} sudah disetujui oleh Manager {booking.ManagerName} pada {booking.ManagerApprovalTime?.ToString("dd/MM/yyyy HH:mm")}.";
+          return RedirectToAction("Success");
+        }
+
+        // ✅ Handle jika booking sudah di-reject oleh manager
+        if (booking.Status == BookingStatus.ManagerRejected)
+        {
+          TempData["SuccessMessage"] = $"Booking #{booking.BookingNumber} sudah ditolak oleh Manager {booking.ManagerName} pada {booking.ManagerApprovalTime?.ToString("dd/MM/yyyy HH:mm")}.";
+          return RedirectToAction("Success");
+        }
+
+        // ✅ Handle jika booking sudah diproses lebih lanjut (PIC approved/rejected)
+        if (booking.Status == BookingStatus.PICApproved)
+        {
+          TempData["SuccessMessage"] = $"Booking #{booking.BookingNumber} sudah selesai diproses. Disetujui oleh Manager {booking.ManagerName} dan PIC {booking.ApprovedByPIC}.";
+          return RedirectToAction("Success");
+        }
+
+        if (booking.Status == BookingStatus.PICRejected)
+        {
+          TempData["SuccessMessage"] = $"Booking #{booking.BookingNumber} sudah diproses. Disetujui oleh Manager {booking.ManagerName} namun ditolak oleh PIC.";
+          return RedirectToAction("Success");
+        }
+
+        // ✅ Handle jika booking bukan dalam status yang tepat
+        if (booking.Status != BookingStatus.PendingApproval)
+        {
+          TempData["SuccessMessage"] = $"Booking #{booking.BookingNumber} tidak dapat disetujui karena statusnya saat ini adalah {booking.Status}.";
+          return RedirectToAction("Success");
+        }
+
         var result = await _approvalService.ApproveByManagerAsync(bookingId, managerName);
         if (result)
         {
-          TempData["SuccessMessage"] = "Booking berhasil disetujui.";
+          TempData["SuccessMessage"] = "Booking berhasil disetujui sebagai Manager.";
           return RedirectToAction("Success");
         }
         else
         {
-          TempData["ErrorMessage"] = "Terjadi kesalahan saat menyetujui booking.";
-          return RedirectToAction("Error");
+          TempData["SuccessMessage"] = "Booking tidak dapat disetujui karena mungkin sudah diproses oleh Manager lain.";
+          return RedirectToAction("Success");
         }
+      }
+      catch (KeyNotFoundException)
+      {
+        TempData["SuccessMessage"] = "Booking tidak ditemukan.";
+        return RedirectToAction("Success");
       }
       catch (Exception ex)
       {
         _logger.LogError(ex, "Error approving booking by manager");
-        TempData["ErrorMessage"] = "Terjadi kesalahan saat menyetujui booking.";
-        return RedirectToAction("Error");
+        TempData["SuccessMessage"] = "Terjadi kesalahan sistem saat menyetujui booking.";
+        return RedirectToAction("Success");
       }
     }
 
-    // Action untuk Manager menolak booking
     [HttpPost]
     public async Task<IActionResult> RejectByManager(int bookingId, string managerName, string rejectReason)
     {
@@ -172,28 +214,124 @@ namespace AspnetCoreMvcFull.Controllers
         if (string.IsNullOrWhiteSpace(rejectReason))
         {
           TempData["ErrorMessage"] = "Alasan penolakan tidak boleh kosong.";
-          return RedirectToAction("Manager", new { id = bookingId });
+          // Redirect kembali ke halaman Manager dengan document number
+          var bookingForRedirect = await _bookingService.GetBookingByIdAsync(bookingId);
+          return RedirectToAction("Manager", new { document_number = bookingForRedirect.DocumentNumber });
+        }
+
+        // ✅ Cek status booking terlebih dahulu
+        var booking = await _bookingService.GetBookingByIdAsync(bookingId);
+
+        // ✅ Handle jika booking sudah di-approve oleh manager lain
+        if (booking.Status == BookingStatus.ManagerApproved)
+        {
+          TempData["SuccessMessage"] = $"Booking #{booking.BookingNumber} sudah disetujui oleh Manager {booking.ManagerName} pada {booking.ManagerApprovalTime?.ToString("dd/MM/yyyy HH:mm")}. Tidak dapat ditolak.";
+          return RedirectToAction("Success");
+        }
+
+        // ✅ Handle jika booking sudah di-reject oleh manager
+        if (booking.Status == BookingStatus.ManagerRejected)
+        {
+          TempData["SuccessMessage"] = $"Booking #{booking.BookingNumber} sudah ditolak oleh Manager {booking.ManagerName} pada {booking.ManagerApprovalTime?.ToString("dd/MM/yyyy HH:mm")}.";
+          return RedirectToAction("Success");
+        }
+
+        // ✅ Handle jika booking sudah diproses lebih lanjut
+        if (booking.Status == BookingStatus.PICApproved || booking.Status == BookingStatus.PICRejected)
+        {
+          TempData["SuccessMessage"] = $"Booking #{booking.BookingNumber} sudah diproses lebih lanjut dan tidak dapat ditolak di level Manager.";
+          return RedirectToAction("Success");
+        }
+
+        // ✅ Handle jika booking bukan dalam status yang tepat
+        if (booking.Status != BookingStatus.PendingApproval)
+        {
+          TempData["SuccessMessage"] = $"Booking #{booking.BookingNumber} tidak dapat ditolak karena statusnya saat ini adalah {booking.Status}.";
+          return RedirectToAction("Success");
         }
 
         var result = await _approvalService.RejectByManagerAsync(bookingId, managerName, rejectReason);
         if (result)
         {
-          TempData["SuccessMessage"] = "Booking telah ditolak.";
+          TempData["SuccessMessage"] = "Booking telah ditolak sebagai Manager.";
           return RedirectToAction("Success");
         }
         else
         {
-          TempData["ErrorMessage"] = "Terjadi kesalahan saat menolak booking.";
-          return RedirectToAction("Error");
+          TempData["SuccessMessage"] = "Booking tidak dapat ditolak karena mungkin sudah diproses oleh Manager lain.";
+          return RedirectToAction("Success");
         }
+      }
+      catch (KeyNotFoundException)
+      {
+        TempData["SuccessMessage"] = "Booking tidak ditemukan.";
+        return RedirectToAction("Success");
       }
       catch (Exception ex)
       {
         _logger.LogError(ex, "Error rejecting booking by manager");
-        TempData["ErrorMessage"] = "Terjadi kesalahan saat menolak booking.";
-        return RedirectToAction("Error");
+        TempData["SuccessMessage"] = "Terjadi kesalahan sistem saat menolak booking.";
+        return RedirectToAction("Success");
       }
     }
+
+    // // Action untuk Manager menyetujui booking
+    // [HttpPost]
+    // public async Task<IActionResult> ApproveByManager(int bookingId, string managerName)
+    // {
+    //   try
+    //   {
+    //     var result = await _approvalService.ApproveByManagerAsync(bookingId, managerName);
+    //     if (result)
+    //     {
+    //       TempData["SuccessMessage"] = "Booking berhasil disetujui.";
+    //       return RedirectToAction("Success");
+    //     }
+    //     else
+    //     {
+    //       TempData["ErrorMessage"] = "Terjadi kesalahan saat menyetujui booking.";
+    //       return RedirectToAction("Error");
+    //     }
+    //   }
+    //   catch (Exception ex)
+    //   {
+    //     _logger.LogError(ex, "Error approving booking by manager");
+    //     TempData["ErrorMessage"] = "Terjadi kesalahan saat menyetujui booking.";
+    //     return RedirectToAction("Error");
+    //   }
+    // }
+
+    // // Action untuk Manager menolak booking
+    // [HttpPost]
+    // public async Task<IActionResult> RejectByManager(int bookingId, string managerName, string rejectReason)
+    // {
+    //   try
+    //   {
+    //     if (string.IsNullOrWhiteSpace(rejectReason))
+    //     {
+    //       TempData["ErrorMessage"] = "Alasan penolakan tidak boleh kosong.";
+    //       return RedirectToAction("Manager", new { id = bookingId });
+    //     }
+
+    //     var result = await _approvalService.RejectByManagerAsync(bookingId, managerName, rejectReason);
+    //     if (result)
+    //     {
+    //       TempData["SuccessMessage"] = "Booking telah ditolak.";
+    //       return RedirectToAction("Success");
+    //     }
+    //     else
+    //     {
+    //       TempData["ErrorMessage"] = "Terjadi kesalahan saat menolak booking.";
+    //       return RedirectToAction("Error");
+    //     }
+    //   }
+    //   catch (Exception ex)
+    //   {
+    //     _logger.LogError(ex, "Error rejecting booking by manager");
+    //     TempData["ErrorMessage"] = "Terjadi kesalahan saat menolak booking.";
+    //     return RedirectToAction("Error");
+    //   }
+    // }
 
     [HttpPost]
     public async Task<IActionResult> ApproveByPic(int bookingId, string picName)

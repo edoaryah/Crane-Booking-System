@@ -17,8 +17,8 @@
           <span
             class="badge
                         @(Model.BookingDetails?.Status == AspnetCoreMvcFull.Models.BookingStatus.PICApproved ? "bg-success" :
-                                      Model.BookingDetails?.Status == AspnetCoreMvcFull.Models.BookingStatus.PICRejected ? "bg-danger" :
-                                      Model.BookingDetails?.Status == AspnetCoreMvcFull.Models.BookingStatus.ManagerApproved ? "bg-warning" : "bg-secondary")">
+                                                  Model.BookingDetails?.Status == AspnetCoreMvcFull.Models.BookingStatus.PICRejected ? "bg-danger" :
+                                                  Model.BookingDetails?.Status == AspnetCoreMvcFull.Models.BookingStatus.ManagerApproved ? "bg-warning" : "bg-secondary")">
             @Model.BookingDetails?.Status
           </span>
         </div>
@@ -112,7 +112,7 @@
           <div class="row mb-4">
             <div class="col-md-6">
               <div class="mb-3">
-                <label class="form-label">Status Persetujuan Manager</label>
+                <label class="form-label">Status </label>
                 <input type="text" class="form-control bg-success text-white"
                   value="Disetujui oleh @Model.BookingDetails?.ManagerName pada @Model.BookingDetails?.ManagerApprovalTime?.ToString("dd/MM/yyyy HH:mm")"
                   readonly />
