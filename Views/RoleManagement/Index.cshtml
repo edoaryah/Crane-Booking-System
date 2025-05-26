@@ -67,6 +67,29 @@
   </style>
 }
 
+@* ✅ TAMBAHAN: Informasi Super Admin *@
+@if (ViewBag.IsSuperAdmin == true)
+{
+  <div class="alert alert-warning alert-dismissible fade show" role="alert">
+    <div class="d-flex align-items-center">
+      <i class="bx bx-shield-quarter me-2" style="font-size: 1.5rem;"></i>
+      <div>
+        <strong>Super Admin Access</strong>
+        <div class="mt-1">@ViewBag.SuperAdminMessage</div>
+        <div class="text-muted small mt-2">
+          <strong>Next Steps:</strong>
+          <ol class="mb-0 ps-3 mt-1">
+            <li>Assign yourself the "Admin" role</li>
+            <li>Assign other users appropriate roles</li>
+            <li>Super Admin will auto-disable when Admin role is assigned</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+}
+
 <div id="alertContainer">
   @if (ViewBag.SuccessMessage != null)
   {

@@ -10,16 +10,18 @@ namespace AspnetCoreMvcFull.Controllers
 {
   [Authorize]
   [ServiceFilter(typeof(AuthorizationFilter))]
-  [RequireRole("admin")]
+  [RequireRole("admin")]  // ✅ Tetap ada requirement, tapi bisa di-bypass oleh Super Admin yang aktif
   public class RoleManagementController : Controller
   {
     private readonly IRoleService _roleService;
     private readonly ILogger<RoleManagementController> _logger;
+    private readonly IConfiguration _configuration;
 
-    public RoleManagementController(IRoleService roleService, ILogger<RoleManagementController> logger)
+    public RoleManagementController(IRoleService roleService, ILogger<RoleManagementController> logger, IConfiguration configuration)
     {
       _roleService = roleService;
       _logger = logger;
+      _configuration = configuration;
     }
 
     #region Role Views
@@ -29,6 +31,17 @@ namespace AspnetCoreMvcFull.Controllers
     {
       try
       {
+        // ✅ SMART SUPER ADMIN CHECK
+        var currentUser = User.FindFirst("ldapuser")?.Value;
+        var superAdminStatus = await GetSuperAdminStatusAsync(currentUser);
+
+        if (superAdminStatus.IsActive)
+        {
+          _logger.LogInformation("Super admin {User} accessing role management", currentUser);
+          ViewBag.IsSuperAdmin = true;
+          ViewBag.SuperAdminMessage = superAdminStatus.Message;
+        }
+
         var roles = await _roleService.GetAllRolesAsync();
         var viewModel = new RoleIndexViewModel
         {
@@ -61,6 +74,17 @@ namespace AspnetCoreMvcFull.Controllers
     {
       try
       {
+        // ✅ SMART SUPER ADMIN CHECK
+        var currentUser = User.FindFirst("ldapuser")?.Value;
+        var superAdminStatus = await GetSuperAdminStatusAsync(currentUser);
+
+        if (superAdminStatus.IsActive)
+        {
+          _logger.LogInformation("Super admin {User} accessing users for role {RoleName}", currentUser, roleName);
+          ViewBag.IsSuperAdmin = true;
+          ViewBag.SuperAdminMessage = superAdminStatus.Message;
+        }
+
         // Validate role exists
         var role = await _roleService.GetRoleByNameAsync(roleName);
         if (role == null)
@@ -128,6 +152,14 @@ namespace AspnetCoreMvcFull.Controllers
         // Get current user's ldap
         var currentUser = User.FindFirst("ldapuser")?.Value ?? "system";
 
+        // ✅ SMART SUPER ADMIN LOG
+        var superAdminStatus = await GetSuperAdminStatusAsync(currentUser);
+        if (superAdminStatus.IsActive)
+        {
+          _logger.LogInformation("Super admin {User} adding user {TargetUser} to role {RoleName}",
+                               currentUser, model.LdapUser, model.RoleName);
+        }
+
         // Validate role
         if (!await _roleService.IsRoleValidAsync(model.RoleName))
         {
@@ -137,11 +169,21 @@ namespace AspnetCoreMvcFull.Controllers
         // Add user to role
         var result = await _roleService.AssignRoleToUserAsync(model, currentUser);
 
+        // ✅ SPECIAL HANDLING: Jika assign role Admin, beri notifikasi tentang SuperAdmin
+        var responseMessage = $"User {result.EmployeeName} berhasil ditambahkan ke role {model.RoleName}.";
+
+        if (model.RoleName.ToLower() == "admin" && superAdminStatus.IsActive)
+        {
+          responseMessage += " \n\nℹ️ Super Admin akan otomatis nonaktif karena sudah ada user dengan role Admin.";
+          _logger.LogInformation("SuperAdmin will be auto-disabled due to Admin role assignment");
+        }
+
         return Json(new
         {
           success = true,
-          message = $"User {result.EmployeeName} berhasil ditambahkan ke role {model.RoleName}.",
-          user = result
+          message = responseMessage,
+          user = result,
+          superAdminDisabled = model.RoleName.ToLower() == "admin" && superAdminStatus.IsActive
         });
       }
       catch (InvalidOperationException ex)
@@ -174,6 +216,13 @@ namespace AspnetCoreMvcFull.Controllers
 
         // Get current user's ldap
         var currentUser = User.FindFirst("ldapuser")?.Value ?? "system";
+
+        // ✅ SMART SUPER ADMIN LOG
+        var superAdminStatus = await GetSuperAdminStatusAsync(currentUser);
+        if (superAdminStatus.IsActive)
+        {
+          _logger.LogInformation("Super admin {User} updating user role ID {RoleId}", currentUser, model.Id);
+        }
 
         // Update user role
         var updatedUserRole = await _roleService.UpdateUserRoleAsync(model.Id, model, currentUser);
@@ -210,6 +259,13 @@ namespace AspnetCoreMvcFull.Controllers
       {
         // Get current user's ldap
         var currentUser = User.FindFirst("ldapuser")?.Value ?? "system";
+
+        // ✅ SMART SUPER ADMIN LOG
+        var superAdminStatus = await GetSuperAdminStatusAsync(currentUser);
+        if (superAdminStatus.IsActive)
+        {
+          _logger.LogInformation("Super admin {User} removing user role ID {RoleId}", currentUser, id);
+        }
 
         await _roleService.RemoveRoleFromUserAsync(id);
 
@@ -307,6 +363,84 @@ namespace AspnetCoreMvcFull.Controllers
         _logger.LogError(ex, "Error mengambil data departemen");
         return Json(new { success = false, message = "Terjadi kesalahan saat mengambil data departemen." });
       }
+    }
+
+    #endregion
+
+    #region ✅ SMART SUPER ADMIN Helper Methods
+
+    /// <summary>
+    /// ✅ SMART CHECK: Mendapatkan status SuperAdmin yang cerdas
+    /// </summary>
+    private async Task<SuperAdminStatus> GetSuperAdminStatusAsync(string? ldapUser)
+    {
+      if (string.IsNullOrEmpty(ldapUser))
+      {
+        return new SuperAdminStatus { IsActive = false, Message = "No LDAP user" };
+      }
+
+      try
+      {
+        // 1. Cek apakah user ada dalam daftar SuperAdmins di config
+        if (!IsSuperAdminInConfig(ldapUser))
+        {
+          return new SuperAdminStatus { IsActive = false, Message = "Not in SuperAdmins config" };
+        }
+
+        // 2. SMART CHECK: Apakah sudah ada user dengan role Admin?
+        var hasAdminUsers = await _roleService.GetUsersByRoleNameAsync("admin");
+
+        if (hasAdminUsers != null && hasAdminUsers.Any())
+        {
+          return new SuperAdminStatus
+          {
+            IsActive = false,
+            Message = $"SuperAdmin auto-disabled: {hasAdminUsers.Count} Admin user(s) already exist"
+          };
+        }
+
+        // 3. Jika belum ada Admin, SuperAdmin tetap aktif
+        return new SuperAdminStatus
+        {
+          IsActive = true,
+          Message = $"You are accessing as Super Admin ({ldapUser}). This bypass is active until an Admin role is assigned."
+        };
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Error checking smart super admin status for user {LdapUser}", ldapUser);
+        return new SuperAdminStatus { IsActive = false, Message = "Error checking status" };
+      }
+    }
+
+    /// <summary>
+    /// Cek apakah user ada dalam daftar SuperAdmins di konfigurasi
+    /// </summary>
+    private bool IsSuperAdminInConfig(string ldapUser)
+    {
+      try
+      {
+        // Ambil daftar super admin dari konfigurasi
+        var superAdmins = _configuration.GetSection("Security:SuperAdmins").Get<string[]>() ?? new string[0];
+
+        // Cek apakah user ada dalam daftar super admin (case insensitive)
+        return superAdmins.Any(admin =>
+            string.Equals(admin.Trim(), ldapUser.Trim(), StringComparison.OrdinalIgnoreCase));
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Error checking super admin config for user {LdapUser}", ldapUser);
+        return false;
+      }
+    }
+
+    /// <summary>
+    /// ✅ Helper class untuk status SuperAdmin
+    /// </summary>
+    private class SuperAdminStatus
+    {
+      public bool IsActive { get; set; }
+      public string Message { get; set; } = string.Empty;
     }
 
     #endregion
