@@ -4,7 +4,6 @@ using AspnetCoreMvcFull.Models;
 using AspnetCoreMvcFull.Models.Common;
 using AspnetCoreMvcFull.ViewModels.BookingManagement;
 using AspnetCoreMvcFull.ViewModels.HazardManagement;
-// using AspnetCoreMvcFull.Events;
 
 namespace AspnetCoreMvcFull.Services
 {
@@ -76,6 +75,7 @@ namespace AspnetCoreMvcFull.Services
           .Include(r => r.BookingItems)
           .Include(r => r.BookingHazards)
             .ThenInclude(bh => bh.Hazard)
+          .AsSplitQuery() // ✅ TAMBAH BARIS INI SAJA
           .FirstOrDefaultAsync(r => r.Id == id);
 
       if (booking == null)
@@ -568,26 +568,36 @@ namespace AspnetCoreMvcFull.Services
         var user = await _employeeService.GetEmployeeByLdapUserAsync(bookingViewModel.LdapUser);
 
         // Kirim email notifikasi ke user
-        if (user != null && !string.IsNullOrEmpty(user.Email))
+        _ = Task.Run(async () =>
         {
-          await _emailService.SendBookingSubmittedEmailAsync(booking, user.Email);
-        }
+          try
+          {
+            // Send email to user
+            if (user != null && !string.IsNullOrEmpty(user.Email))
+            {
+              await _emailService.SendBookingSubmittedEmailAsync(booking, user.Email);
+              _logger.LogInformation("User notification email sent for booking {BookingNumber}", booking.BookingNumber);
+            }
 
-        // Kirim email permintaan approval ke manager
-        if (manager != null && !string.IsNullOrEmpty(manager.Email) && !string.IsNullOrEmpty(manager.LdapUser))
-        {
-          await _emailService.SendManagerApprovalRequestEmailAsync(
-              booking,
-              manager.Email,
-              manager.Name,
-              manager.LdapUser);
-        }
-        else
-        {
-          _logger.LogWarning("Manager tidak ditemukan untuk departemen {Department}", booking.Department);
-        }
+            // Send email to manager
+            if (manager != null && !string.IsNullOrEmpty(manager.Email) && !string.IsNullOrEmpty(manager.LdapUser))
+            {
+              await _emailService.SendManagerApprovalRequestEmailAsync(
+                  booking,
+                  manager.Email,
+                  manager.Name,
+                  manager.LdapUser);
+              _logger.LogInformation("Manager approval email sent for booking {BookingNumber}", booking.BookingNumber);
+            }
+          }
+          catch (Exception emailEx)
+          {
+            _logger.LogError(emailEx, "Error sending emails for booking {BookingNumber}", booking.BookingNumber);
+            // Email failure should not affect booking creation
+          }
+        });
 
-        // Return the created booking with details
+        // Return the created booking immediately (tanpa menunggu email)
         return await GetBookingByIdAsync(booking.Id);
       }
       catch (Exception ex)
@@ -1030,7 +1040,6 @@ int craneId, DateTime startDate, DateTime endDate, int? excludeBookingId = null)
       return result;
     }
 
-    // Add this method to BookingService class (Services/Booking/BookingService.cs)
     public async Task<IEnumerable<BookingViewModel>> SearchBookingsAsync(string searchTerm, string currentUser, bool isPic, bool isAdmin)
     {
       try
@@ -1086,116 +1095,6 @@ int craneId, DateTime startDate, DateTime endDate, int? excludeBookingId = null)
       }
     }
 
-    // public async Task<PagedResult<BookingViewModel>> GetPagedBookingsAsync(BookingListFilterRequest request)
-    // {
-    //   try
-    //   {
-    //     // Start with all records
-    //     var query = _context.Bookings
-    //         .Include(b => b.Crane)
-    //         .AsQueryable();
-
-    //     // Apply filters
-    //     if (request.CraneId.HasValue && request.CraneId.Value > 0)
-    //     {
-    //       query = query.Where(b => b.CraneId == request.CraneId.Value);
-    //     }
-    //     else if (!string.IsNullOrEmpty(request.CraneCode))
-    //     {
-    //       query = query.Where(b => b.CraneCode.Contains(request.CraneCode) ||
-    //                             (b.Crane != null && b.Crane.Code.Contains(request.CraneCode)));
-    //     }
-
-    //     if (!string.IsNullOrEmpty(request.Department))
-    //     {
-    //       query = query.Where(b => b.Department.Contains(request.Department));
-    //     }
-
-    //     if (request.StartDate.HasValue)
-    //     {
-    //       var startDate = request.StartDate.Value.Date;
-    //       query = query.Where(b => b.EndDate >= startDate);
-    //     }
-
-    //     if (request.EndDate.HasValue)
-    //     {
-    //       var endDate = request.EndDate.Value.Date.AddDays(1).AddSeconds(-1);
-    //       query = query.Where(b => b.StartDate <= endDate);
-    //     }
-
-    //     if (request.Status.HasValue)
-    //     {
-    //       query = query.Where(b => b.Status == request.Status.Value);
-    //     }
-
-    //     // Apply global search
-    //     if (!string.IsNullOrEmpty(request.GlobalSearch))
-    //     {
-    //       var search = request.GlobalSearch.ToLower();
-    //       query = query.Where(b =>
-    //           b.BookingNumber.ToLower().Contains(search) ||
-    //           b.Name.ToLower().Contains(search) ||
-    //           b.Department.ToLower().Contains(search) ||
-    //           b.DocumentNumber.ToLower().Contains(search) ||
-    //           (b.CraneCode != null && b.CraneCode.ToLower().Contains(search)) ||
-    //           (b.Crane != null && b.Crane.Code.ToLower().Contains(search))
-    //       );
-    //     }
-
-    //     // Get total count before pagination
-    //     var totalCount = await query.CountAsync();
-
-    //     // Apply sorting
-    //     query = ApplyBookingSorting(query, request.SortBy, request.SortDesc);
-
-    //     // Apply pagination
-    //     var items = await query
-    //         .Skip((request.PageNumber - 1) * request.PageSize)
-    //         .Take(request.PageSize)
-    //         .ToListAsync();
-
-    //     // Map to view models
-    //     var bookings = items.Select(b => new BookingViewModel
-    //     {
-    //       Id = b.Id,
-    //       BookingNumber = b.BookingNumber,
-    //       DocumentNumber = b.DocumentNumber,
-    //       Name = b.Name,
-    //       Department = b.Department,
-    //       CraneId = b.CraneId ?? 0,
-    //       CraneCode = b.CraneId.HasValue ? b.Crane?.Code : b.CraneCode,
-    //       StartDate = b.StartDate,
-    //       EndDate = b.EndDate,
-    //       SubmitTime = b.SubmitTime,
-    //       Location = b.Location,
-    //       Status = b.Status,
-    //       ProjectSupervisor = b.ProjectSupervisor,
-    //       CostCode = b.CostCode,
-    //       PhoneNumber = b.PhoneNumber,
-    //       Description = b.Description
-    //     }).ToList();
-
-    //     // Calculate page count
-    //     var pageCount = (int)Math.Ceiling(totalCount / (double)request.PageSize);
-
-    //     // Create and return paged result
-    //     return new PagedResult<BookingViewModel>
-    //     {
-    //       Items = bookings,
-    //       TotalCount = totalCount,
-    //       PageCount = pageCount,
-    //       PageNumber = request.PageNumber,
-    //       PageSize = request.PageSize
-    //     };
-    //   }
-    //   catch (Exception ex)
-    //   {
-    //     _logger.LogError(ex, "Error getting paged bookings: {Message}", ex.Message);
-    //     throw;
-    //   }
-    // }
-
-    // Services/Booking/BookingService.cs
     public async Task<PagedResult<BookingViewModel>> GetPagedBookingsAsync(
         BookingListFilterRequest request,
         string? currentUser = null,

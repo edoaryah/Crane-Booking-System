@@ -219,7 +219,9 @@ namespace AspnetCoreMvcFull.Migrations
                     EndDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
                     Description = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
-                    CreatedBy = table.Column<string>(type: "text", nullable: false)
+                    CreatedBy = table.Column<string>(type: "text", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
+                    UpdatedBy = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -446,15 +448,6 @@ namespace AspnetCoreMvcFull.Migrations
                     { 22, "Standby", "Planned standby period", true, "Istirahat" },
                     { 23, "Standby", "Planned standby period", true, "Ganti Shift" },
                     { 24, "Standby", "Planned standby period", true, "Tidak Bisa Lewat" }
-                });
-
-            migrationBuilder.InsertData(
-                table: "UserRoles",
-                columns: new[] { "Id", "CreatedAt", "CreatedBy", "LdapUser", "Notes", "RoleName", "UpdatedAt", "UpdatedBy" },
-                values: new object[,]
-                {
-                    { 1, new DateTime(2023, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "system", "PIC1", "Default admin user created by seeder", "admin", null, null },
-                    { 2, new DateTime(2023, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "system", "PIC1", "Default admin user created by seeder", "pic", null, null }
                 });
 
             migrationBuilder.CreateIndex(

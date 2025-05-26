@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace AspnetCoreMvcFull.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250524202246_InitialCreate")]
+    [Migration("20250526202325_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -576,6 +576,13 @@ namespace AspnetCoreMvcFull.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CraneId");
@@ -662,26 +669,6 @@ namespace AspnetCoreMvcFull.Migrations
                         .IsUnique();
 
                     b.ToTable("UserRoles", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            CreatedAt = new DateTime(2023, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            LdapUser = "PIC1",
-                            Notes = "Default admin user created by seeder",
-                            RoleName = "admin"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            CreatedAt = new DateTime(2023, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            LdapUser = "PIC1",
-                            Notes = "Default admin user created by seeder",
-                            RoleName = "pic"
-                        });
                 });
 
             modelBuilder.Entity("AspnetCoreMvcFull.Models.ShiftDefinition", b =>
