@@ -84,7 +84,7 @@
       <li class='menu-item@(currentPage == "/" ? " active" : "")'>
         <a asp-controller="Dashboards" asp-action="Index" class="menu-link">
           <i class="menu-icon tf-icons bx bx-home-smile"></i>
-          <div class="text-truncate" data-i18n="Dashboards">Dashboards</div>
+          <div class="text-truncate" data-i18n="Dashboards">Dashboard</div>
         </a>
       </li>
     }
@@ -92,7 +92,7 @@
     <li class='menu-item@(currentPage == "/Calendar" || currentPage == "/Calendar" ? " active" : "")'>
       <a asp-controller="Calendar" asp-action="Index" class="menu-link">
         <i class="menu-icon tf-icons bx bx-calendar"></i>
-        <div class="text-truncate" data-i18n="Cards">Calendar</div>
+        <div class="text-truncate" data-i18n="Cards">Kalender</div>
       </a>
     </li>
 
@@ -102,7 +102,7 @@
       <li class='menu-item@(currentPage == "/CraneUsage" || currentPage.StartsWith("/CraneUsage") ? " active" : "")'>
         <a asp-controller="CraneUsage" asp-action="Index" class="menu-link">
           <i class="menu-icon tf-icons bx bx-time-five"></i>
-          <div class="text-truncate" data-i18n="CraneUsage">Crane Usage</div>
+          <div class="text-truncate" data-i18n="CraneUsage">Penggunaan Crane</div>
         </a>
       </li>
     }
@@ -129,7 +129,7 @@
         <li class='menu-item@(currentPage == "/Booking" ? " active" : "")'>
           <a asp-controller="Booking" asp-action="Index" class="menu-link">
             <i class="menu-icon tf-icons bx bx-detail"></i>
-            <div class="text-truncate" data-i18n="Cards">Booking Form</div>
+            <div class="text-truncate" data-i18n="Cards">Form Booking</div>
           </a>
         </li>
       }
@@ -140,7 +140,7 @@
         <li class='menu-item@(currentPage == "/BookingList" ? " active" : "")'>
           <a asp-controller="BookingList" asp-action="Index" class="menu-link">
             <i class="menu-icon tf-icons bx bx-history"></i>
-            <div class="text-truncate" data-i18n="Cards">Booking History</div>
+            <div class="text-truncate" data-i18n="Cards">Riwayat Booking</div>
           </a>
         </li>
       }
@@ -157,7 +157,7 @@
         <li class='menu-item@(currentPage == "/Maintenance" ? " active" : "")'>
           <a asp-controller="Maintenance" asp-action="Index" class="menu-link">
             <i class="menu-icon tf-icons bx bx-detail"></i>
-            <div class="text-truncate" data-i18n="Cards">Maintenance Form</div>
+            <div class="text-truncate" data-i18n="Cards">Form Maintenance</div>
           </a>
         </li>
       }
@@ -168,7 +168,7 @@
         <li class='menu-item@(currentPage == "/MaintenanceHistory" ? " active" : "")'>
           <a asp-controller="MaintenanceHistory" asp-action="Index" class="menu-link">
             <i class="menu-icon tf-icons bx bx-history"></i>
-            <div class="text-truncate" data-i18n="Cards">Maintenance History</div>
+            <div class="text-truncate" data-i18n="Cards">Riwayat Maintenance</div>
           </a>
         </li>
       }
@@ -178,33 +178,33 @@
     <!-- ✅ CONDITIONAL: Management Section - Only for Admin and PIC -->
     @if (canAccessManagement)
     {
-      <li class="menu-header small text-uppercase"><span class="menu-header-text">Management</span></li>
+      <li class="menu-header small text-uppercase"><span class="menu-header-text">Manajemen</span></li>
 
       <li class='menu-item@(currentPage == "/CraneManagement" ? " active" : "")'>
         <a asp-controller="CraneManagement" asp-action="Index" class="menu-link">
           <i class="menu-icon tf-icons bx bx-wrench"></i>
-          <div class="text-truncate" data-i18n="Roles">Crane Management</div>
+          <div class="text-truncate" data-i18n="Roles">Data Crane</div>
         </a>
       </li>
 
       <li class='menu-item@(currentPage == "/ShiftManagement" ? " active" : "")'>
         <a asp-controller="ShiftManagement" asp-action="Index" class="menu-link">
           <i class="menu-icon tf-icons bx bx-time"></i>
-          <div class="text-truncate" data-i18n="Shifts">Shift Management</div>
+          <div class="text-truncate" data-i18n="Shifts">Data Shift</div>
         </a>
       </li>
 
       <li class='menu-item@(currentPage == "/HazardManagement" ? " active" : "")'>
         <a asp-controller="HazardManagement" asp-action="Index" class="menu-link">
           <i class="menu-icon tf-icons bx bx-cog"></i>
-          <div class="text-truncate" data-i18n="Roles">Hazard Management</div>
+          <div class="text-truncate" data-i18n="Roles">Data Hazard</div>
         </a>
       </li>
 
       <li class='menu-item@(currentPage == "/UsageManagement" ? " active" : "")'>
         <a asp-controller="UsageManagement" asp-action="Index" class="menu-link">
           <i class="menu-icon tf-icons bx bx-cog"></i>
-          <div class="text-truncate" data-i18n="Roles">Usage Management</div>
+          <div class="text-truncate" data-i18n="Roles">Data Subkategori</div>
         </a>
       </li>
     }
@@ -215,11 +215,10 @@
       <li class='menu-item@(currentPage == "/RoleManagement" ? " active" : "")'>
         <a asp-controller="RoleManagement" asp-action="Index" class="menu-link">
           <i class="menu-icon tf-icons bx bx-shield"></i>
-          <div class="text-truncate" data-i18n="Roles">Role Management</div>
+          <div class="text-truncate" data-i18n="Roles">Data Role</div>
         </a>
       </li>
     }
   </ul>
 
 </aside>
-<!-- / Menu -->
