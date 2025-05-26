@@ -17,6 +17,7 @@ namespace AspnetCoreMvcFull.Controllers
     private readonly IHazardService _hazardService;
     private readonly IBookingService _bookingService;
     private readonly IRoleService _roleService;
+    private readonly IEmployeeService _employeeService;
     private readonly IScheduleConflictService _scheduleConflictService;
     private readonly ILogger<BookingController> _logger;
 
@@ -26,6 +27,7 @@ namespace AspnetCoreMvcFull.Controllers
         IHazardService hazardService,
         IBookingService bookingService,
         IRoleService roleService,
+        IEmployeeService employeeService,
         IScheduleConflictService scheduleConflictService,
         ILogger<BookingController> logger)
     {
@@ -34,6 +36,7 @@ namespace AspnetCoreMvcFull.Controllers
       _hazardService = hazardService;
       _bookingService = bookingService;
       _roleService = roleService;
+      _employeeService = employeeService;
       _scheduleConflictService = scheduleConflictService;
       _logger = logger;
     }
@@ -124,6 +127,63 @@ namespace AspnetCoreMvcFull.Controllers
       }
     }
 
+    // public async Task<IActionResult> Details(string documentNumber)
+    // {
+    //   try
+    //   {
+    //     // Get the current user's information from claims
+    //     var ldapUser = User.FindFirst("ldapuser")?.Value;
+    //     var userName = User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value;
+
+    //     if (string.IsNullOrEmpty(ldapUser))
+    //     {
+    //       _logger.LogWarning("User LDAP username not found in claims");
+    //       return RedirectToAction("Login", "Auth", new { returnUrl = Url.Action("Details", "Booking", new { documentNumber }) });
+    //     }
+
+    //     // Get booking details
+    //     var booking = await _bookingService.GetBookingByDocumentNumberAsync(documentNumber);
+
+    //     // Cek otorisasi: Apakah pengguna memiliki akses ke booking ini
+    //     if (booking == null)
+    //     {
+    //       _logger.LogWarning("Booking dengan document number {documentNumber} tidak ditemukan", documentNumber);
+    //       return NotFound();
+    //     }
+
+    //     // Cek otorisasi: Apakah pengguna adalah PIC, atau pembuat booking, atau punya akses admin
+    //     bool isPic = await _roleService.UserHasRoleAsync(ldapUser, "pic");
+    //     bool isAdmin = await _roleService.UserHasRoleAsync(ldapUser, "admin");
+    //     bool isBookingCreator = booking.Name == userName;
+
+    //     // Jika bukan PIC, admin, atau pembuat booking, tolak akses
+    //     if (!isPic && !isAdmin && !isBookingCreator)
+    //     {
+    //       _logger.LogWarning("User {ldapUser} mencoba mengakses booking {documentNumber} tanpa otorisasi", ldapUser, documentNumber);
+    //       return RedirectToAction("AccessDenied", "Auth");
+    //     }
+
+    //     // Pass role information to the view
+    //     ViewData["IsPicRole"] = isPic;
+    //     ViewData["IsAdminRole"] = isAdmin;
+    //     ViewData["IsBookingCreator"] = isBookingCreator;
+
+    //     // Pass the booking to the view
+    //     return View(booking);
+    //   }
+    //   catch (KeyNotFoundException ex)
+    //   {
+    //     _logger.LogWarning(ex, "Booking dengan document number {documentNumber} tidak ditemukan", documentNumber);
+    //     return NotFound();
+    //   }
+    //   catch (Exception ex)
+    //   {
+    //     _logger.LogError(ex, "Terjadi kesalahan saat memuat detail booking dengan document number {documentNumber}", documentNumber);
+    //     TempData["BookingErrorMessage"] = "Terjadi kesalahan saat memuat detail booking. Silakan coba lagi.";
+    //     return RedirectToAction(nameof(List));
+    //   }
+    // }
+
     public async Task<IActionResult> Details(string documentNumber)
     {
       try
@@ -141,31 +201,67 @@ namespace AspnetCoreMvcFull.Controllers
         // Get booking details
         var booking = await _bookingService.GetBookingByDocumentNumberAsync(documentNumber);
 
-        // Cek otorisasi: Apakah pengguna memiliki akses ke booking ini
         if (booking == null)
         {
           _logger.LogWarning("Booking dengan document number {documentNumber} tidak ditemukan", documentNumber);
           return NotFound();
         }
 
-        // Cek otorisasi: Apakah pengguna adalah PIC, atau pembuat booking, atau punya akses admin
-        bool isPic = await _roleService.UserHasRoleAsync(ldapUser, "pic");
-        bool isAdmin = await _roleService.UserHasRoleAsync(ldapUser, "admin");
-        bool isBookingCreator = booking.Name == userName;
+        // ✅ GET USER ROLES - SAMA DENGAN BookingListController
+        var userRoles = await _roleService.GetUserRolesAsync(ldapUser);
 
-        // Jika bukan PIC, admin, atau pembuat booking, tolak akses
-        if (!isPic && !isAdmin && !isBookingCreator)
+        bool isPic = userRoles.Contains("pic", StringComparer.OrdinalIgnoreCase);
+        bool isAdmin = userRoles.Contains("admin", StringComparer.OrdinalIgnoreCase);
+        bool isManager = userRoles.Contains("manager", StringComparer.OrdinalIgnoreCase);
+        bool isBookingCreator = booking.LdapUser == ldapUser; // ✅ GUNAKAN LDAP, BUKAN NAME
+
+        // ✅ IMPLEMENT ROLE-BASED ACCESS CONTROL
+        bool hasAccess = false;
+        string accessReason = "";
+
+        if (isAdmin || isPic)
         {
-          _logger.LogWarning("User {ldapUser} mencoba mengakses booking {documentNumber} tanpa otorisasi", ldapUser, documentNumber);
+          // Admin dan PIC bisa akses semua booking
+          hasAccess = true;
+          accessReason = isAdmin ? "Admin access" : "PIC access";
+        }
+        else if (isManager)
+        {
+          // Manager bisa akses booking dari departemennya
+          var employee = await _employeeService.GetEmployeeByLdapUserAsync(ldapUser);
+          if (employee != null && !string.IsNullOrEmpty(employee.Department) &&
+              employee.Department == booking.Department)
+          {
+            hasAccess = true;
+            accessReason = $"Manager access for department: {employee.Department}";
+          }
+        }
+        else if (isBookingCreator)
+        {
+          // User biasa bisa akses booking yang mereka buat
+          hasAccess = true;
+          accessReason = "Booking creator access";
+        }
+
+        // ✅ REJECT AKSES JIKA TIDAK MEMENUHI KRITERIA
+        if (!hasAccess)
+        {
+          _logger.LogWarning("User {ldapUser} dengan roles [{roles}] mencoba mengakses booking {documentNumber} tanpa otorisasi. Booking department: {department}",
+                           ldapUser, string.Join(", ", userRoles), documentNumber, booking.Department);
           return RedirectToAction("AccessDenied", "Auth");
         }
 
-        // Pass role information to the view
+        // ✅ LOG AKSES YANG BERHASIL
+        _logger.LogInformation("User {ldapUser} mengakses booking {documentNumber}. Reason: {reason}",
+                             ldapUser, documentNumber, accessReason);
+
+        // ✅ PASS ROLE INFO TO VIEW
         ViewData["IsPicRole"] = isPic;
         ViewData["IsAdminRole"] = isAdmin;
+        ViewData["IsManagerRole"] = isManager; // ✅ TAMBAH INFO MANAGER
         ViewData["IsBookingCreator"] = isBookingCreator;
+        ViewData["UserRoles"] = userRoles; // ✅ UNTUK DEBUG
 
-        // Pass the booking to the view
         return View(booking);
       }
       catch (KeyNotFoundException ex)
@@ -177,7 +273,7 @@ namespace AspnetCoreMvcFull.Controllers
       {
         _logger.LogError(ex, "Terjadi kesalahan saat memuat detail booking dengan document number {documentNumber}", documentNumber);
         TempData["BookingErrorMessage"] = "Terjadi kesalahan saat memuat detail booking. Silakan coba lagi.";
-        return RedirectToAction(nameof(List));
+        return RedirectToAction("Index", "BookingList"); // ✅ REDIRECT KE BookingList, BUKAN List
       }
     }
 

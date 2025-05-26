@@ -49,7 +49,10 @@ namespace AspnetCoreMvcFull.Services
     Task<IEnumerable<BookingViewModel>> SearchBookingsAsync(string searchTerm, string currentUser, bool isPic, bool isAdmin);
 
     // Add to existing interface
-    Task<PagedResult<BookingViewModel>> GetPagedBookingsAsync(BookingListFilterRequest request);
+    Task<PagedResult<BookingViewModel>> GetPagedBookingsAsync(
+      BookingListFilterRequest request,
+      string? currentUser = null,
+      List<string>? userRoles = null);
 
     Task<IEnumerable<string>> GetDistinctDepartmentsAsync();
 

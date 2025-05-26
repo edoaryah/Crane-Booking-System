@@ -53,6 +53,7 @@ namespace AspnetCoreMvcFull.Services
         DocumentNumber = r.DocumentNumber,
         Name = r.Name,
         Department = r.Department,
+        LdapUser = r.LdapUser,
         CraneId = r.CraneId ?? 0,
         CraneCode = r.Crane?.Code,
         StartDate = r.StartDate,
@@ -113,6 +114,7 @@ namespace AspnetCoreMvcFull.Services
         DocumentNumber = booking.DocumentNumber,
         Name = booking.Name,
         Department = booking.Department,
+        LdapUser = booking.LdapUser,
         CraneId = booking.CraneId ?? 0,
         // Prioritaskan data historis yang disimpan jika CraneId null
         CraneCode = booking.CraneId.HasValue ? booking.Crane?.Code : booking.CraneCode,
@@ -205,12 +207,14 @@ namespace AspnetCoreMvcFull.Services
         DocumentNumber = r.DocumentNumber,
         Name = r.Name,
         Department = r.Department,
+        LdapUser = r.LdapUser,
         CraneId = r.CraneId ?? 0,
         CraneCode = r.Crane?.Code,
         StartDate = r.StartDate,
         EndDate = r.EndDate,
         SubmitTime = r.SubmitTime,
         Location = r.Location,
+        Status = r.Status,
         ProjectSupervisor = r.ProjectSupervisor,
         CostCode = r.CostCode,
         PhoneNumber = r.PhoneNumber,
@@ -1061,6 +1065,7 @@ int craneId, DateTime startDate, DateTime endDate, int? excludeBookingId = null)
           DocumentNumber = b.DocumentNumber,
           Name = b.Name,
           Department = b.Department,
+          LdapUser = b.LdapUser,
           CraneId = b.CraneId ?? 0,
           CraneCode = b.Crane?.Code,
           StartDate = b.StartDate,
@@ -1081,7 +1086,120 @@ int craneId, DateTime startDate, DateTime endDate, int? excludeBookingId = null)
       }
     }
 
-    public async Task<PagedResult<BookingViewModel>> GetPagedBookingsAsync(BookingListFilterRequest request)
+    // public async Task<PagedResult<BookingViewModel>> GetPagedBookingsAsync(BookingListFilterRequest request)
+    // {
+    //   try
+    //   {
+    //     // Start with all records
+    //     var query = _context.Bookings
+    //         .Include(b => b.Crane)
+    //         .AsQueryable();
+
+    //     // Apply filters
+    //     if (request.CraneId.HasValue && request.CraneId.Value > 0)
+    //     {
+    //       query = query.Where(b => b.CraneId == request.CraneId.Value);
+    //     }
+    //     else if (!string.IsNullOrEmpty(request.CraneCode))
+    //     {
+    //       query = query.Where(b => b.CraneCode.Contains(request.CraneCode) ||
+    //                             (b.Crane != null && b.Crane.Code.Contains(request.CraneCode)));
+    //     }
+
+    //     if (!string.IsNullOrEmpty(request.Department))
+    //     {
+    //       query = query.Where(b => b.Department.Contains(request.Department));
+    //     }
+
+    //     if (request.StartDate.HasValue)
+    //     {
+    //       var startDate = request.StartDate.Value.Date;
+    //       query = query.Where(b => b.EndDate >= startDate);
+    //     }
+
+    //     if (request.EndDate.HasValue)
+    //     {
+    //       var endDate = request.EndDate.Value.Date.AddDays(1).AddSeconds(-1);
+    //       query = query.Where(b => b.StartDate <= endDate);
+    //     }
+
+    //     if (request.Status.HasValue)
+    //     {
+    //       query = query.Where(b => b.Status == request.Status.Value);
+    //     }
+
+    //     // Apply global search
+    //     if (!string.IsNullOrEmpty(request.GlobalSearch))
+    //     {
+    //       var search = request.GlobalSearch.ToLower();
+    //       query = query.Where(b =>
+    //           b.BookingNumber.ToLower().Contains(search) ||
+    //           b.Name.ToLower().Contains(search) ||
+    //           b.Department.ToLower().Contains(search) ||
+    //           b.DocumentNumber.ToLower().Contains(search) ||
+    //           (b.CraneCode != null && b.CraneCode.ToLower().Contains(search)) ||
+    //           (b.Crane != null && b.Crane.Code.ToLower().Contains(search))
+    //       );
+    //     }
+
+    //     // Get total count before pagination
+    //     var totalCount = await query.CountAsync();
+
+    //     // Apply sorting
+    //     query = ApplyBookingSorting(query, request.SortBy, request.SortDesc);
+
+    //     // Apply pagination
+    //     var items = await query
+    //         .Skip((request.PageNumber - 1) * request.PageSize)
+    //         .Take(request.PageSize)
+    //         .ToListAsync();
+
+    //     // Map to view models
+    //     var bookings = items.Select(b => new BookingViewModel
+    //     {
+    //       Id = b.Id,
+    //       BookingNumber = b.BookingNumber,
+    //       DocumentNumber = b.DocumentNumber,
+    //       Name = b.Name,
+    //       Department = b.Department,
+    //       CraneId = b.CraneId ?? 0,
+    //       CraneCode = b.CraneId.HasValue ? b.Crane?.Code : b.CraneCode,
+    //       StartDate = b.StartDate,
+    //       EndDate = b.EndDate,
+    //       SubmitTime = b.SubmitTime,
+    //       Location = b.Location,
+    //       Status = b.Status,
+    //       ProjectSupervisor = b.ProjectSupervisor,
+    //       CostCode = b.CostCode,
+    //       PhoneNumber = b.PhoneNumber,
+    //       Description = b.Description
+    //     }).ToList();
+
+    //     // Calculate page count
+    //     var pageCount = (int)Math.Ceiling(totalCount / (double)request.PageSize);
+
+    //     // Create and return paged result
+    //     return new PagedResult<BookingViewModel>
+    //     {
+    //       Items = bookings,
+    //       TotalCount = totalCount,
+    //       PageCount = pageCount,
+    //       PageNumber = request.PageNumber,
+    //       PageSize = request.PageSize
+    //     };
+    //   }
+    //   catch (Exception ex)
+    //   {
+    //     _logger.LogError(ex, "Error getting paged bookings: {Message}", ex.Message);
+    //     throw;
+    //   }
+    // }
+
+    // Services/Booking/BookingService.cs
+    public async Task<PagedResult<BookingViewModel>> GetPagedBookingsAsync(
+        BookingListFilterRequest request,
+        string? currentUser = null,
+        List<string>? userRoles = null)
     {
       try
       {
@@ -1090,7 +1208,46 @@ int craneId, DateTime startDate, DateTime endDate, int? excludeBookingId = null)
             .Include(b => b.Crane)
             .AsQueryable();
 
-        // Apply filters
+        // ✅ ROLE-BASED FILTERING - TAMBAHAN BARU
+        if (userRoles != null && !string.IsNullOrEmpty(currentUser))
+        {
+          var isAdmin = userRoles.Contains("admin", StringComparer.OrdinalIgnoreCase);
+          var isPic = userRoles.Contains("pic", StringComparer.OrdinalIgnoreCase);
+          var isManager = userRoles.Contains("manager", StringComparer.OrdinalIgnoreCase);
+
+          if (!isAdmin && !isPic)
+          {
+            if (isManager)
+            {
+              // Manager: hanya booking dari departemennya
+              var employee = await _employeeService.GetEmployeeByLdapUserAsync(currentUser);
+              if (employee != null && !string.IsNullOrEmpty(employee.Department))
+              {
+                query = query.Where(b => b.Department == employee.Department);
+                _logger.LogInformation("Manager {User} filtering bookings by department: {Department}",
+                                     currentUser, employee.Department);
+              }
+              else
+              {
+                // Jika tidak dapat menentukan departemen, tidak tampilkan data
+                query = query.Where(b => false);
+                _logger.LogWarning("Manager {User} has no department information, showing no data", currentUser);
+              }
+            }
+            else
+            {
+              // User biasa: hanya booking yang mereka buat
+              query = query.Where(b => b.LdapUser == currentUser);
+              _logger.LogInformation("User {User} filtering bookings to own bookings only", currentUser);
+            }
+          }
+          else
+          {
+            _logger.LogInformation("Admin/PIC {User} accessing all bookings", currentUser);
+          }
+        }
+
+        // ✅ EXISTING FILTERS - TETAP SAMA
         if (request.CraneId.HasValue && request.CraneId.Value > 0)
         {
           query = query.Where(b => b.CraneId == request.CraneId.Value);
@@ -1157,6 +1314,7 @@ int craneId, DateTime startDate, DateTime endDate, int? excludeBookingId = null)
           DocumentNumber = b.DocumentNumber,
           Name = b.Name,
           Department = b.Department,
+          LdapUser = b.LdapUser,
           CraneId = b.CraneId ?? 0,
           CraneCode = b.CraneId.HasValue ? b.Crane?.Code : b.CraneCode,
           StartDate = b.StartDate,
@@ -1173,7 +1331,7 @@ int craneId, DateTime startDate, DateTime endDate, int? excludeBookingId = null)
         // Calculate page count
         var pageCount = (int)Math.Ceiling(totalCount / (double)request.PageSize);
 
-        // Create and return paged result
+        // ✅ RETURN STATEMENT - INI YANG PENTING!
         return new PagedResult<BookingViewModel>
         {
           Items = bookings,
@@ -1186,7 +1344,7 @@ int craneId, DateTime startDate, DateTime endDate, int? excludeBookingId = null)
       catch (Exception ex)
       {
         _logger.LogError(ex, "Error getting paged bookings: {Message}", ex.Message);
-        throw;
+        throw; // ✅ Re-throw exception supaya error handling di controller
       }
     }
 

@@ -36,6 +36,7 @@ namespace AspnetCoreMvcFull.ViewModels.BookingManagement
     public string DocumentNumber { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string Department { get; set; } = string.Empty;
+    public string LdapUser { get; set; } = string.Empty;
     public int CraneId { get; set; } // Tetap int karena ViewModel tidak perlu nullable
     public string? CraneCode { get; set; } // Sudah ada untuk data historis
     public DateTime StartDate { get; set; }

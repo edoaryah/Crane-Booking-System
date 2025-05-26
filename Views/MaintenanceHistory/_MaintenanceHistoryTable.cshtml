@@ -30,7 +30,7 @@
         @foreach (var schedule in Model.PagedSchedules.Items)
         {
           <tr class="clickable-row"
-            data-url="@Url.Action("Details", "MaintenanceHistory", new { documentNumber = schedule.DocumentNumber })">
+            data-url="@Url.Action("Details", "Maintenance", new { documentNumber = schedule.DocumentNumber })">
             <td><strong>@(startIndex++)</strong></td>
             <td>@schedule.CraneCode</td>
             <td data-order="@schedule.StartDate.ToString("yyyy-MM-dd")">

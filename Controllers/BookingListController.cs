@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using AspnetCoreMvcFull.Filters;
 using AspnetCoreMvcFull.Services;
+using AspnetCoreMvcFull.Services.Role;
 using AspnetCoreMvcFull.ViewModels.BookingManagement;
 using AspnetCoreMvcFull.Models.Common;
 using AspnetCoreMvcFull.Models;
@@ -18,15 +19,18 @@ namespace AspnetCoreMvcFull.Controllers
   {
     private readonly IBookingService _bookingService;
     private readonly ICraneService _craneService;
+    private readonly IRoleService _roleService;
     private readonly ILogger<BookingListController> _logger;
 
     public BookingListController(
         IBookingService bookingService,
         ICraneService craneService,
+        IRoleService roleService,
         ILogger<BookingListController> logger)
     {
       _bookingService = bookingService;
       _craneService = craneService;
+      _roleService = roleService;
       _logger = logger;
     }
 
@@ -45,15 +49,33 @@ namespace AspnetCoreMvcFull.Controllers
         if (filter.PageSize < 1) filter.PageSize = 10;
         if (string.IsNullOrEmpty(filter.SortBy)) filter.SortBy = "SubmitTime";
 
+        // ✅ GET CURRENT USER AND ROLES
+        var currentUser = User.FindFirst("ldapuser")?.Value;
+        var userRoles = new List<string>();
+
+        if (!string.IsNullOrEmpty(currentUser))
+        {
+          try
+          {
+            userRoles = await _roleService.GetUserRolesAsync(currentUser);
+          }
+          catch (Exception ex)
+          {
+            _logger.LogWarning(ex, "Failed to get user roles for {CurrentUser}", currentUser);
+            userRoles = new List<string>();
+          }
+        }
+
         // Get dropdown lists
         filter.CraneList = await GetCraneSelectListAsync();
         filter.DepartmentList = await GetDepartmentSelectListAsync();
         filter.StatusList = GetStatusSelectList();
 
-        // Get paged data
-        var pagedBookings = await _bookingService.GetPagedBookingsAsync(filter);
+        // ✅ GET PAGED DATA WITH ROLE FILTERING
+        var pagedBookings = await _bookingService.GetPagedBookingsAsync(
+            filter, currentUser, userRoles);
 
-        // Get current user from claims
+        // Get current user from claims for display
         var userName = User.FindFirst(ClaimTypes.Name)?.Value ?? "System";
 
         // Build view model
@@ -65,8 +87,18 @@ namespace AspnetCoreMvcFull.Controllers
           ErrorMessage = TempData["ErrorMessage"] as string
         };
 
-        // Pass user info to view
+        // ✅ PASS ROLE INFO TO VIEW
         ViewBag.CurrentUser = userName;
+        ViewBag.CurrentLdapUser = currentUser;
+        ViewBag.UserRoles = userRoles;
+        ViewBag.IsAdmin = userRoles.Contains("admin", StringComparer.OrdinalIgnoreCase);
+        ViewBag.IsPic = userRoles.Contains("pic", StringComparer.OrdinalIgnoreCase);
+        ViewBag.IsManager = userRoles.Contains("manager", StringComparer.OrdinalIgnoreCase);
+        ViewBag.IsRegularUser = !ViewBag.IsAdmin && !ViewBag.IsPic && !ViewBag.IsManager;
+
+        // ✅ LOG ROLE-BASED ACCESS
+        _logger.LogInformation("User {LdapUser} with roles [{Roles}] accessed booking list",
+                             currentUser, string.Join(", ", userRoles));
 
         // Clear TempData after use
         TempData.Remove("SuccessMessage");
@@ -118,8 +150,26 @@ namespace AspnetCoreMvcFull.Controllers
         if (filter.PageSize < 1) filter.PageSize = 10;
         if (string.IsNullOrEmpty(filter.SortBy)) filter.SortBy = "SubmitTime";
 
-        // Get paged data
-        var pagedBookings = await _bookingService.GetPagedBookingsAsync(filter);
+        // ✅ GET CURRENT USER AND ROLES
+        var currentUser = User.FindFirst("ldapuser")?.Value;
+        var userRoles = new List<string>();
+
+        if (!string.IsNullOrEmpty(currentUser))
+        {
+          try
+          {
+            userRoles = await _roleService.GetUserRolesAsync(currentUser);
+          }
+          catch (Exception ex)
+          {
+            _logger.LogWarning(ex, "Failed to get user roles for {CurrentUser} in AJAX request", currentUser);
+            userRoles = new List<string>();
+          }
+        }
+
+        // ✅ GET PAGED DATA WITH ROLE FILTERING
+        var pagedBookings = await _bookingService.GetPagedBookingsAsync(
+            filter, currentUser, userRoles);
 
         // Get dropdown lists (needed for when returning to main view)
         filter.CraneList = await GetCraneSelectListAsync();
@@ -202,6 +252,79 @@ namespace AspnetCoreMvcFull.Controllers
         return RedirectToAction(nameof(Index));
       }
     }
+
+    // /// <summary>
+    // /// Filter bookings for a specific crane.
+    // /// </summary>
+    // [HttpGet]
+    // public async Task<IActionResult> Crane(int craneId)
+    // {
+    //   try
+    //   {
+    //     var crane = await _craneService.GetCraneByIdAsync(craneId);
+    //     if (crane == null)
+    //     {
+    //       return NotFound("Crane not found");
+    //     }
+
+    //     // ✅ GET CURRENT USER AND ROLES
+    //     var currentUser = User.FindFirst("ldapuser")?.Value;
+    //     var userRoles = new List<string>();
+
+    //     if (!string.IsNullOrEmpty(currentUser))
+    //     {
+    //       userRoles = await _roleService.GetUserRolesAsync(currentUser);
+    //     }
+
+    //     // Create filter specifically for this crane
+    //     var filter = new BookingListFilterRequest
+    //     {
+    //       CraneId = craneId,
+    //       PageNumber = 1,
+    //       PageSize = 10,
+    //       SortBy = "SubmitTime",
+    //       SortDesc = true,
+    //       CraneList = await GetCraneSelectListAsync(),
+    //       DepartmentList = await GetDepartmentSelectListAsync(),
+    //       StatusList = GetStatusSelectList()
+    //     };
+
+    //     // ✅ GET BOOKINGS WITH ROLE FILTERING
+    //     var pagedBookings = await _bookingService.GetPagedBookingsAsync(
+    //         filter, currentUser, userRoles);
+
+    //     var viewModel = new BookingListPagedViewModel
+    //     {
+    //       PagedBookings = pagedBookings,
+    //       Filter = filter,
+    //       SuccessMessage = TempData["SuccessMessage"] as string,
+    //       ErrorMessage = TempData["ErrorMessage"] as string
+    //     };
+
+    //     // Clear TempData after use
+    //     TempData.Remove("SuccessMessage");
+    //     TempData.Remove("ErrorMessage");
+
+    //     // Add crane info to ViewBag for display
+    //     ViewBag.CraneName = crane.Code;
+    //     ViewBag.CraneId = craneId;
+
+    //     // ✅ PASS ROLE INFO TO VIEW
+    //     ViewBag.CurrentUser = User.FindFirst(ClaimTypes.Name)?.Value ?? "System";
+    //     ViewBag.UserRoles = userRoles;
+    //     ViewBag.IsAdmin = userRoles.Contains("admin", StringComparer.OrdinalIgnoreCase);
+    //     ViewBag.IsPic = userRoles.Contains("pic", StringComparer.OrdinalIgnoreCase);
+    //     ViewBag.IsManager = userRoles.Contains("manager", StringComparer.OrdinalIgnoreCase);
+
+    //     return View("Index", viewModel);
+    //   }
+    //   catch (Exception ex)
+    //   {
+    //     _logger.LogError(ex, "Error loading booking list for crane ID: {CraneId}", craneId);
+    //     TempData["ErrorMessage"] = "Error loading booking list: " + ex.Message;
+    //     return RedirectToAction(nameof(Index));
+    //   }
+    // }
 
     /// <summary>
     /// Helper methods for dropdown lists.

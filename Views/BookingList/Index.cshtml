@@ -25,6 +25,24 @@
   }
 </div>
 
+<!-- Tambahkan setelah alert container existing -->
+@if (ViewBag.IsManager == true)
+{
+  <div class="alert alert-info alert-dismissible fade show" role="alert">
+    <i class="bx bx-info-circle me-2"></i>
+    <strong>Info Manager:</strong> Anda melihat booking dari departemen Anda.
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+}
+else if (ViewBag.IsRegularUser == true)
+{
+  <div class="alert alert-info alert-dismissible fade show" role="alert">
+    <i class="bx bx-user me-2"></i>
+    <strong>Info:</strong> Anda melihat booking yang Anda buat.
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+}
+
 <!-- Filter Card -->
 <div class="card mb-4">
   <div class="card-body">
