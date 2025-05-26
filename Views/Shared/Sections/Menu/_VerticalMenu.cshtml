@@ -28,10 +28,18 @@
   var isManager = userRoles.Contains("manager", StringComparer.OrdinalIgnoreCase);
 
   // ✅ VISIBILITY RULES
+  var canAccessDashboard = isAdmin || isPic || isManager;
+  var canAccessBilling = isAdmin || isPic;
+  var canAccessCraneUsage = isAdmin || isPic || isOperator;
+
   var canAccessManagement = isAdmin || isPic;
   var canAccessRoleManagement = isAdmin;
-  var canAccessMaintenanceForm = isMsd;
+
+  var canAccessMaintenanceForm = isAdmin || isMsd;
   var canAccessMaintenanceHistory = isAdmin || isPic || isMsd;
+
+  var canAccessBookingForm = isAdmin || (!isPic && !isOperator && !isMsd && !isManager);
+  var canAccessBookingHistory = isAdmin || isPic || isManager || (!isOperator && !isMsd);
 }
 
 <style>
@@ -71,47 +79,72 @@
     @* <li class="menu-header small text-uppercase"><span class="menu-header-text">Menu</span></li> *@
 
     <!-- Dashboard -->
-    <li class='menu-item@(currentPage == "/" ? " active" : "")'>
-      <a asp-controller="Dashboards" asp-action="Index" class="menu-link">
-        <i class="menu-icon tf-icons bx bx-home-smile"></i>
-        <div class="text-truncate" data-i18n="Dashboards">Dashboards</div>
-      </a>
-    </li>
+    @if (canAccessDashboard)
+    {
+      <li class='menu-item@(currentPage == "/" ? " active" : "")'>
+        <a asp-controller="Dashboards" asp-action="Index" class="menu-link">
+          <i class="menu-icon tf-icons bx bx-home-smile"></i>
+          <div class="text-truncate" data-i18n="Dashboards">Dashboards</div>
+        </a>
+      </li>
+    }
+
     <li class='menu-item@(currentPage == "/Calendar" || currentPage == "/Calendar" ? " active" : "")'>
       <a asp-controller="Calendar" asp-action="Index" class="menu-link">
         <i class="menu-icon tf-icons bx bx-calendar"></i>
         <div class="text-truncate" data-i18n="Cards">Calendar</div>
       </a>
     </li>
-    <!-- Crane Usage Button -->
-    <li class='menu-item@(currentPage == "/CraneUsage" || currentPage.StartsWith("/CraneUsage") ? " active" : "")'>
-      <a asp-controller="CraneUsage" asp-action="Index" class="menu-link">
-        <i class="menu-icon tf-icons bx bx-time-five"></i>
-        <div class="text-truncate" data-i18n="CraneUsage">Crane Usage</div>
-      </a>
-    </li>
-    <!-- Billing Menu -->
-    <li class='menu-item@(currentPage == "/Billing" || currentPage.StartsWith("/Billing") ? " active" : "")'>
-      <a asp-controller="Billing" asp-action="Index" class="menu-link">
-        <i class="menu-icon tf-icons bx bx-receipt"></i>
-        <div class="text-truncate" data-i18n="Billing">Penagihan</div>
-      </a>
-    </li>
 
-    <!-- Booking -->
-    <li class="menu-header small text-uppercase"><span class="menu-header-text">Booking</span></li>
-    <li class='menu-item@(currentPage == "/Booking" ? " active" : "")'>
-      <a asp-controller="Booking" asp-action="Index" class="menu-link">
-        <i class="menu-icon tf-icons bx bx-detail"></i>
-        <div class="text-truncate" data-i18n="Cards">Booking Form</div>
-      </a>
-    </li>
-    <li class='menu-item@(currentPage == "/BookingList" ? " active" : "")'>
-      <a asp-controller="BookingList" asp-action="Index" class="menu-link">
-        <i class="menu-icon tf-icons bx bx-history"></i>
-        <div class="text-truncate" data-i18n="Cards">Booking History</div>
-      </a>
-    </li>
+    @if (canAccessCraneUsage)
+    {
+      <!-- Crane Usage Button -->
+      <li class='menu-item@(currentPage == "/CraneUsage" || currentPage.StartsWith("/CraneUsage") ? " active" : "")'>
+        <a asp-controller="CraneUsage" asp-action="Index" class="menu-link">
+          <i class="menu-icon tf-icons bx bx-time-five"></i>
+          <div class="text-truncate" data-i18n="CraneUsage">Crane Usage</div>
+        </a>
+      </li>
+    }
+
+    @if (canAccessBilling)
+    {
+      <!-- Billing Menu -->
+      <li class='menu-item@(currentPage == "/Billing" || currentPage.StartsWith("/Billing") ? " active" : "")'>
+        <a asp-controller="Billing" asp-action="Index" class="menu-link">
+          <i class="menu-icon tf-icons bx bx-receipt"></i>
+          <div class="text-truncate" data-i18n="Billing">Penagihan</div>
+        </a>
+      </li>
+    }
+
+    <!-- ✅ CONDITIONAL: Booking Section - Based on specific roles -->
+    @if (canAccessBookingForm || canAccessBookingHistory)
+    {
+      <li class="menu-header small text-uppercase"><span class="menu-header-text">Booking</span></li>
+
+      @* Booking Form - Admin OR regular users (NOT PIC, Operator, MSD, Manager) *@
+      @if (canAccessBookingForm)
+      {
+        <li class='menu-item@(currentPage == "/Booking" ? " active" : "")'>
+          <a asp-controller="Booking" asp-action="Index" class="menu-link">
+            <i class="menu-icon tf-icons bx bx-detail"></i>
+            <div class="text-truncate" data-i18n="Cards">Booking Form</div>
+          </a>
+        </li>
+      }
+
+      @* Booking History - Admin OR PIC OR Manager *@
+      @if (canAccessBookingHistory)
+      {
+        <li class='menu-item@(currentPage == "/BookingList" ? " active" : "")'>
+          <a asp-controller="BookingList" asp-action="Index" class="menu-link">
+            <i class="menu-icon tf-icons bx bx-history"></i>
+            <div class="text-truncate" data-i18n="Cards">Booking History</div>
+          </a>
+        </li>
+      }
+    }
 
     <!-- ✅ CONDITIONAL: Maintenance Section - Based on specific roles -->
     @if (canAccessMaintenanceForm || canAccessMaintenanceHistory)
