@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using AspnetCoreMvcFull.Services.Role;
 using AspnetCoreMvcFull.ViewModels.Role;
+using AspnetCoreMvcFull.Models.Role;
 using System.Security.Claims;
 using AspnetCoreMvcFull.Filters;
 
@@ -79,6 +80,10 @@ namespace AspnetCoreMvcFull.Controllers
           Users = users
         };
 
+        // ✅ TAMBAHAN: Informasi apakah role ini bisa di-manage manual
+        ViewBag.IsManagerRole = roleName.ToLower() == Roles.Manager.ToLower();
+        ViewBag.CanManageUsers = Roles.AssignableRoles.Contains(roleName.ToLower());
+
         // Tampilkan pesan dari TempData menggunakan ViewBag
         ViewBag.SuccessMessage = TempData["RoleSuccessMessage"] as string;
         ViewBag.ErrorMessage = TempData["RoleErrorMessage"] as string;
@@ -113,6 +118,12 @@ namespace AspnetCoreMvcFull.Controllers
         if (!ModelState.IsValid)
         {
           return Json(new { success = false, message = "Data tidak valid." });
+        }
+
+        // ✅ TAMBAHAN: Cek apakah role bisa di-assign manual
+        if (model.RoleName.ToLower() == Roles.Manager.ToLower())
+        {
+          return Json(new { success = false, message = "Role Manager tidak dapat di-assign secara manual. Role ini otomatis berdasarkan position level di database karyawan." });
         }
 
         // Get current user's ldap
@@ -175,6 +186,11 @@ namespace AspnetCoreMvcFull.Controllers
           userRole = updatedUserRole
         });
       }
+      catch (InvalidOperationException ex)
+      {
+        _logger.LogWarning(ex, "Invalid operation when updating user role");
+        return Json(new { success = false, message = ex.Message });
+      }
       catch (KeyNotFoundException ex)
       {
         _logger.LogWarning(ex, "Entity not found when updating user role");
@@ -204,6 +220,11 @@ namespace AspnetCoreMvcFull.Controllers
           message = "User berhasil dihapus dari role."
         });
       }
+      catch (InvalidOperationException ex)
+      {
+        _logger.LogWarning(ex, "Invalid operation when removing user from role");
+        return Json(new { success = false, message = ex.Message });
+      }
       catch (KeyNotFoundException ex)
       {
         _logger.LogWarning(ex, "Entity not found when removing user from role");
@@ -223,6 +244,12 @@ namespace AspnetCoreMvcFull.Controllers
       {
         // Get current user's ldap
         var currentUser = User.FindFirst("ldapuser")?.Value ?? "system";
+
+        // ✅ TAMBAHAN: Cek apakah role bisa di-assign manual
+        if (roleName.ToLower() == Roles.Manager.ToLower())
+        {
+          return Json(new { success = false, message = "Role Manager tidak dapat di-assign secara manual." });
+        }
 
         // Validate role
         if (!await _roleService.IsRoleValidAsync(roleName))

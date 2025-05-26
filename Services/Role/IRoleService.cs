@@ -24,5 +24,11 @@ namespace AspnetCoreMvcFull.Services.Role
 
     // Helper methods
     Task<bool> IsRoleValidAsync(string roleName);
+
+    // ✅ TAMBAHAN: Method untuk mendapatkan semua role user (termasuk auto-detected)
+    Task<List<string>> GetUserRolesAsync(string ldapUser);
+
+    // ✅ TAMBAHAN: Method untuk cek apakah user adalah manager
+    Task<bool> IsUserManagerAsync(string ldapUser);
   }
 }

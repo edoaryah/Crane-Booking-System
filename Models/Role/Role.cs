@@ -11,8 +11,15 @@ namespace AspnetCoreMvcFull.Models.Role
     public const string PIC = "pic";
     public const string Operator = "operator";
     public const string MSD = "msd";
+    public const string Manager = "manager"; // ✅ TAMBAHAN: Role manager
 
     public static readonly List<string> AllRoles = new List<string>
+        {
+            Admin, PIC, Operator, MSD, Manager
+        };
+
+    // ✅ TAMBAHAN: Role yang bisa di-assign manual
+    public static readonly List<string> AssignableRoles = new List<string>
         {
             Admin, PIC, Operator, MSD
         };
@@ -22,7 +29,8 @@ namespace AspnetCoreMvcFull.Models.Role
             { Admin, "Administrator sistem, memiliki akses penuh ke semua fitur" },
             { PIC, "Penanggung Jawab Crane, bertanggung jawab atas pengelolaan pemesanan crane" },
             { Operator, "Operator Crane, bertugas untuk mengoperasikan crane" },
-            { MSD, "Tim Maintenance, bertanggung jawab atas pemeliharaan crane" }
+            { MSD, "Tim Maintenance, bertanggung jawab atas pemeliharaan crane" },
+            { Manager, "Manager Departemen, otomatis berdasarkan position level di database karyawan" } // ✅ TAMBAHAN
         };
   }
 

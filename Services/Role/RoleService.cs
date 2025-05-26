@@ -36,13 +36,23 @@ namespace AspnetCoreMvcFull.Services.Role
       {
         var roles = new List<RoleSummaryViewModel>();
 
-        // Create summary for each predefined role
+        // Create summary for each role
         foreach (var roleName in Roles.AllRoles)
         {
-          // Count users in this role
-          int userCount = await _context.UserRoles
-              .Where(r => r.RoleName.ToLower() == roleName.ToLower())
-              .CountAsync();
+          int userCount;
+
+          if (roleName == Roles.Manager)
+          {
+            // ✅ Untuk role manager, hitung dari database karyawan
+            userCount = await GetManagerCountAsync();
+          }
+          else
+          {
+            // Untuk role lainnya, hitung dari tabel UserRoles
+            userCount = await _context.UserRoles
+                .Where(r => r.RoleName.ToLower() == roleName.ToLower())
+                .CountAsync();
+          }
 
           roles.Add(new RoleSummaryViewModel
           {
@@ -71,10 +81,20 @@ namespace AspnetCoreMvcFull.Services.Role
           return null;
         }
 
-        // Count users in this role
-        int userCount = await _context.UserRoles
-            .Where(r => r.RoleName.ToLower() == name.ToLower())
-            .CountAsync();
+        int userCount;
+
+        if (name.ToLower() == Roles.Manager.ToLower())
+        {
+          // ✅ Untuk role manager, hitung dari database karyawan
+          userCount = await GetManagerCountAsync();
+        }
+        else
+        {
+          // Untuk role lainnya, hitung dari tabel UserRoles
+          userCount = await _context.UserRoles
+              .Where(r => r.RoleName.ToLower() == name.ToLower())
+              .CountAsync();
+        }
 
         return new RoleSummaryViewModel
         {
@@ -103,6 +123,13 @@ namespace AspnetCoreMvcFull.Services.Role
     {
       try
       {
+        if (roleName.ToLower() == Roles.Manager.ToLower())
+        {
+          // ✅ Untuk role manager, ambil dari database karyawan
+          return await GetManagersFromEmployeeDatabase();
+        }
+
+        // Untuk role lainnya, ambil dari tabel UserRoles
         var userRoles = await _context.UserRoles
             .Where(ur => ur.RoleName.ToLower() == roleName.ToLower())
             .ToListAsync();
@@ -182,6 +209,30 @@ namespace AspnetCoreMvcFull.Services.Role
     {
       try
       {
+        if (roleName.ToLower() == Roles.Manager.ToLower())
+        {
+          // ✅ Untuk role manager, cek dari database karyawan
+          var isManager = await IsUserManagerAsync(ldapUser);
+          if (!isManager) return null;
+
+          var employee = await _authService.GetEmployeeByLdapUserAsync(ldapUser);
+          if (employee == null) return null;
+
+          return new UserRoleViewModel
+          {
+            Id = -1, // ID virtual untuk manager
+            LdapUser = ldapUser,
+            RoleName = Roles.Manager,
+            Notes = "Auto-detected manager role",
+            CreatedAt = DateTime.Now,
+            CreatedBy = "system",
+            EmployeeName = employee.Name,
+            EmployeeId = employee.EmpId,
+            Department = employee.Department,
+            Position = employee.PositionTitle
+          };
+        }
+
         var userRole = await _context.UserRoles
             .FirstOrDefaultAsync(ur => ur.LdapUser == ldapUser && ur.RoleName.ToLower() == roleName.ToLower());
 
@@ -190,7 +241,7 @@ namespace AspnetCoreMvcFull.Services.Role
           return null;
         }
 
-        var employee = await _authService.GetEmployeeByLdapUserAsync(userRole.LdapUser);
+        var emp = await _authService.GetEmployeeByLdapUserAsync(userRole.LdapUser);
 
         return new UserRoleViewModel
         {
@@ -202,10 +253,10 @@ namespace AspnetCoreMvcFull.Services.Role
           CreatedBy = userRole.CreatedBy,
           UpdatedAt = userRole.UpdatedAt,
           UpdatedBy = userRole.UpdatedBy,
-          EmployeeName = employee?.Name,
-          EmployeeId = employee?.EmpId,
-          Department = employee?.Department,
-          Position = employee?.PositionTitle
+          EmployeeName = emp?.Name,
+          EmployeeId = emp?.EmpId,
+          Department = emp?.Department,
+          Position = emp?.PositionTitle
         };
       }
       catch (Exception ex)
@@ -219,10 +270,16 @@ namespace AspnetCoreMvcFull.Services.Role
     {
       try
       {
-        // Verify the role is valid
-        if (!Roles.AllRoles.Contains(userRoleDto.RoleName.ToLower()))
+        // ✅ Cegah assignment manual untuk role manager
+        if (userRoleDto.RoleName.ToLower() == Roles.Manager.ToLower())
         {
-          throw new KeyNotFoundException($"Role {userRoleDto.RoleName} not found");
+          throw new InvalidOperationException("Role Manager tidak dapat di-assign secara manual. Role ini otomatis berdasarkan position level di database karyawan.");
+        }
+
+        // Verify the role is valid and assignable
+        if (!Roles.AssignableRoles.Contains(userRoleDto.RoleName.ToLower()))
+        {
+          throw new KeyNotFoundException($"Role {userRoleDto.RoleName} not found or not assignable");
         }
 
         // Check if the user already has this role
@@ -289,6 +346,12 @@ namespace AspnetCoreMvcFull.Services.Role
           throw new KeyNotFoundException($"User role with ID {id} not found");
         }
 
+        // ✅ Cegah update role manager
+        if (userRole.RoleName.ToLower() == Roles.Manager.ToLower())
+        {
+          throw new InvalidOperationException("Role Manager tidak dapat diupdate karena otomatis berdasarkan database karyawan.");
+        }
+
         userRole.Notes = userRoleDto.Notes;
         userRole.UpdatedAt = DateTime.Now;
         userRole.UpdatedBy = updatedBy;
@@ -331,6 +394,12 @@ namespace AspnetCoreMvcFull.Services.Role
           throw new KeyNotFoundException($"User role with ID {userRoleId} not found");
         }
 
+        // ✅ Cegah penghapusan role manager
+        if (userRole.RoleName.ToLower() == Roles.Manager.ToLower())
+        {
+          throw new InvalidOperationException("Role Manager tidak dapat dihapus karena otomatis berdasarkan database karyawan.");
+        }
+
         _context.UserRoles.Remove(userRole);
         await _context.SaveChangesAsync();
       }
@@ -345,6 +414,12 @@ namespace AspnetCoreMvcFull.Services.Role
     {
       try
       {
+        if (roleName.ToLower() == Roles.Manager.ToLower())
+        {
+          // ✅ Untuk role manager, cek dari database karyawan
+          return await IsUserManagerAsync(ldapUser);
+        }
+
         return await _context.UserRoles
             .AnyAsync(ur => ur.LdapUser == ldapUser &&
                       ur.RoleName.ToLower() == roleName.ToLower());
@@ -360,6 +435,12 @@ namespace AspnetCoreMvcFull.Services.Role
     {
       try
       {
+        // ✅ Untuk role manager, return empty list karena tidak bisa di-assign manual
+        if (roleName.ToLower() == Roles.Manager.ToLower())
+        {
+          return new List<AvailableEmployeeViewModel>();
+        }
+
         // Get all LDAP users who already have the specified role
         var existingRoleUsers = await _context.UserRoles
             .Where(r => r.RoleName.ToLower() == roleName.ToLower())
@@ -417,7 +498,6 @@ namespace AspnetCoreMvcFull.Services.Role
       }
     }
 
-    // Tambahkan method ini ke kelas RoleService.cs
     public async Task<List<string>> GetAllDepartmentsAsync()
     {
       try
@@ -453,6 +533,132 @@ namespace AspnetCoreMvcFull.Services.Role
       catch (Exception ex)
       {
         _logger.LogError(ex, "Error mengambil data departemen");
+        throw;
+      }
+    }
+
+    #endregion
+
+    #region ✅ TAMBAHAN: Manager Role Auto-Detection Methods
+
+    public async Task<List<string>> GetUserRolesAsync(string ldapUser)
+    {
+      try
+      {
+        var roles = new List<string>();
+
+        // 1. Ambil role dari tabel UserRoles
+        var userRoles = await _context.UserRoles
+            .Where(ur => ur.LdapUser == ldapUser)
+            .Select(ur => ur.RoleName)
+            .ToListAsync();
+
+        roles.AddRange(userRoles);
+
+        // 2. Cek apakah user adalah manager dari database karyawan
+        var isManager = await IsUserManagerAsync(ldapUser);
+        if (isManager && !roles.Contains(Roles.Manager))
+        {
+          roles.Add(Roles.Manager);
+        }
+
+        return roles;
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Error getting user roles for: {LdapUser}", ldapUser);
+        throw;
+      }
+    }
+
+    public async Task<bool> IsUserManagerAsync(string ldapUser)
+    {
+      try
+      {
+        using (SqlConnection connection = new SqlConnection(_sqlServerConnectionString))
+        {
+          await connection.OpenAsync();
+
+          string query = "SELECT COUNT(*) FROM SP_EMPLIST WHERE LDAPUSER = @LdapUser AND POSITION_LVL = 'MGR_LVL' AND EMP_STATUS = 'KPC'";
+          using (SqlCommand command = new SqlCommand(query, connection))
+          {
+            command.Parameters.AddWithValue("@LdapUser", ldapUser);
+
+            var result = await command.ExecuteScalarAsync();
+            return Convert.ToInt32(result) > 0;
+          }
+        }
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Error checking if user is manager: {LdapUser}", ldapUser);
+        throw;
+      }
+    }
+
+    private async Task<int> GetManagerCountAsync()
+    {
+      try
+      {
+        using (SqlConnection connection = new SqlConnection(_sqlServerConnectionString))
+        {
+          await connection.OpenAsync();
+
+          string query = "SELECT COUNT(*) FROM SP_EMPLIST WHERE POSITION_LVL = 'MGR_LVL' AND EMP_STATUS = 'KPC'";
+          using (SqlCommand command = new SqlCommand(query, connection))
+          {
+            var result = await command.ExecuteScalarAsync();
+            return Convert.ToInt32(result);
+          }
+        }
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Error getting manager count");
+        throw;
+      }
+    }
+
+    private async Task<List<UserRoleViewModel>> GetManagersFromEmployeeDatabase()
+    {
+      try
+      {
+        var managers = new List<UserRoleViewModel>();
+
+        using (SqlConnection connection = new SqlConnection(_sqlServerConnectionString))
+        {
+          await connection.OpenAsync();
+
+          string query = "SELECT * FROM SP_EMPLIST WHERE POSITION_LVL = 'MGR_LVL' AND EMP_STATUS = 'KPC' ORDER BY DEPARTMENT, NAME";
+          using (SqlCommand command = new SqlCommand(query, connection))
+          {
+            using (SqlDataReader reader = await command.ExecuteReaderAsync())
+            {
+              while (await reader.ReadAsync())
+              {
+                managers.Add(new UserRoleViewModel
+                {
+                  Id = -1, // ID virtual untuk manager
+                  LdapUser = reader["LDAPUSER"]?.ToString() ?? string.Empty,
+                  RoleName = Roles.Manager,
+                  Notes = "Auto-detected manager role",
+                  CreatedAt = DateTime.Now,
+                  CreatedBy = "system",
+                  EmployeeName = reader["NAME"]?.ToString(),
+                  EmployeeId = reader["EMP_ID"]?.ToString(),
+                  Department = reader["DEPARTMENT"]?.ToString(),
+                  Position = reader["POSITION_TITLE"]?.ToString()
+                });
+              }
+            }
+          }
+        }
+
+        return managers;
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Error getting managers from employee database");
         throw;
       }
     }
