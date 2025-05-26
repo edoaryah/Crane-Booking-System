@@ -36,6 +36,26 @@ namespace AspnetCoreMvcFull.Controllers
     [RequireRole("msd")]
     public async Task<IActionResult> Index()
     {
+      // ✅ PERBAIKAN: Bersihkan TempData umum untuk mencegah "bocor" dari controller lain
+      TempData.Remove("SuccessMessage");
+      TempData.Remove("ErrorMessage");
+
+      // ✅ PERBAIKAN: Cek semua TempData spesifik halaman ini
+      bool hasSuccessMessage = TempData.ContainsKey("MaintenanceSuccessMessage");
+      bool hasErrorMessage = TempData.ContainsKey("MaintenanceErrorMessage");
+
+      if (hasSuccessMessage)
+      {
+        // Simpan ke TempData.Keep agar bisa dibaca di view tapi akan dihapus setelah request
+        TempData.Keep("MaintenanceSuccessMessage");
+      }
+
+      if (hasErrorMessage)
+      {
+        // Simpan ke TempData.Keep agar bisa dibaca di view tapi akan dihapus setelah request
+        TempData.Keep("MaintenanceErrorMessage");
+      }
+
       try
       {
         var viewModel = new MaintenanceFormViewModel
@@ -43,6 +63,9 @@ namespace AspnetCoreMvcFull.Controllers
           AvailableCranes = await _craneService.GetAllCranesAsync(),
           ShiftDefinitions = await _shiftService.GetAllShiftDefinitionsAsync()
         };
+
+        // ✅ PERBAIKAN: Tambahkan flag untuk membersihkan TempData
+        ViewData["CleanTempData"] = hasSuccessMessage || hasErrorMessage;
 
         return View(viewModel);
       }
@@ -52,6 +75,21 @@ namespace AspnetCoreMvcFull.Controllers
         TempData["MaintenanceErrorMessage"] = "Error loading maintenance form: " + ex.Message;
         return View("Error");
       }
+    }
+
+    // POST: /Maintenance/ClearTempData
+    [HttpPost]
+    public IActionResult ClearTempData()
+    {
+      // ✅ PERBAIKAN: Hapus SEMUA TempData yang digunakan oleh halaman Maintenance/Index
+      TempData.Remove("MaintenanceSuccessMessage");
+      TempData.Remove("MaintenanceErrorMessage");
+
+      // ✅ OPSIONAL: Bersihkan juga TempData umum jika ada
+      TempData.Remove("SuccessMessage");
+      TempData.Remove("ErrorMessage");
+
+      return Ok(new { success = true });
     }
 
     // GET: /Maintenance/List - Admin, PIC, MSD can view

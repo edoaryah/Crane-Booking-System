@@ -51,6 +51,7 @@ namespace AspnetCoreMvcFull.Controllers
       // Menandai bahwa kita telah membaca TempData spesifik halaman ini
       bool hasSuccessMessage = TempData.ContainsKey("BookingFormSuccessMessage");
       bool hasDocumentNumber = TempData.ContainsKey("BookingDocumentNumber");
+      bool hasErrorMessage = TempData.ContainsKey("BookingFormErrorMessage");
 
       if (hasSuccessMessage)
       {
@@ -64,6 +65,11 @@ namespace AspnetCoreMvcFull.Controllers
         TempData.Keep("BookingDocumentNumber");
       }
 
+      if (hasErrorMessage)
+      {
+        TempData.Keep("BookingFormErrorMessage");
+      }
+
       try
       {
         var viewModel = new BookingFormViewModel
@@ -73,8 +79,8 @@ namespace AspnetCoreMvcFull.Controllers
           AvailableHazards = await _hazardService.GetAllHazardsAsync()
         };
 
-        // Tambahkan flag untuk membersihkan TempData
-        ViewData["CleanTempData"] = hasSuccessMessage || hasDocumentNumber;
+        // ✅ PERBAIKAN: Tambahkan flag untuk membersihkan TempData termasuk error
+        ViewData["CleanTempData"] = hasSuccessMessage || hasDocumentNumber || hasErrorMessage;
 
         return View(viewModel);
       }

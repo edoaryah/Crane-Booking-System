@@ -132,8 +132,61 @@
       const resetFormBtn = document.getElementById('resetFormBtn');
       const maintenanceForm = document.getElementById('maintenanceForm');
 
-      // Set default dates (today and tomorrow)
-      const today = new Date();
+      // ✅ PERBAIKAN: Auto-clear TempData untuk alerts
+      const successAlert = document.getElementById('successAlert');
+      const errorAlert = document.getElementById('errorAlert');
+
+      // Function untuk membersihkan TempData
+      function clearMaintenanceTempData() {
+        fetch('/Maintenance/ClearTempData', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('input[name="__RequestVerificationToken"]').value
+          }
+        }).catch(error => {
+          console.log('TempData clear failed:', error);
+        });
+      }
+
+      // ✅ Auto-clear setelah success alert ditampilkan
+      if (successAlert) {
+        // Clear TempData setelah 3 detik
+        setTimeout(() => {
+          clearMaintenanceTempData();
+        }, 3000);
+
+        // Clear TempData ketika alert di-close manual
+        successAlert.addEventListener('closed.bs.alert', function () {
+          clearMaintenanceTempData();
+        });
+      }
+
+      // ✅ Auto-clear setelah error alert ditampilkan (hanya jika tidak ada success)
+      if (errorAlert && !successAlert) {
+        // Clear TempData setelah 5 detik (lebih lama untuk error)
+        setTimeout(() => {
+          clearMaintenanceTempData();
+        }, 5000);
+
+        // Clear TempData ketika alert di-close manual
+        errorAlert.addEventListener('closed.bs.alert', function () {
+          clearMaintenanceTempData();
+        });
+      }
+
+      // ✅ Clear TempData jika ada flag CleanTempData tapi tidak ada alert
+      @if (ViewData["CleanTempData"] != null && ViewData["CleanTempData"] as bool? == true)
+        {
+          <text>
+            if (!successAlert && !errorAlert) {
+              clearMaintenanceTempData();
+              }
+          </text>
+      }
+
+        // Set default dates (today and tomorrow)
+        const today = new Date();
       startDateInput.value = formatDateForInput(today);
       endDateInput.value = formatDateForInput(new Date(today.getTime() + 24 * 60 * 60 * 1000)); // tomorrow
 
@@ -193,17 +246,17 @@
 
         // Create table HTML
         let tableHtml = `
-                                            <div class="table-responsive">
-                                                <table class="table table-bordered">
-                                                    <thead>
-                                                        <tr>
-                                                            <th>Date</th>
-                                                            <th>Day</th>
-                                                            <th>Shifts</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                        `;
+            <div class="table-responsive">
+              <table class="table table-bordered">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Day</th>
+                    <th>Shifts</th>
+                  </tr>
+                </thead>
+                <tbody>
+          `;
 
         // Create rows for each date
         dateRange.forEach((date, index) => {
@@ -217,43 +270,43 @@
           const dateString = formatDateForInput(date);
 
           tableHtml += `
-                                                <tr>
-                                                    <td>${formattedDate}</td>
-                                                    <td>${dayOfWeek}</td>
-                                                    <td>
-                                                        <input type="hidden" name="ShiftSelections[${index}].Date" value="${dateString}">
-                                                        <div class="row">
-                                            `;
+              <tr>
+                <td>${formattedDate}</td>
+                <td>${dayOfWeek}</td>
+                <td>
+                  <input type="hidden" name="ShiftSelections[${index}].Date" value="${dateString}">
+                  <div class="row">
+            `;
 
           // Create checkboxes for each shift
           shiftDefinitions.forEach(shift => {
             tableHtml += `
-                                                    <div class="col-md-4 mb-2">
-                                                        <div class="form-check">
-                                                            <input class="form-check-input" type="checkbox"
-                                                                id="shift_${index}_${shift.id}"
-                                                                name="ShiftSelections[${index}].SelectedShiftIds"
-                                                                value="${shift.id}">
-                                                            <label class="form-check-label" for="shift_${index}_${shift.id}">
-                                                                ${shift.name} (${shift.formattedStartTime} - ${shift.formattedEndTime})
-                                                            </label>
-                                                        </div>
-                                                    </div>
-                                                `;
+                <div class="col-md-4 mb-2">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox"
+                      id="shift_${index}_${shift.id}"
+                      name="ShiftSelections[${index}].SelectedShiftIds"
+                      value="${shift.id}">
+                    <label class="form-check-label" for="shift_${index}_${shift.id}">
+                      ${shift.name} (${shift.formattedStartTime} - ${shift.formattedEndTime})
+                    </label>
+                  </div>
+                </div>
+              `;
           });
 
           tableHtml += `
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            `;
+                  </div>
+                </td>
+              </tr>
+            `;
         });
 
         tableHtml += `
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        `;
+                </tbody>
+              </table>
+            </div>
+          `;
 
         // Add table to DOM
         shiftSelectionTable.innerHTML = tableHtml;
