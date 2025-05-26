@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using AspnetCoreMvcFull.Filters;
 using AspnetCoreMvcFull.Services;
 using AspnetCoreMvcFull.ViewModels.UsageManagement;
@@ -6,7 +7,10 @@ using AspnetCoreMvcFull.Models;
 
 namespace AspnetCoreMvcFull.Controllers
 {
+  [Authorize]
   [ServiceFilter(typeof(AuthorizationFilter))]
+  [RequireRole("admin")]
+  [RequireRole("pic")]
   public class UsageManagementController : Controller
   {
     private readonly IUsageSubcategoryService _usageService;

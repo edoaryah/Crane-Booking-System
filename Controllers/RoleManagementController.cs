@@ -10,8 +10,7 @@ namespace AspnetCoreMvcFull.Controllers
 {
   [Authorize]
   [ServiceFilter(typeof(AuthorizationFilter))]
-  // [RequireRole("admin")]
-  // [RequireRole("pic")]
+  [RequireRole("admin")]
   public class RoleManagementController : Controller
   {
     private readonly IRoleService _roleService;

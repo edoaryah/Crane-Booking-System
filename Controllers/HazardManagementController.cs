@@ -1,4 +1,5 @@
 // Controllers/HazardManagementController.cs
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using AspnetCoreMvcFull.Filters;
 using AspnetCoreMvcFull.Services;
@@ -6,7 +7,10 @@ using AspnetCoreMvcFull.ViewModels.HazardManagement;
 
 namespace AspnetCoreMvcFull.Controllers
 {
+  [Authorize]
   [ServiceFilter(typeof(AuthorizationFilter))]
+  [RequireRole("admin")]
+  [RequireRole("pic")]
   public class HazardManagementController : Controller
   {
     private readonly IHazardService _hazardService;

@@ -1,5 +1,5 @@
-// Controllers/CraneManagementController.cs (Updated with error & success messages)
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using AspnetCoreMvcFull.Filters;
 using AspnetCoreMvcFull.Services;
 using AspnetCoreMvcFull.ViewModels.CraneManagement;
@@ -7,7 +7,10 @@ using AspnetCoreMvcFull.Models; // Added for CraneStatus enum
 
 namespace AspnetCoreMvcFull.Controllers
 {
+  [Authorize]
   [ServiceFilter(typeof(AuthorizationFilter))]
+  [RequireRole("admin")]
+  [RequireRole("pic")]
   public class CraneManagementController : Controller
   {
     private readonly ICraneService _craneService;
