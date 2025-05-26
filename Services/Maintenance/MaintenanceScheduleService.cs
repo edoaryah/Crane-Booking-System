@@ -81,6 +81,8 @@ namespace AspnetCoreMvcFull.Services
         Description = schedule.Description,
         CreatedAt = schedule.CreatedAt,
         CreatedBy = schedule.CreatedBy,
+        UpdatedAt = schedule.UpdatedAt,
+        UpdatedBy = schedule.UpdatedBy,
         Shifts = schedule.MaintenanceScheduleShifts.Select(s => new MaintenanceScheduleShiftViewModel
         {
           Id = s.Id,
@@ -122,6 +124,8 @@ namespace AspnetCoreMvcFull.Services
         Description = schedule.Description,
         CreatedAt = schedule.CreatedAt,
         CreatedBy = schedule.CreatedBy,
+        UpdatedAt = schedule.UpdatedAt,
+        UpdatedBy = schedule.UpdatedBy,
         Shifts = schedule.MaintenanceScheduleShifts.Select(s => new MaintenanceScheduleShiftViewModel
         {
           Id = s.Id,
@@ -334,7 +338,7 @@ namespace AspnetCoreMvcFull.Services
       }
     }
 
-    public async Task<MaintenanceScheduleDetailViewModel> UpdateMaintenanceScheduleAsync(int id, MaintenanceScheduleUpdateViewModel maintenanceViewModel)
+    public async Task<MaintenanceScheduleDetailViewModel> UpdateMaintenanceScheduleAsync(int id, MaintenanceScheduleUpdateViewModel maintenanceViewModel, string updatedBy)
     {
       try
       {
@@ -348,6 +352,9 @@ namespace AspnetCoreMvcFull.Services
         {
           throw new KeyNotFoundException($"Maintenance schedule with ID {id} not found");
         }
+
+        schedule.UpdatedAt = DateTime.Now;
+        schedule.UpdatedBy = updatedBy;
 
         // Validate crane exists if changing crane
         var crane = await _context.Cranes.FindAsync(maintenanceViewModel.CraneId);
@@ -556,7 +563,10 @@ namespace AspnetCoreMvcFull.Services
       }
     }
 
-    public async Task<PagedResult<MaintenanceScheduleViewModel>> GetPagedMaintenanceSchedulesAsync(MaintenanceHistoryFilterRequest request)
+    public async Task<PagedResult<MaintenanceScheduleViewModel>> GetPagedMaintenanceSchedulesAsync(
+    MaintenanceHistoryFilterRequest request,
+    string? currentUser = null,
+    List<string>? userRoles = null)
     {
       try
       {
@@ -564,6 +574,28 @@ namespace AspnetCoreMvcFull.Services
         var query = _context.MaintenanceSchedules
             .Include(m => m.Crane)
             .AsQueryable();
+
+        // ✅ ROLE-BASED DATA SCOPING
+        if (userRoles != null && !string.IsNullOrEmpty(currentUser))
+        {
+          var isAdmin = userRoles.Contains("admin", StringComparer.OrdinalIgnoreCase);
+          var isPic = userRoles.Contains("pic", StringComparer.OrdinalIgnoreCase);
+          var isMsd = userRoles.Contains("msd", StringComparer.OrdinalIgnoreCase);
+
+          if (!isAdmin && !isPic && !isMsd)
+          {
+            // ✅ SIMPLE: Selain Admin/PIC/MSD tidak ada akses
+            query = query.Where(m => false);
+            _logger.LogWarning("User {CurrentUser} with roles [{Roles}] has no access to maintenance data",
+                             currentUser, string.Join(", ", userRoles));
+          }
+          else
+          {
+            // ✅ Admin, PIC, MSD: melihat semua maintenance
+            _logger.LogInformation("User {CurrentUser} with roles [{Roles}] accessing all maintenance data",
+                                 currentUser, string.Join(", ", userRoles));
+          }
+        }
 
         // Apply filters
         if (request.CraneId.HasValue && request.CraneId.Value > 0)
@@ -584,7 +616,7 @@ namespace AspnetCoreMvcFull.Services
 
         if (request.EndDate.HasValue)
         {
-          var endDate = request.EndDate.Value.Date.AddDays(1).AddSeconds(-1);  // End of the day
+          var endDate = request.EndDate.Value.Date.AddDays(1).AddSeconds(-1);
           query = query.Where(m => m.StartDate <= endDate);
         }
 
@@ -613,7 +645,7 @@ namespace AspnetCoreMvcFull.Services
             .Take(request.PageSize)
             .ToListAsync();
 
-        // Map to view models
+        // Map to view models with audit trail
         var schedules = items.Select(m => new MaintenanceScheduleViewModel
         {
           Id = m.Id,
@@ -625,13 +657,16 @@ namespace AspnetCoreMvcFull.Services
           EndDate = m.EndDate,
           Description = m.Description,
           CreatedAt = m.CreatedAt,
-          CreatedBy = m.CreatedBy
+          CreatedBy = m.CreatedBy,
+
+          // ✅ AUDIT TRAIL FIELDS
+          UpdatedAt = m.UpdatedAt,
+          UpdatedBy = m.UpdatedBy
         }).ToList();
 
         // Calculate page count
         var pageCount = (int)Math.Ceiling(totalCount / (double)request.PageSize);
 
-        // Create and return paged result
         return new PagedResult<MaintenanceScheduleViewModel>
         {
           Items = schedules,

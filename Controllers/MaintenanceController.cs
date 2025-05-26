@@ -1,32 +1,39 @@
 using Microsoft.AspNetCore.Mvc;
-using AspnetCoreMvcFull.Filters;
+using AspnetCoreMvcFull.Filters;  // ← USE EXISTING FILTER
 using AspnetCoreMvcFull.Services;
+using AspnetCoreMvcFull.Services.Role;
 using AspnetCoreMvcFull.ViewModels.MaintenanceManagement;
+using AspnetCoreMvcFull.Helpers;  // ← ADD THIS FOR AuthorizationHelper
 using System.Security.Claims;
 
 namespace AspnetCoreMvcFull.Controllers
 {
-  [ServiceFilter(typeof(AuthorizationFilter))]
+  [ServiceFilter(typeof(AuthorizationFilter))]  // ← KEEP THIS
   public class MaintenanceController : Controller
   {
     private readonly ICraneService _craneService;
     private readonly IShiftDefinitionService _shiftService;
     private readonly IMaintenanceScheduleService _maintenanceService;
+    private readonly IRoleService _roleService;
     private readonly ILogger<MaintenanceController> _logger;
 
     public MaintenanceController(
         ICraneService craneService,
         IShiftDefinitionService shiftService,
         IMaintenanceScheduleService maintenanceService,
+        IRoleService roleService,
         ILogger<MaintenanceController> logger)
     {
       _craneService = craneService;
       _shiftService = shiftService;
       _maintenanceService = maintenanceService;
+      _roleService = roleService;
       _logger = logger;
     }
 
-    // GET: /Maintenance
+    // GET: /Maintenance - Only Admin and MSD can create
+    [RequireRole("admin")]
+    [RequireRole("msd")]
     public async Task<IActionResult> Index()
     {
       try
@@ -47,7 +54,10 @@ namespace AspnetCoreMvcFull.Controllers
       }
     }
 
-    // GET: /Maintenance/List
+    // GET: /Maintenance/List - Admin, PIC, MSD can view
+    [RequireRole("admin")]
+    [RequireRole("pic")]
+    [RequireRole("msd")]
     public async Task<IActionResult> List()
     {
       try
@@ -61,7 +71,6 @@ namespace AspnetCoreMvcFull.Controllers
           ErrorMessage = TempData["MaintenanceErrorMessage"] as string
         };
 
-        // Hapus TempData setelah digunakan
         TempData.Remove("MaintenanceSuccessMessage");
         TempData.Remove("MaintenanceErrorMessage");
 
@@ -75,12 +84,21 @@ namespace AspnetCoreMvcFull.Controllers
       }
     }
 
-    // GET: /Maintenance/Details/{documentNumber}
+    // GET: /Maintenance/Details/{documentNumber} - Admin, PIC, MSD can view
+    [RequireRole("admin")]
+    [RequireRole("pic")]
+    [RequireRole("msd")]
     public async Task<IActionResult> Details(string documentNumber)
     {
       try
       {
         var schedule = await _maintenanceService.GetMaintenanceScheduleByDocumentNumberAsync(documentNumber);
+
+        // ✅ USE AUTHORIZATION HELPER to check edit permission
+        ViewBag.CanEdit = await AuthorizationHelper.HasRole(User, _roleService, "admin") ||
+                         await AuthorizationHelper.HasRole(User, _roleService, "pic") ||
+                         await AuthorizationHelper.HasRole(User, _roleService, "msd");
+
         return View(schedule);
       }
       catch (KeyNotFoundException)
@@ -91,23 +109,23 @@ namespace AspnetCoreMvcFull.Controllers
       {
         _logger.LogError(ex, "Error loading maintenance schedule details for document number: {DocumentNumber}", documentNumber);
         TempData["MaintenanceErrorMessage"] = "Error loading maintenance details: " + ex.Message;
-        return RedirectToAction(nameof(List));
+        return RedirectToAction("Index", "MaintenanceHistory");
       }
     }
 
-    // POST: /Maintenance/SaveSchedule - Mengganti nama action untuk memproses form
+    // POST: /Maintenance/Create - Only Admin and MSD can create
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequireRole("admin")]
+    [RequireRole("msd")]
     public async Task<IActionResult> Create(MaintenanceScheduleCreateViewModel viewModel)
     {
       try
       {
         if (ModelState.IsValid)
         {
-          // Set created by to current user
           var userName = User.FindFirst(ClaimTypes.Name)?.Value;
           var ldapUser = User.FindFirst("ldapuser")?.Value;
-
           viewModel.CreatedBy = userName ?? ldapUser ?? "system";
 
           var createdSchedule = await _maintenanceService.CreateMaintenanceScheduleAsync(viewModel);
@@ -116,36 +134,33 @@ namespace AspnetCoreMvcFull.Controllers
           return RedirectToAction(nameof(Details), new { documentNumber = createdSchedule.DocumentNumber });
         }
 
-        // Jika validasi gagal, kembali ke form dengan data yang dibutuhkan
         var formViewModel = new MaintenanceFormViewModel
         {
           AvailableCranes = await _craneService.GetAllCranesAsync(),
           ShiftDefinitions = await _shiftService.GetAllShiftDefinitionsAsync()
         };
 
-        // Tambahkan pesan error
         ModelState.AddModelError("", "Silakan perbaiki error dan coba lagi.");
-
         return View("Index", formViewModel);
       }
       catch (Exception ex)
       {
         _logger.LogError(ex, "Error creating maintenance schedule");
-
-        // Redirect ke Index dengan pesan error
         TempData["MaintenanceErrorMessage"] = "Error membuat jadwal maintenance: " + ex.Message;
         return RedirectToAction("Index");
       }
     }
 
-    // GET: /Maintenance/Edit/{documentNumber}
+    // GET: /Maintenance/Edit/{documentNumber} - Admin, PIC, MSD can edit
+    [RequireRole("admin")]
+    [RequireRole("pic")]
+    [RequireRole("msd")]
     public async Task<IActionResult> Edit(string documentNumber)
     {
       try
       {
         var schedule = await _maintenanceService.GetMaintenanceScheduleByDocumentNumberAsync(documentNumber);
 
-        // Convert to update view model
         var viewModel = new MaintenanceScheduleUpdateViewModel
         {
           CraneId = schedule.CraneId,
@@ -171,30 +186,35 @@ namespace AspnetCoreMvcFull.Controllers
       {
         _logger.LogError(ex, "Error loading maintenance schedule for edit with document number: {DocumentNumber}", documentNumber);
         TempData["MaintenanceErrorMessage"] = "Error loading maintenance schedule: " + ex.Message;
-        return RedirectToAction(nameof(List));
+        return RedirectToAction("Index", "MaintenanceHistory");
       }
     }
 
-    // POST: /Maintenance/Edit/{id}
+    // POST: /Maintenance/Edit/{id} - Admin, PIC, MSD can edit
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequireRole("admin")]
+    [RequireRole("pic")]
+    [RequireRole("msd")]
     public async Task<IActionResult> Edit(int id, MaintenanceScheduleUpdateViewModel viewModel)
     {
       try
       {
         if (ModelState.IsValid)
         {
-          var updatedSchedule = await _maintenanceService.UpdateMaintenanceScheduleAsync(id, viewModel);
+          var userName = User.FindFirst(ClaimTypes.Name)?.Value;
+          var ldapUser = User.FindFirst("ldapuser")?.Value;
+          var updatedBy = userName ?? ldapUser ?? "system";
+
+          var updatedSchedule = await _maintenanceService.UpdateMaintenanceScheduleAsync(id, viewModel, updatedBy);
 
           TempData["MaintenanceSuccessMessage"] = "Maintenance schedule updated successfully";
           return RedirectToAction(nameof(Details), new { documentNumber = updatedSchedule.DocumentNumber });
         }
 
-        // If we got this far, something failed, redisplay form
         ViewBag.Cranes = await _craneService.GetAllCranesAsync();
         ViewBag.ShiftDefinitions = await _shiftService.GetAllShiftDefinitionsAsync();
 
-        // Try to get the document number
         var schedule = await _maintenanceService.GetMaintenanceScheduleByIdAsync(id);
         ViewBag.DocumentNumber = schedule.DocumentNumber;
         ViewBag.ScheduleId = id;
@@ -208,24 +228,15 @@ namespace AspnetCoreMvcFull.Controllers
 
         ViewBag.Cranes = await _craneService.GetAllCranesAsync();
         ViewBag.ShiftDefinitions = await _shiftService.GetAllShiftDefinitionsAsync();
-
-        // Try to get the document number
-        try
-        {
-          var schedule = await _maintenanceService.GetMaintenanceScheduleByIdAsync(id);
-          ViewBag.DocumentNumber = schedule.DocumentNumber;
-        }
-        catch
-        {
-          // Ignore if we can't get the document number
-        }
-
         ViewBag.ScheduleId = id;
         return View(viewModel);
       }
     }
 
-    // GET: /Maintenance/Delete/{documentNumber}
+    // GET: /Maintenance/Delete/{documentNumber} - Admin, PIC, MSD can delete
+    [RequireRole("admin")]
+    [RequireRole("pic")]
+    [RequireRole("msd")]
     public async Task<IActionResult> Delete(string documentNumber)
     {
       try
@@ -241,13 +252,16 @@ namespace AspnetCoreMvcFull.Controllers
       {
         _logger.LogError(ex, "Error loading maintenance schedule for deletion with document number: {DocumentNumber}", documentNumber);
         TempData["MaintenanceErrorMessage"] = "Error loading maintenance schedule: " + ex.Message;
-        return RedirectToAction(nameof(List));
+        return RedirectToAction("Index", "MaintenanceHistory");
       }
     }
 
-    // POST: /Maintenance/Delete/{id}
+    // POST: /Maintenance/Delete/{id} - Admin, PIC, MSD can delete
     [HttpPost, ActionName("Delete")]
     [ValidateAntiForgeryToken]
+    [RequireRole("admin")]
+    [RequireRole("pic")]
+    [RequireRole("msd")]
     public async Task<IActionResult> DeleteConfirmed(int id)
     {
       try
@@ -255,7 +269,7 @@ namespace AspnetCoreMvcFull.Controllers
         await _maintenanceService.DeleteMaintenanceScheduleAsync(id);
 
         TempData["MaintenanceSuccessMessage"] = "Maintenance schedule deleted successfully";
-        return RedirectToAction(nameof(List));
+        return RedirectToAction("Index", "MaintenanceHistory");
       }
       catch (KeyNotFoundException)
       {
@@ -265,26 +279,23 @@ namespace AspnetCoreMvcFull.Controllers
       {
         _logger.LogError(ex, "Error deleting maintenance schedule with ID: {Id}", id);
         TempData["MaintenanceErrorMessage"] = "Error deleting maintenance schedule: " + ex.Message;
-        return RedirectToAction(nameof(List));
+        return RedirectToAction("Index", "MaintenanceHistory");
       }
     }
 
-    // GET: /Maintenance/Calendar
+    // GET: /Maintenance/Calendar - Admin, PIC, MSD can view
+    [RequireRole("admin")]
+    [RequireRole("pic")]
+    [RequireRole("msd")]
     public async Task<IActionResult> Calendar(DateTime? start = null, DateTime? end = null)
     {
       try
       {
-        // Default to current week if not specified
         var startDate = start ?? DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek);
         var endDate = end ?? startDate.AddDays(6);
 
-        // Get all cranes
         var cranes = await _craneService.GetAllCranesAsync();
-
-        // Get all shift definitions
         var shifts = await _shiftService.GetAllShiftDefinitionsAsync();
-
-        // Get all maintenance schedules in the date range
         var schedules = await _maintenanceService.GetAllMaintenanceSchedulesAsync();
         var filteredSchedules = schedules.Where(s =>
             (s.StartDate <= endDate && s.EndDate >= startDate)).ToList();
@@ -308,8 +319,11 @@ namespace AspnetCoreMvcFull.Controllers
       }
     }
 
-    // API for checking shift conflicts
+    // API for checking shift conflicts - Admin, PIC, MSD can access
     [HttpGet]
+    [RequireRole("admin")]
+    [RequireRole("pic")]
+    [RequireRole("msd")]
     public async Task<IActionResult> CheckShiftConflict(int craneId, DateTime date, int shiftDefinitionId, int? excludeMaintenanceId = null)
     {
       try
@@ -329,7 +343,6 @@ namespace AspnetCoreMvcFull.Controllers
     // Helper methods
     private List<DailyShiftSelectionViewModel> ConvertShiftsToSelections(MaintenanceScheduleDetailViewModel schedule)
     {
-      // Group shifts by date
       var groupedShifts = schedule.Shifts.GroupBy(s => s.Date.Date)
                                        .Select(g => new
                                        {
@@ -338,7 +351,6 @@ namespace AspnetCoreMvcFull.Controllers
                                        })
                                        .ToList();
 
-      // Convert to selection view models
       return groupedShifts.Select(g => new DailyShiftSelectionViewModel
       {
         Date = g.Date,

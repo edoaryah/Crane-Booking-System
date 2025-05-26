@@ -17,6 +17,8 @@ namespace AspnetCoreMvcFull.ViewModels.MaintenanceManagement
     public string? Description { get; set; }
     public DateTime CreatedAt { get; set; }
     public required string CreatedBy { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public string? UpdatedBy { get; set; }
   }
 
   public class MaintenanceScheduleDetailViewModel : MaintenanceScheduleViewModel

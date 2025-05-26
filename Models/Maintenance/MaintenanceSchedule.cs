@@ -37,6 +37,10 @@ namespace AspnetCoreMvcFull.Models
 
     [Required]
     public required string CreatedBy { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+
+    [StringLength(100)]
+    public string? UpdatedBy { get; set; }
 
     public virtual Crane? Crane { get; set; }
 

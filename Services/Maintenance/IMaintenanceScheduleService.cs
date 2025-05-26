@@ -10,13 +10,15 @@ namespace AspnetCoreMvcFull.Services
     Task<MaintenanceScheduleDetailViewModel> GetMaintenanceScheduleByDocumentNumberAsync(string documentNumber);
     Task<IEnumerable<MaintenanceScheduleViewModel>> GetMaintenanceSchedulesByCraneIdAsync(int craneId);
     Task<MaintenanceScheduleDetailViewModel> CreateMaintenanceScheduleAsync(MaintenanceScheduleCreateViewModel maintenanceViewModel);
-    Task<MaintenanceScheduleDetailViewModel> UpdateMaintenanceScheduleAsync(int id, MaintenanceScheduleUpdateViewModel maintenanceViewModel);
-    Task DeleteMaintenanceScheduleAsync(int id);
+    Task<MaintenanceScheduleDetailViewModel> UpdateMaintenanceScheduleAsync(int id, MaintenanceScheduleUpdateViewModel maintenanceViewModel, string updatedBy); Task DeleteMaintenanceScheduleAsync(int id);
     Task<bool> IsShiftMaintenanceConflictAsync(int craneId, DateTime date, int shiftDefinitionId, int? excludeMaintenanceId = null);
     Task<bool> MaintenanceScheduleExistsAsync(int id);
     Task<bool> MaintenanceScheduleExistsByDocumentNumberAsync(string documentNumber);
 
     // Add to existing interface
-    Task<PagedResult<MaintenanceScheduleViewModel>> GetPagedMaintenanceSchedulesAsync(MaintenanceHistoryFilterRequest request);
+    Task<PagedResult<MaintenanceScheduleViewModel>> GetPagedMaintenanceSchedulesAsync(
+      MaintenanceHistoryFilterRequest request,
+      string? currentUser = null,
+      List<string>? userRoles = null);
   }
 }
