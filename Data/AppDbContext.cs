@@ -181,7 +181,6 @@ namespace AspnetCoreMvcFull.Data
           .OnDelete(DeleteBehavior.SetNull);
 
       CraneSeeder.Seed(modelBuilder);
-      RoleSeeder.Seed(modelBuilder);
       HazardSeeder.Seed(modelBuilder);
       ShiftDefinitionSeeder.Seed(modelBuilder);
       UsageSubcategorySeeder.Seed(modelBuilder);
