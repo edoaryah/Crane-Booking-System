@@ -1,8 +1,6 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using AspnetCoreMvcFull.Data;
-// using AspnetCoreMvcFull.Events;
-// using AspnetCoreMvcFull.Events.Handlers;
 using AspnetCoreMvcFull.Filters;
 using AspnetCoreMvcFull.Middleware;
 using AspnetCoreMvcFull.Services.Auth;
@@ -33,11 +31,6 @@ builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 // Registrasi Filter
 builder.Services.AddScoped<AuthorizationFilter>();
 builder.Services.AddScoped<RateLimitFilter>();
-
-// Tambahkan setelah registrasi service yang ada
-// Registrasi event infrastructure
-// builder.Services.AddSingleton<IEventPublisher, EventPublisher>();
-// builder.Services.AddScoped<IEventHandler<CraneMaintenanceEvent>, BookingRelocationHandler>();
 
 builder.Services.AddScoped<IHazardService, HazardService>();
 builder.Services.AddScoped<IShiftDefinitionService, ShiftDefinitionService>();
@@ -206,19 +199,30 @@ app.UseAuthorization();
 // Tambahkan middleware token refresh
 app.UseTokenRefresh();
 
-// Log aktivitas keamanan untuk resource terproteksi
+// Log aktivitas keamanan untuk resource terproteksi - khusus Role Management
 app.Use(async (context, next) =>
 {
-  // Log semua upaya akses ke resource yang terproteksi
-  if (context.Request.Path.StartsWithSegments("/Admin") ||
-      context.Request.Path.StartsWithSegments("/Management"))
+  // Log semua upaya akses ke Role Management
+  if (context.Request.Path.StartsWithSegments("/RoleManagement"))
   {
     var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+
+    // Dapatkan informasi user
+    var userName = context.User.Identity?.Name ?? "anonymous";
+    var ldapUser = context.User.FindFirst("ldapuser")?.Value ?? "unknown";
+    var userAgent = context.Request.Headers["User-Agent"].ToString();
+    var ipAddress = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+    var method = context.Request.Method;
+    var fullPath = context.Request.Path + context.Request.QueryString;
+
     logger.LogInformation(
-        "Upaya akses ke resource terproteksi: {Path} oleh {User} dari {IP}",
-        context.Request.Path,
-        context.User.Identity?.Name ?? "anonymous",
-        context.Connection.RemoteIpAddress);
+        "Role Management Access: {Method} {Path} by {User} (LDAP: {LdapUser}) from {IP} - UserAgent: {UserAgent}",
+        method,
+        fullPath,
+        userName,
+        ldapUser,
+        ipAddress,
+        userAgent);
   }
 
   await next();
