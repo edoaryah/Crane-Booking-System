@@ -17,6 +17,7 @@ namespace AspnetCoreMvcFull.Services
     private readonly ILogger<BookingService> _logger;
     private readonly IEmailService _emailService;
     private readonly IEmployeeService _employeeService;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
 
     public BookingService(
         AppDbContext context,
@@ -26,7 +27,8 @@ namespace AspnetCoreMvcFull.Services
         IScheduleConflictService scheduleConflictService,
         IEmailService emailService,
         IEmployeeService employeeService,
-        ILogger<BookingService> logger)
+        ILogger<BookingService> logger,
+        IServiceScopeFactory serviceScopeFactory)
     {
       _context = context;
       _craneService = craneService;
@@ -36,6 +38,7 @@ namespace AspnetCoreMvcFull.Services
       _emailService = emailService;
       _employeeService = employeeService;
       _logger = logger;
+      _serviceScopeFactory = serviceScopeFactory;
     }
 
     public async Task<IEnumerable<BookingViewModel>> GetAllBookingsAsync()
@@ -356,6 +359,7 @@ namespace AspnetCoreMvcFull.Services
       return response;
     }
 
+    // ✅ METHOD YANG DIPERBAIKI - CreateBookingAsync
     public async Task<BookingDetailViewModel> CreateBookingAsync(BookingCreateViewModel bookingViewModel)
     {
       try
@@ -561,39 +565,60 @@ namespace AspnetCoreMvcFull.Services
 
         await _context.SaveChangesAsync();
 
-        // Cari manager departemen user
-        var manager = await _employeeService.GetManagerByDepartmentAsync(booking.Department);
+        // ✅ RELIABLE FIX: Kirim email notifikasi menggunakan IServiceScopeFactory
+        _logger.LogInformation("Starting background email task for new booking {BookingNumber}", booking.BookingNumber);
 
-        // Dapatkan data user yang melakukan booking
-        var user = await _employeeService.GetEmployeeByLdapUserAsync(bookingViewModel.LdapUser);
-
-        // Kirim email notifikasi ke user
         _ = Task.Run(async () =>
         {
           try
           {
+            _logger.LogInformation("Background email task started for booking {BookingNumber}", booking.BookingNumber);
+
+            using var scope = _serviceScopeFactory.CreateScope();
+            var scopedEmployeeService = scope.ServiceProvider.GetRequiredService<IEmployeeService>();
+            var scopedEmailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
+
+            _logger.LogInformation("Scoped services created for booking {BookingNumber}", booking.BookingNumber);
+
+            // Dapatkan data user yang melakukan booking
+            var user = await scopedEmployeeService.GetEmployeeByLdapUserAsync(bookingViewModel.LdapUser);
+
             // Send email to user
             if (user != null && !string.IsNullOrEmpty(user.Email))
             {
-              await _emailService.SendBookingSubmittedEmailAsync(booking, user.Email);
-              _logger.LogInformation("User notification email sent for booking {BookingNumber}", booking.BookingNumber);
+              await scopedEmailService.SendBookingSubmittedEmailAsync(booking, user.Email);
+              _logger.LogInformation("✅ User notification email sent for booking {BookingNumber}", booking.BookingNumber);
             }
+            else
+            {
+              _logger.LogWarning("❌ User email not found for LDAP {LdapUser} in booking {BookingNumber}",
+                  bookingViewModel.LdapUser, booking.BookingNumber);
+            }
+
+            // Cari manager departemen user
+            var manager = await scopedEmployeeService.GetManagerByDepartmentAsync(booking.Department);
 
             // Send email to manager
             if (manager != null && !string.IsNullOrEmpty(manager.Email) && !string.IsNullOrEmpty(manager.LdapUser))
             {
-              await _emailService.SendManagerApprovalRequestEmailAsync(
+              await scopedEmailService.SendManagerApprovalRequestEmailAsync(
                   booking,
                   manager.Email,
                   manager.Name,
                   manager.LdapUser);
-              _logger.LogInformation("Manager approval email sent for booking {BookingNumber}", booking.BookingNumber);
+              _logger.LogInformation("✅ Manager approval email sent for booking {BookingNumber}", booking.BookingNumber);
             }
+            else
+            {
+              _logger.LogWarning("❌ Manager not found for department {Department} for booking {BookingNumber}",
+                  booking.Department, booking.BookingNumber);
+            }
+
+            _logger.LogInformation("✅ Background email task completed for booking {BookingNumber}", booking.BookingNumber);
           }
           catch (Exception emailEx)
           {
-            _logger.LogError(emailEx, "Error sending emails for booking {BookingNumber}", booking.BookingNumber);
-            // Email failure should not affect booking creation
+            _logger.LogError(emailEx, "❌ Error in background email task for booking {BookingNumber}", booking.BookingNumber);
           }
         });
 

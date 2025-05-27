@@ -16,8 +16,9 @@ namespace AspnetCoreMvcFull.Services
     private readonly IEmailService _emailService;
     private readonly IEmployeeService _employeeService;
     private const string ContainerName = "cranes";
+    private readonly IServiceScopeFactory _serviceScopeFactory;
 
-    public CraneService(AppDbContext context, ILogger<CraneService> logger, IFileStorageService fileStorage, IEmailService emailService, IEmployeeService employeeService)
+    public CraneService(AppDbContext context, ILogger<CraneService> logger, IFileStorageService fileStorage, IEmailService emailService, IEmployeeService employeeService, IServiceScopeFactory serviceScopeFactory)
 
     {
       _context = context;
@@ -25,6 +26,7 @@ namespace AspnetCoreMvcFull.Services
       _fileStorage = fileStorage;
       _emailService = emailService;
       _employeeService = employeeService;
+      _serviceScopeFactory = serviceScopeFactory;
     }
 
     public async Task<IEnumerable<CraneViewModel>> GetAllCranesAsync()
@@ -258,14 +260,14 @@ namespace AspnetCoreMvcFull.Services
       await _context.SaveChangesAsync();
     }
 
-    // CraneService.cs - Add this new method
+    // ✅ METHOD YANG DIPERBAIKI
     private async Task SendBreakdownNotificationsAsync(int craneId, Breakdown breakdown)
     {
       try
       {
         _logger.LogInformation("Sending breakdown notifications for crane {CraneId}", craneId);
 
-        // Get crane info for historical data check
+        // Get crane info for historical data check (menggunakan context yang masih hidup)
         var crane = await _context.Cranes.FindAsync(craneId);
         string craneCode = crane?.Code ?? "";
 
@@ -284,46 +286,69 @@ namespace AspnetCoreMvcFull.Services
                 b.EndDate >= breakdown.UrgentStartTime.Date)
             .ToListAsync();
 
-        _logger.LogInformation("Found {Count} potentially affected bookings", affectedBookings.Count);
+        _logger.LogInformation("Found {Count} potentially affected bookings for crane {CraneId}",
+            affectedBookings.Count, craneId);
 
-        // Send email to each affected booking owner
-        foreach (var booking in affectedBookings)
+        // ✅ RELIABLE FIX: Kirim email menggunakan IServiceScopeFactory
+        _logger.LogInformation("Starting background email task for breakdown notifications crane {CraneId}", craneId);
+
+        _ = Task.Run(async () =>
         {
           try
           {
-            if (!string.IsNullOrEmpty(booking.LdapUser))
-            {
-              var user = await _employeeService.GetEmployeeByLdapUserAsync(booking.LdapUser);
-              if (user != null && !string.IsNullOrEmpty(user.Email))
-              {
-                await _emailService.SendBookingAffectedByBreakdownEmailAsync(booking, user.Email, breakdown);
+            _logger.LogInformation("Background breakdown notification task started for crane {CraneId}", craneId);
 
-                _logger.LogInformation(
-                    "Breakdown notification sent to {UserEmail} for booking {BookingNumber}",
-                    user.Email, booking.BookingNumber);
-              }
-              else
-              {
-                _logger.LogWarning(
-                    "User email not found for LDAP {LdapUser} in booking {BookingNumber}",
-                    booking.LdapUser, booking.BookingNumber);
-              }
-            }
-            else
+            using var scope = _serviceScopeFactory.CreateScope();
+            var scopedEmployeeService = scope.ServiceProvider.GetRequiredService<IEmployeeService>();
+            var scopedEmailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
+
+            _logger.LogInformation("Scoped services created for breakdown notifications crane {CraneId}", craneId);
+
+            // Send email to each affected booking owner
+            foreach (var booking in affectedBookings)
             {
-              _logger.LogWarning("LDAP user not available for booking {BookingNumber}", booking.BookingNumber);
+              try
+              {
+                _logger.LogInformation("Processing breakdown notification for booking {BookingNumber} (LDAP: {LdapUser})",
+                    booking.BookingNumber, booking.LdapUser);
+
+                if (!string.IsNullOrEmpty(booking.LdapUser))
+                {
+                  var user = await scopedEmployeeService.GetEmployeeByLdapUserAsync(booking.LdapUser);
+                  if (user != null && !string.IsNullOrEmpty(user.Email))
+                  {
+                    await scopedEmailService.SendBookingAffectedByBreakdownEmailAsync(booking, user.Email, breakdown);
+
+                    _logger.LogInformation("✅ Breakdown notification sent to {UserEmail} for booking {BookingNumber}",
+                        user.Email, booking.BookingNumber);
+                  }
+                  else
+                  {
+                    _logger.LogWarning("❌ User email not found for LDAP {LdapUser} in booking {BookingNumber}",
+                        booking.LdapUser, booking.BookingNumber);
+                  }
+                }
+                else
+                {
+                  _logger.LogWarning("❌ LDAP user not available for booking {BookingNumber}", booking.BookingNumber);
+                }
+              }
+              catch (Exception emailEx)
+              {
+                _logger.LogError(emailEx, "❌ Failed to send breakdown notification for booking {BookingNumber}",
+                    booking.BookingNumber);
+                // Continue with other bookings even if one fails
+              }
             }
+
+            _logger.LogInformation("✅ Completed sending breakdown notifications for crane {CraneId}", craneId);
           }
-          catch (Exception emailEx)
+          catch (Exception ex)
           {
-            _logger.LogError(emailEx,
-                "Failed to send breakdown notification for booking {BookingNumber}",
-                booking.BookingNumber);
-            // Continue with other bookings even if one fails
+            _logger.LogError(ex, "❌ Error in background breakdown notification task for crane {CraneId}", craneId);
           }
-        }
+        });
 
-        _logger.LogInformation("Completed sending breakdown notifications for crane {CraneId}", craneId);
       }
       catch (Exception ex)
       {

@@ -1,4 +1,4 @@
-// Services/Booking/BookingApprovalService.cs
+// Services/Booking/BookingApprovalService.cs - RELIABLE FIX
 using AspnetCoreMvcFull.Models;
 using AspnetCoreMvcFull.Data;
 using Microsoft.EntityFrameworkCore;
@@ -11,17 +11,20 @@ namespace AspnetCoreMvcFull.Services
     private readonly IEmailService _emailService;
     private readonly IEmployeeService _employeeService;
     private readonly ILogger<BookingApprovalService> _logger;
+    private readonly IServiceScopeFactory _serviceScopeFactory; // ✅ GANTI KE IServiceScopeFactory
 
     public BookingApprovalService(
         AppDbContext context,
         IEmailService emailService,
         IEmployeeService employeeService,
-        ILogger<BookingApprovalService> logger)
+        ILogger<BookingApprovalService> logger,
+        IServiceScopeFactory serviceScopeFactory) // ✅ GANTI KE IServiceScopeFactory
     {
       _context = context;
       _emailService = emailService;
       _employeeService = employeeService;
       _logger = logger;
+      _serviceScopeFactory = serviceScopeFactory; // ✅ GANTI KE IServiceScopeFactory
     }
 
     public async Task<bool> ApproveByManagerAsync(int bookingId, string managerName)
@@ -38,40 +41,82 @@ namespace AspnetCoreMvcFull.Services
           return false;
         }
 
-        // Memastikan booking dalam status yang benar
         if (booking.Status != BookingStatus.PendingApproval)
         {
           _logger.LogWarning("Booking dengan ID {BookingId} tidak dalam status PendingApproval", bookingId);
           return false;
         }
 
-        // Update status booking menjadi ManagerApproved
         booking.Status = BookingStatus.ManagerApproved;
         booking.ManagerName = managerName;
         booking.ManagerApprovalTime = DateTime.Now;
 
         await _context.SaveChangesAsync();
 
-        // Kirim notifikasi email ke user
-        var user = await _employeeService.GetEmployeeByLdapUserAsync(booking.LdapUser);
-        if (user != null && !string.IsNullOrEmpty(user.Email))
-        {
-          await _emailService.SendBookingManagerApprovedEmailAsync(booking, user.Email);
-        }
+        // ✅ RELIABLE FIX: Immediate background task with better error handling
+        _logger.LogInformation("Starting background email task for manager approval of booking {BookingNumber}", booking.BookingNumber);
 
-        // Kirim notifikasi email ke semua PIC crane
-        var picCranes = await _employeeService.GetPicCraneAsync();
-        foreach (var pic in picCranes)
+        _ = Task.Run(async () =>
         {
-          if (!string.IsNullOrEmpty(pic.Email) && !string.IsNullOrEmpty(pic.LdapUser))
+          try
           {
-            await _emailService.SendPicApprovalRequestEmailAsync(
-                booking,
-                pic.Email,
-                pic.Name,
-                pic.LdapUser);
+            _logger.LogInformation("Background email task started for booking {BookingNumber}", booking.BookingNumber);
+
+            using var scope = _serviceScopeFactory.CreateScope();
+            var scopedEmployeeService = scope.ServiceProvider.GetRequiredService<IEmployeeService>();
+            var scopedEmailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
+
+            _logger.LogInformation("Scoped services created for booking {BookingNumber}", booking.BookingNumber);
+
+            // Kirim notifikasi email ke user
+            var user = await scopedEmployeeService.GetEmployeeByLdapUserAsync(booking.LdapUser);
+            if (user != null && !string.IsNullOrEmpty(user.Email))
+            {
+              await scopedEmailService.SendBookingManagerApprovedEmailAsync(booking, user.Email);
+              _logger.LogInformation("✅ Manager approval notification sent to user {UserEmail} for booking {BookingNumber}",
+                  user.Email, booking.BookingNumber);
+            }
+            else
+            {
+              _logger.LogWarning("❌ User email not found for LDAP {LdapUser} in booking {BookingNumber}",
+                  booking.LdapUser, booking.BookingNumber);
+            }
+
+            // Kirim notifikasi email ke semua PIC crane
+            _logger.LogInformation("Getting PIC list for booking {BookingNumber}", booking.BookingNumber);
+            var picCranes = await scopedEmployeeService.GetPicCraneAsync();
+            _logger.LogInformation("Found {PicCount} PIC users for booking {BookingNumber}", picCranes.Count(), booking.BookingNumber);
+
+            foreach (var pic in picCranes)
+            {
+              _logger.LogInformation("Processing PIC: {PicName} ({PicLdap}) - Email: {PicEmail}",
+                  pic.Name, pic.LdapUser, pic.Email);
+
+              if (!string.IsNullOrEmpty(pic.Email) && !string.IsNullOrEmpty(pic.LdapUser))
+              {
+                await scopedEmailService.SendPicApprovalRequestEmailAsync(
+                    booking,
+                    pic.Email,
+                    pic.Name,
+                    pic.LdapUser);
+
+                _logger.LogInformation("✅ PIC approval request sent to {PicName} ({PicEmail}) for booking {BookingNumber}",
+                    pic.Name, pic.Email, booking.BookingNumber);
+              }
+              else
+              {
+                _logger.LogWarning("❌ PIC {PicName} missing email or LDAP - Email: {PicEmail}, LDAP: {PicLdap}",
+                    pic.Name, pic.Email, pic.LdapUser);
+              }
+            }
+
+            _logger.LogInformation("✅ Background email task completed for booking {BookingNumber}", booking.BookingNumber);
           }
-        }
+          catch (Exception emailEx)
+          {
+            _logger.LogError(emailEx, "❌ Error in background email task for booking {BookingNumber}", booking.BookingNumber);
+          }
+        });
 
         return true;
       }
@@ -96,14 +141,12 @@ namespace AspnetCoreMvcFull.Services
           return false;
         }
 
-        // Memastikan booking dalam status yang benar
         if (booking.Status != BookingStatus.PendingApproval)
         {
           _logger.LogWarning("Booking dengan ID {BookingId} tidak dalam status PendingApproval", bookingId);
           return false;
         }
 
-        // Update status booking menjadi ManagerRejected
         booking.Status = BookingStatus.ManagerRejected;
         booking.ManagerName = managerName;
         booking.ManagerApprovalTime = DateTime.Now;
@@ -111,16 +154,35 @@ namespace AspnetCoreMvcFull.Services
 
         await _context.SaveChangesAsync();
 
-        // Kirim notifikasi email ke user
-        var user = await _employeeService.GetEmployeeByLdapUserAsync(booking.LdapUser);
-        if (user != null && !string.IsNullOrEmpty(user.Email))
+        // ✅ RELIABLE FIX: Background task with logging
+        _logger.LogInformation("Starting background email task for manager rejection of booking {BookingNumber}", booking.BookingNumber);
+
+        _ = Task.Run(async () =>
         {
-          await _emailService.SendBookingRejectedEmailAsync(
-              booking,
-              user.Email,
-              managerName,
-              rejectReason);
-        }
+          try
+          {
+            using var scope = _serviceScopeFactory.CreateScope();
+            var scopedEmployeeService = scope.ServiceProvider.GetRequiredService<IEmployeeService>();
+            var scopedEmailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
+
+            var user = await scopedEmployeeService.GetEmployeeByLdapUserAsync(booking.LdapUser);
+            if (user != null && !string.IsNullOrEmpty(user.Email))
+            {
+              await scopedEmailService.SendBookingRejectedEmailAsync(
+                  booking,
+                  user.Email,
+                  managerName,
+                  rejectReason);
+
+              _logger.LogInformation("✅ Manager rejection notification sent to user {UserEmail} for booking {BookingNumber}",
+                  user.Email, booking.BookingNumber);
+            }
+          }
+          catch (Exception emailEx)
+          {
+            _logger.LogError(emailEx, "❌ Error sending rejection email for booking {BookingNumber}", booking.BookingNumber);
+          }
+        });
 
         return true;
       }
@@ -145,26 +207,42 @@ namespace AspnetCoreMvcFull.Services
           return false;
         }
 
-        // Memastikan booking dalam status yang benar
         if (booking.Status != BookingStatus.ManagerApproved)
         {
           _logger.LogWarning("Booking dengan ID {BookingId} tidak dalam status ManagerApproved", bookingId);
           return false;
         }
 
-        // Update status booking menjadi PICApproved
         booking.Status = BookingStatus.PICApproved;
         booking.ApprovedByPIC = picName;
         booking.ApprovedAtByPIC = DateTime.Now;
 
         await _context.SaveChangesAsync();
 
-        // Kirim notifikasi email ke user
-        var user = await _employeeService.GetEmployeeByLdapUserAsync(booking.LdapUser);
-        if (user != null && !string.IsNullOrEmpty(user.Email))
+        // ✅ RELIABLE FIX: Background task with logging
+        _logger.LogInformation("Starting background email task for PIC approval of booking {BookingNumber}", booking.BookingNumber);
+
+        _ = Task.Run(async () =>
         {
-          await _emailService.SendBookingApprovedEmailAsync(booking, user.Email);
-        }
+          try
+          {
+            using var scope = _serviceScopeFactory.CreateScope();
+            var scopedEmployeeService = scope.ServiceProvider.GetRequiredService<IEmployeeService>();
+            var scopedEmailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
+
+            var user = await scopedEmployeeService.GetEmployeeByLdapUserAsync(booking.LdapUser);
+            if (user != null && !string.IsNullOrEmpty(user.Email))
+            {
+              await scopedEmailService.SendBookingApprovedEmailAsync(booking, user.Email);
+              _logger.LogInformation("✅ PIC approval notification sent to user {UserEmail} for booking {BookingNumber}",
+                  user.Email, booking.BookingNumber);
+            }
+          }
+          catch (Exception emailEx)
+          {
+            _logger.LogError(emailEx, "❌ Error sending PIC approval email for booking {BookingNumber}", booking.BookingNumber);
+          }
+        });
 
         return true;
       }
@@ -189,29 +267,46 @@ namespace AspnetCoreMvcFull.Services
           return false;
         }
 
-        // Memastikan booking dalam status yang benar
         if (booking.Status != BookingStatus.ManagerApproved)
         {
           _logger.LogWarning("Booking dengan ID {BookingId} tidak dalam status ManagerApproved", bookingId);
           return false;
         }
 
-        // Update status booking menjadi PICRejected
         booking.Status = BookingStatus.PICRejected;
         booking.PICRejectReason = rejectReason;
 
         await _context.SaveChangesAsync();
 
-        // Kirim notifikasi email ke user
-        var user = await _employeeService.GetEmployeeByLdapUserAsync(booking.LdapUser);
-        if (user != null && !string.IsNullOrEmpty(user.Email))
+        // ✅ RELIABLE FIX: Background task with logging
+        _logger.LogInformation("Starting background email task for PIC rejection of booking {BookingNumber}", booking.BookingNumber);
+
+        _ = Task.Run(async () =>
         {
-          await _emailService.SendBookingRejectedEmailAsync(
-              booking,
-              user.Email,
-              picName,
-              rejectReason);
-        }
+          try
+          {
+            using var scope = _serviceScopeFactory.CreateScope();
+            var scopedEmployeeService = scope.ServiceProvider.GetRequiredService<IEmployeeService>();
+            var scopedEmailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
+
+            var user = await scopedEmployeeService.GetEmployeeByLdapUserAsync(booking.LdapUser);
+            if (user != null && !string.IsNullOrEmpty(user.Email))
+            {
+              await scopedEmailService.SendBookingRejectedEmailAsync(
+                  booking,
+                  user.Email,
+                  picName,
+                  rejectReason);
+
+              _logger.LogInformation("✅ PIC rejection notification sent to user {UserEmail} for booking {BookingNumber}",
+                  user.Email, booking.BookingNumber);
+            }
+          }
+          catch (Exception emailEx)
+          {
+            _logger.LogError(emailEx, "❌ Error sending PIC rejection email for booking {BookingNumber}", booking.BookingNumber);
+          }
+        });
 
         return true;
       }
@@ -235,21 +330,17 @@ namespace AspnetCoreMvcFull.Services
           return false;
         }
 
-        // Memastikan booking dalam status yang benar
         if (booking.Status != BookingStatus.PICApproved)
         {
           _logger.LogWarning("Booking dengan ID {BookingId} tidak dalam status PICApproved", bookingId);
           return false;
         }
 
-        // Update status booking menjadi Done
         booking.Status = BookingStatus.Done;
         booking.DoneByPIC = picName;
         booking.DoneAt = DateTime.Now;
 
         await _context.SaveChangesAsync();
-
-        // Tidak perlu email notifikasi untuk pembaruan status menjadi Done
 
         return true;
       }
@@ -260,13 +351,10 @@ namespace AspnetCoreMvcFull.Services
       }
     }
 
-    // Services/Approval/ApprovalService.cs - Simple CancelBookingAsync method
-
     public async Task<bool> CancelBookingAsync(int bookingId, BookingCancelledBy cancelledBy, string cancelledByName, string cancelReason)
     {
       try
       {
-        // ✅ Include Crane untuk template email
         var booking = await _context.Bookings
             .Include(b => b.Crane)
             .FirstOrDefaultAsync(b => b.Id == bookingId);
@@ -277,21 +365,18 @@ namespace AspnetCoreMvcFull.Services
           return false;
         }
 
-        // Memastikan booking belum selesai
         if (booking.Status == BookingStatus.Done)
         {
           _logger.LogWarning("Booking dengan ID {BookingId} tidak dapat dibatalkan karena sudah selesai", bookingId);
           return false;
         }
 
-        // ✅ Cek jika booking sudah dibatalkan sebelumnya
         if (booking.Status == BookingStatus.Cancelled)
         {
           _logger.LogWarning("Booking dengan ID {BookingId} sudah dibatalkan sebelumnya", bookingId);
           return false;
         }
 
-        // Update status booking menjadi Cancelled
         booking.Status = BookingStatus.Cancelled;
         booking.CancelledBy = cancelledBy;
         booking.CancelledByName = cancelledByName;
@@ -300,26 +385,42 @@ namespace AspnetCoreMvcFull.Services
 
         await _context.SaveChangesAsync();
 
-        // ✅ SIMPLE: Kirim notifikasi email HANYA ke user yang membuat booking
-        if (!string.IsNullOrEmpty(booking.LdapUser))
+        // ✅ RELIABLE FIX: Background task with logging
+        _logger.LogInformation("Starting background email task for booking cancellation {BookingNumber}", booking.BookingNumber);
+
+        _ = Task.Run(async () =>
         {
-          var user = await _employeeService.GetEmployeeByLdapUserAsync(booking.LdapUser);
-          if (user != null && !string.IsNullOrEmpty(user.Email))
+          try
           {
-            await _emailService.SendBookingCancelledEmailAsync(booking, user.Email, cancelledByName, cancelReason);
-            _logger.LogInformation("Email pembatalan booking dikirim ke user {UserEmail} untuk booking {BookingNumber}",
-                user.Email, booking.BookingNumber);
+            using var scope = _serviceScopeFactory.CreateScope();
+            var scopedEmployeeService = scope.ServiceProvider.GetRequiredService<IEmployeeService>();
+            var scopedEmailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
+
+            if (!string.IsNullOrEmpty(booking.LdapUser))
+            {
+              var user = await scopedEmployeeService.GetEmployeeByLdapUserAsync(booking.LdapUser);
+              if (user != null && !string.IsNullOrEmpty(user.Email))
+              {
+                await scopedEmailService.SendBookingCancelledEmailAsync(booking, user.Email, cancelledByName, cancelReason);
+                _logger.LogInformation("✅ Email pembatalan booking dikirim ke user {UserEmail} untuk booking {BookingNumber}",
+                    user.Email, booking.BookingNumber);
+              }
+              else
+              {
+                _logger.LogWarning("❌ Email user tidak ditemukan untuk LDAP {LdapUser} pada booking {BookingNumber}",
+                    booking.LdapUser, booking.BookingNumber);
+              }
+            }
+            else
+            {
+              _logger.LogWarning("❌ LDAP user tidak tersedia untuk booking {BookingNumber}", booking.BookingNumber);
+            }
           }
-          else
+          catch (Exception emailEx)
           {
-            _logger.LogWarning("Email user tidak ditemukan untuk LDAP {LdapUser} pada booking {BookingNumber}",
-                booking.LdapUser, booking.BookingNumber);
+            _logger.LogError(emailEx, "❌ Error sending cancellation email for booking {BookingNumber}", booking.BookingNumber);
           }
-        }
-        else
-        {
-          _logger.LogWarning("LDAP user tidak tersedia untuk booking {BookingNumber}", booking.BookingNumber);
-        }
+        });
 
         return true;
       }
@@ -344,7 +445,6 @@ namespace AspnetCoreMvcFull.Services
           return false;
         }
 
-        // Memastikan booking dalam status yang bisa direvisi
         if (booking.Status != BookingStatus.ManagerRejected && booking.Status != BookingStatus.PICRejected)
         {
           _logger.LogWarning("Booking dengan ID {BookingId} tidak dalam status yang dapat direvisi. Current status: {Status}",
@@ -354,19 +454,10 @@ namespace AspnetCoreMvcFull.Services
 
         var originalStatus = booking.Status;
 
-        // ✅ PERBAIKAN: Selalu reset status ke PendingApproval untuk semua jenis revision
         booking.Status = BookingStatus.PendingApproval;
 
-        // ✅ Update tracking information
-        // booking.RevisionCount++;
-        // booking.LastModifiedAt = DateTime.Now;
-        // booking.LastModifiedBy = revisedByName;
-
-        // ✅ PERBAIKAN: Reset semua approval fields untuk semua jenis revision
-        // Karena setelah revisi, proses approval harus dimulai ulang dari manager
         if (originalStatus == BookingStatus.ManagerRejected)
         {
-          // Reset manager rejection fields
           booking.ManagerName = null;
           booking.ManagerApprovalTime = null;
           booking.ManagerRejectReason = null;
@@ -374,8 +465,6 @@ namespace AspnetCoreMvcFull.Services
         }
         else if (originalStatus == BookingStatus.PICRejected)
         {
-          // ✅ PERBAIKAN: Reset SEMUA approval fields (manager dan PIC)
-          // Karena proses approval harus dimulai ulang dari manager
           booking.ManagerName = null;
           booking.ManagerApprovalTime = null;
           booking.ManagerRejectReason = null;
@@ -385,44 +474,50 @@ namespace AspnetCoreMvcFull.Services
 
         await _context.SaveChangesAsync();
 
-        // ✅ PERBAIKAN: Selalu kirim ke manager dulu untuk semua jenis revision
-        try
+        // ✅ RELIABLE FIX: Background task with logging
+        _logger.LogInformation("Starting background email task for booking revision {BookingNumber}", booking.BookingNumber);
+
+        _ = Task.Run(async () =>
         {
-          // Selalu kirim approval request ke manager untuk memulai proses approval dari awal
-          var manager = await _employeeService.GetManagerByDepartmentAsync(booking.Department);
-          if (manager != null && !string.IsNullOrEmpty(manager.Email) && !string.IsNullOrEmpty(manager.LdapUser))
+          try
           {
-            await _emailService.SendManagerApprovalRequestEmailAsync(
-                booking,
-                manager.Email,
-                manager.Name,
-                manager.LdapUser);
+            using var scope = _serviceScopeFactory.CreateScope();
+            var scopedEmployeeService = scope.ServiceProvider.GetRequiredService<IEmployeeService>();
+            var scopedEmailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
 
-            _logger.LogInformation("Manager approval email sent for revised booking {BookingId} (original status: {OriginalStatus})",
-                bookingId, originalStatus);
+            var manager = await scopedEmployeeService.GetManagerByDepartmentAsync(booking.Department);
+            if (manager != null && !string.IsNullOrEmpty(manager.Email) && !string.IsNullOrEmpty(manager.LdapUser))
+            {
+              await scopedEmailService.SendManagerApprovalRequestEmailAsync(
+                  booking,
+                  manager.Email,
+                  manager.Name,
+                  manager.LdapUser);
+
+              _logger.LogInformation("✅ Manager approval email sent for revised booking {BookingId} (original status: {OriginalStatus})",
+                  bookingId, originalStatus);
+            }
+            else
+            {
+              _logger.LogWarning("❌ Manager not found for department {Department} for booking {BookingId}",
+                  booking.Department, bookingId);
+            }
+
+            var user = await scopedEmployeeService.GetEmployeeByLdapUserAsync(booking.LdapUser);
+            if (user != null && !string.IsNullOrEmpty(user.Email))
+            {
+              await scopedEmailService.SendBookingRevisedEmailAsync(booking, user.Email);
+              _logger.LogInformation("✅ Revision notification sent to user for booking {BookingId}", bookingId);
+            }
           }
-          else
+          catch (Exception emailEx)
           {
-            _logger.LogWarning("Manager not found for department {Department} for booking {BookingId}",
-                booking.Department, bookingId);
+            _logger.LogError(emailEx, "❌ Error sending emails for revised booking {BookingId}", bookingId);
           }
+        });
 
-          // Send revision notification to user
-          var user = await _employeeService.GetEmployeeByLdapUserAsync(booking.LdapUser);
-          if (user != null && !string.IsNullOrEmpty(user.Email))
-          {
-            await _emailService.SendBookingRevisedEmailAsync(booking, user.Email);
-            _logger.LogInformation("Revision notification sent to user for booking {BookingId}", bookingId);
-          }
-        }
-        catch (Exception emailEx)
-        {
-          _logger.LogError(emailEx, "Error sending emails for revised booking {BookingId}", bookingId);
-          // Don't fail the revision just because of email issues
-        }
-
-        _logger.LogInformation("Booking {BookingId} successfully revised by {RevisedBy}. New revision count: {RevisionCount}. Approval process restarted from manager.",
-            bookingId, revisedByName, booking.RevisionCount);
+        _logger.LogInformation("Booking {BookingId} successfully revised by {RevisedBy}. Approval process restarted from manager.",
+            bookingId, revisedByName);
 
         return true;
       }
