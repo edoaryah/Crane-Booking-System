@@ -27,7 +27,7 @@
   <div class="card-body">
     <form id="filterForm" method="get" action="@Url.Action("Index", "CraneUsage")">
       <div class="row g-3">
-        <div class="col-md-3">
+        <div class="col-md-2">
           <label class="form-label" for="CraneId">Crane</label>
           <select name="CraneId" id="CraneId" class="form-select">
             <option value="">-- Semua Crane --</option>
@@ -44,17 +44,17 @@
             }
           </select>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
           <label class="form-label" for="StartDate">Dari Tanggal</label>
           <input name="StartDate" id="StartDate" class="form-control" type="date"
             value="@(Model.Filter.StartDate?.ToString("yyyy-MM-dd"))" />
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
           <label class="form-label" for="EndDate">Sampai Tanggal</label>
           <input name="EndDate" id="EndDate" class="form-control" type="date"
             value="@(Model.Filter.EndDate?.ToString("yyyy-MM-dd"))" />
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
           <label class="form-label" for="IsFinalized">Status</label>
           <select name="IsFinalized" id="IsFinalized" class="form-select">
             <option value="">-- Semua Status --</option>
@@ -76,7 +76,7 @@
             }
           </select>
         </div>
-        <div class="col-md-12">
+        <div class="col-md-4">
           <label class="form-label" for="GlobalSearch">Cari</label>
           <input name="GlobalSearch" id="GlobalSearch" class="form-control" placeholder="Ketik kata kunci..."
             value="@Model.Filter.GlobalSearch" />

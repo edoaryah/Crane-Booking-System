@@ -299,7 +299,7 @@
 
 @section VendorScripts {
   <!-- D3.js CDN -->
-  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="~/vendor/libs/d3/d3.v7.min.js"></script>
 }
 
 @section PageScripts {
@@ -363,12 +363,12 @@
         const color = getCategoryColor(activity.Category);
 
         let detailHtml = `
-                              <div class="detail-segment">
-                                <div class="detail-time">${startTime} - ${endTime}</div>
-                                <span class="badge mb-2" style="background-color: ${color}">${activity.Category}</span>
-                                <div class="detail-category">${activity.SubcategoryName}</div>
-                                <div class="detail-duration mb-3">Durasi: ${durationText}</div>
-                            `;
+                                    <div class="detail-segment">
+                                      <div class="detail-time">${startTime} - ${endTime}</div>
+                                      <span class="badge mb-2" style="background-color: ${color}">${activity.Category}</span>
+                                      <div class="detail-category">${activity.SubcategoryName}</div>
+                                      <div class="detail-duration mb-3">Durasi: ${durationText}</div>
+                                  `;
 
         // Tambahkan informasi opsional jika tersedia
         if (activity.OperatorName) {
@@ -583,11 +583,11 @@
               .duration(200)
               .style("opacity", 0.9);
             tooltip.html(`
-                                  <strong>${d.Category}</strong> - ${d.SubcategoryName}<br/>
-                                  ${startTime} - ${endTime} (${durationText})<br/>
-                                  ${d.OperatorName ? `Operator: ${d.OperatorName}<br/>` : ""}
-                                  ${d.BookingNumber ? `Booking: ${d.BookingNumber}` : ""}
-                                `)
+                                        <strong>${d.Category}</strong> - ${d.SubcategoryName}<br/>
+                                        ${startTime} - ${endTime} (${durationText})<br/>
+                                        ${d.OperatorName ? `Operator: ${d.OperatorName}<br/>` : ""}
+                                        ${d.BookingNumber ? `Booking: ${d.BookingNumber}` : ""}
+                                      `)
               .style("left", (event.pageX + 10) + "px")
               .style("top", (event.pageY - 28) + "px");
           })
