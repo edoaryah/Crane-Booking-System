@@ -105,7 +105,7 @@ namespace AspnetCoreMvcFull.Services.CraneUsage
     /// <param name="craneId">Crane ID</param>
     /// <param name="date">Date</param>
     /// <returns>Visualization view model</returns>
-    Task<CraneUsageMinuteVisualizationViewModel> GetMinuteVisualizationDataAsync(int craneId, DateTime date);
+        Task<CraneUsageVisualizationViewModel> GetVisualizationDataAsync(int craneId, DateTime date);
 
     /// <summary>
     /// Validates that a new entry doesn't conflict with existing entries

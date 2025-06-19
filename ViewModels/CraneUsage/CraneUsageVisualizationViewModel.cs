@@ -1,10 +1,10 @@
-// ViewModels/CraneUsage/CraneUsageMinuteVisualizationViewModel.cs
+// ViewModels/CraneUsage/CraneUsageVisualizationViewModel.cs
 using Microsoft.AspNetCore.Mvc.Rendering;
 using System.ComponentModel.DataAnnotations;
 
 namespace AspnetCoreMvcFull.ViewModels.CraneUsage
 {
-  public class CraneUsageMinuteVisualizationViewModel
+    public class CraneUsageVisualizationViewModel
   {
     [Required(ErrorMessage = "Crane harus dipilih")]
     public int CraneId { get; set; }

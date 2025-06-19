@@ -81,14 +81,14 @@
           <input name="GlobalSearch" id="GlobalSearch" class="form-control" placeholder="Ketik kata kunci..."
             value="@Model.Filter.GlobalSearch" />
         </div>
-        <div class="col-12 mt-3 d-flex justify-content-between">
-          <div>
+        <div class="col-12 mt-3 d-flex justify-content-end">
+          <div class="d-flex gap-3">
             <button type="button" id="resetFilterBtn" class="btn btn-outline-secondary">
               <i class="bx bx-reset me-1"></i> Reset
             </button>
-          </div>
-          <div id="exportButtons" class="d-flex gap-2">
-            <!-- Export buttons akan ditambahkan oleh JavaScript -->
+            <div id="exportButtons" class="d-flex gap-3">
+              <!-- Export buttons akan ditambahkan oleh JavaScript -->
+            </div>
           </div>
         </div>
       </div>
@@ -129,13 +129,8 @@
         <button type="button" class="btn btn-primary btn-responsive" data-bs-toggle="modal"
           data-bs-target="#craneSelectionModal" title="Form Baru">
           <i class="bx bx-plus"></i>
-          <span class="btn-text d-none d-sm-inline ms-1">Form Baru</span>
+          <span class="btn-text d-none d-sm-inline ms-1">Input Crane Usage</span>
         </button>
-        <a href="@Url.Action("MinuteVisualization", "CraneUsage")" class="btn btn-outline-secondary btn-responsive"
-          title="Visualisasi">
-          <i class="bx bx-bar-chart-alt-2"></i>
-          <span class="btn-text d-none d-sm-inline ms-1">Visualisasi</span>
-        </a>
       </div>
     </div>
   </div>

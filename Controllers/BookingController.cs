@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using AspnetCoreMvcFull.Filters;
 using AspnetCoreMvcFull.Services;
 using AspnetCoreMvcFull.Services.Role;
@@ -20,6 +21,7 @@ namespace AspnetCoreMvcFull.Controllers
     private readonly IEmployeeService _employeeService;
     private readonly IScheduleConflictService _scheduleConflictService;
     private readonly ILogger<BookingController> _logger;
+    private readonly IFileStorageService _fileStorageService;
 
     public BookingController(
         ICraneService craneService,
@@ -29,7 +31,8 @@ namespace AspnetCoreMvcFull.Controllers
         IRoleService roleService,
         IEmployeeService employeeService,
         IScheduleConflictService scheduleConflictService,
-        ILogger<BookingController> logger)
+        ILogger<BookingController> logger,
+        IFileStorageService fileStorageService)
     {
       _craneService = craneService;
       _shiftService = shiftService;
@@ -39,6 +42,7 @@ namespace AspnetCoreMvcFull.Controllers
       _employeeService = employeeService;
       _scheduleConflictService = scheduleConflictService;
       _logger = logger;
+      _fileStorageService = fileStorageService;
     }
 
     // GET: /Booking
@@ -312,7 +316,21 @@ namespace AspnetCoreMvcFull.Controllers
 
         if (ModelState.IsValid)
         {
-          var createdBooking = await _bookingService.CreateBookingAsync(viewModel);
+          // Handle image uploads
+      var imagePaths = new List<string>();
+      if (viewModel.Images != null && viewModel.Images.Count > 0)
+      {
+        foreach (var image in viewModel.Images)
+        {
+          if (image.Length > 0)
+          {
+            var savedPath = await _fileStorageService.SaveFileAsync(image, "booking-images");
+            imagePaths.Add(savedPath);
+          }
+        }
+      }
+
+      var createdBooking = await _bookingService.CreateBookingAsync(viewModel, imagePaths);
 
           // Simpan data untuk ditampilkan di modal
           TempData["BookingFormSuccessMessage"] = "Booking berhasil dibuat";
@@ -406,22 +424,29 @@ namespace AspnetCoreMvcFull.Controllers
       {
         if (ModelState.IsValid)
         {
-          var updatedBooking = await _bookingService.UpdateBookingAsync(id, viewModel);
+          var booking = await _bookingService.GetBookingByIdAsync(id);
+          if (booking == null)
+          {
+            return NotFound();
+          }
+
+          string currentUserName = User.FindFirst(ClaimTypes.Name)?.Value ?? User.FindFirst("ldapuser")?.Value ?? "System";
+          var existingImagePaths = booking.ImagePaths?.ToList() ?? new List<string>();
+          var updatedBooking = await _bookingService.UpdateBookingAsync(id, viewModel, currentUserName, existingImagePaths);
 
           TempData["BookingSuccessMessage"] = "Booking berhasil diperbarui";
           return RedirectToAction(nameof(Details), new { documentNumber = updatedBooking.DocumentNumber });
         }
 
-        // If we got this far, something failed, redisplay form
+        // If model state is invalid, redisplay form with existing data
         ViewBag.Cranes = await _craneService.GetAllCranesAsync();
         ViewBag.ShiftDefinitions = await _shiftService.GetAllShiftDefinitionsAsync();
         ViewBag.Hazards = await _hazardService.GetAllHazardsAsync();
-
-        // Try to get the document number
-        var booking = await _bookingService.GetBookingByIdAsync(id);
-        ViewBag.DocumentNumber = booking.DocumentNumber;
+        
+        var bookingToUpdate = await _bookingService.GetBookingByIdAsync(id);
+        ViewBag.DocumentNumber = bookingToUpdate.DocumentNumber;
         ViewBag.BookingId = id;
-
+        
         return View(viewModel);
       }
       catch (Exception ex)
@@ -429,22 +454,15 @@ namespace AspnetCoreMvcFull.Controllers
         _logger.LogError(ex, "Error updating booking with ID: {Id}", id);
         ModelState.AddModelError("", "Error updating booking: " + ex.Message);
 
+        // Repopulate view bags for the view
         ViewBag.Cranes = await _craneService.GetAllCranesAsync();
         ViewBag.ShiftDefinitions = await _shiftService.GetAllShiftDefinitionsAsync();
         ViewBag.Hazards = await _hazardService.GetAllHazardsAsync();
-
-        // Try to get the document number
-        try
-        {
-          var booking = await _bookingService.GetBookingByIdAsync(id);
-          ViewBag.DocumentNumber = booking.DocumentNumber;
-        }
-        catch
-        {
-          // Ignore if we can't get the document number
-        }
-
+        
+        var booking = await _bookingService.GetBookingByIdAsync(id);
+        ViewBag.DocumentNumber = booking.DocumentNumber;
         ViewBag.BookingId = id;
+        
         return View(viewModel);
       }
     }

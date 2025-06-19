@@ -129,6 +129,7 @@ namespace AspnetCoreMvcFull.Services
         CostCode = booking.CostCode,
         PhoneNumber = booking.PhoneNumber,
         Description = booking.Description,
+      ImagePaths = booking.Images,
         CustomHazard = booking.CustomHazard,
 
         // Status approval
@@ -360,7 +361,7 @@ namespace AspnetCoreMvcFull.Services
     }
 
     // ✅ METHOD YANG DIPERBAIKI - CreateBookingAsync
-    public async Task<BookingDetailViewModel> CreateBookingAsync(BookingCreateViewModel bookingViewModel)
+    public async Task<BookingDetailViewModel> CreateBookingAsync(BookingCreateViewModel bookingViewModel, List<string> imagePaths)
     {
       try
       {
@@ -486,7 +487,8 @@ namespace AspnetCoreMvcFull.Services
           PhoneNumber = bookingViewModel.PhoneNumber,
           Description = bookingViewModel.Description,
           CustomHazard = bookingViewModel.CustomHazard,
-          Status = BookingStatus.PendingApproval
+          Status = BookingStatus.PendingApproval,
+          ImagePaths = imagePaths != null ? string.Join(";", imagePaths) : null
         };
 
         _context.Bookings.Add(booking);
@@ -632,17 +634,11 @@ namespace AspnetCoreMvcFull.Services
       }
     }
 
-    public async Task<BookingDetailViewModel> UpdateBookingAsync(int id, BookingUpdateViewModel bookingViewModel)
-    {
-      // Call the overloaded method with default "System" as modifiedBy
-      return await UpdateBookingAsync(id, bookingViewModel, "System");
-    }
-
-    public async Task<BookingDetailViewModel> UpdateBookingAsync(int id, BookingUpdateViewModel bookingViewModel, string modifiedBy)
+    public async Task<BookingDetailViewModel> UpdateBookingAsync(int id, BookingUpdateViewModel bookingViewModel, string updatedBy, List<string> finalImagePaths)
     {
       try
       {
-        _logger.LogInformation("Updating booking ID: {Id} by {ModifiedBy}", id, modifiedBy);
+        _logger.LogInformation("Updating booking ID: {Id} by {UpdatedBy}", id, updatedBy);
 
         var booking = await _context.Bookings
             .Include(r => r.BookingShifts)
@@ -763,7 +759,7 @@ namespace AspnetCoreMvcFull.Services
         // ✅ Update tracking fields
         booking.RevisionCount++;
         booking.LastModifiedAt = DateTime.Now;
-        booking.LastModifiedBy = modifiedBy;
+        booking.LastModifiedBy = updatedBy;
 
         // Update booking fields
         booking.Name = bookingViewModel.Name;
@@ -772,11 +768,17 @@ namespace AspnetCoreMvcFull.Services
         booking.EndDate = endDate;
         booking.CustomHazard = bookingViewModel.CustomHazard;
         booking.Location = bookingViewModel.Location;
+        booking.Description = bookingViewModel.Description;
         booking.ProjectSupervisor = bookingViewModel.ProjectSupervisor;
         booking.CostCode = bookingViewModel.CostCode;
         booking.PhoneNumber = bookingViewModel.PhoneNumber;
         booking.Description = bookingViewModel.Description;
         // SubmitTime is not updated
+
+        if (finalImagePaths != null)
+        {
+          booking.ImagePaths = string.Join(";", finalImagePaths);
+        }
 
         // Remove existing shift selections
         _context.BookingShifts.RemoveRange(booking.BookingShifts);
@@ -856,8 +858,8 @@ namespace AspnetCoreMvcFull.Services
 
         await _context.SaveChangesAsync();
 
-        _logger.LogInformation("Booking ID: {Id} successfully updated by {ModifiedBy}. Revision count: {RevisionCount}",
-            id, modifiedBy, booking.RevisionCount);
+        _logger.LogInformation("Booking ID: {Id} successfully updated by {UpdatedBy}. Revision count: {RevisionCount}",
+            id, booking.LastModifiedBy, booking.RevisionCount);
 
         // Return the updated booking with details
         return await GetBookingByIdAsync(booking.Id);

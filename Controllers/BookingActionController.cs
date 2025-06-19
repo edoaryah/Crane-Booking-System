@@ -19,6 +19,7 @@ namespace AspnetCoreMvcFull.Controllers
     private readonly ICraneService _craneService;
     private readonly IShiftDefinitionService _shiftService;
     private readonly IHazardService _hazardService;
+    private readonly IFileStorageService _fileStorageService;
     private readonly ILogger<BookingActionController> _logger;
 
     public BookingActionController(
@@ -28,6 +29,7 @@ namespace AspnetCoreMvcFull.Controllers
         ICraneService craneService,
         IShiftDefinitionService shiftService,
         IHazardService hazardService,
+        IFileStorageService fileStorageService,
         ILogger<BookingActionController> logger)
     {
       _bookingService = bookingService;
@@ -36,6 +38,7 @@ namespace AspnetCoreMvcFull.Controllers
       _craneService = craneService;
       _shiftService = shiftService;
       _hazardService = hazardService;
+      _fileStorageService = fileStorageService;
       _logger = logger;
     }
 
@@ -133,6 +136,7 @@ namespace AspnetCoreMvcFull.Controllers
           PhoneNumber = booking.PhoneNumber,
           Description = booking.Description,
           CustomHazard = booking.CustomHazard,
+          ExistingImagePaths = booking.ImagePaths?.ToList() ?? new List<string>(), // Populate existing images
           ShiftSelections = ConvertShiftsToSelections(booking),
           Items = booking.Items.Select(i => new BookingItemCreateViewModel
           {
@@ -145,14 +149,14 @@ namespace AspnetCoreMvcFull.Controllers
         };
 
         // Pass data to view
-        ViewBag.Cranes = await _craneService.GetAllCranesAsync();
-        ViewBag.ShiftDefinitions = await _shiftService.GetAllShiftDefinitionsAsync();
-        ViewBag.Hazards = await _hazardService.GetAllHazardsAsync();
-        ViewBag.DocumentNumber = booking.DocumentNumber;
-        ViewBag.BookingId = booking.Id;
         ViewBag.IsPicEdit = isPic;
-        ViewBag.IsCreatorEdit = isBookingCreator && !isPic;
+        ViewBag.IsCreatorEdit = isBookingCreator;
         ViewBag.CurrentStatus = booking.Status;
+        ViewBag.DocumentNumber = documentNumber;
+        ViewBag.BookingId = booking.Id;
+
+        // Load necessary data for the form
+        await PopulateViewBagForEdit();
 
         return View(viewModel);
       }
@@ -171,40 +175,90 @@ namespace AspnetCoreMvcFull.Controllers
     // POST: /BookingAction/Edit
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(string documentNumber, BookingUpdateViewModel viewModel)
+    public async Task<IActionResult> Edit(string documentNumber, BookingUpdateViewModel model)
     {
-      try
+      // Repopulate ViewBag data and return view if model state is invalid
+      if (!ModelState.IsValid)
       {
-        if (!ModelState.IsValid)
+        // Log ModelState errors for debugging
+        var errors = ModelState.Where(x => x.Value.Errors.Count > 0)
+                                 .Select(x => new { x.Key, x.Value.Errors })
+                                 .ToArray();
+        foreach (var error in errors)
         {
-          // Reload form data if validation fails
-          ViewBag.Cranes = await _craneService.GetAllCranesAsync();
-          ViewBag.ShiftDefinitions = await _shiftService.GetAllShiftDefinitionsAsync();
-          ViewBag.Hazards = await _hazardService.GetAllHazardsAsync();
-          ViewBag.DocumentNumber = documentNumber;
-          return View(viewModel);
+          _logger.LogError($"ModelState Error in Key: {error.Key}");
+          foreach (var subError in error.Errors)
+          {
+            _logger.LogError($"- {subError.ErrorMessage}");
+          }
         }
 
-        // Get current booking to check permissions again
-        var currentBooking = await _bookingService.GetBookingByDocumentNumberAsync(documentNumber);
+        _logger.LogWarning("Model state is invalid for booking edit {DocumentNumber}.", documentNumber);
+        await PopulateViewBagForEdit(); // Ensure dropdowns are repopulated
+        ViewBag.DocumentNumber = documentNumber; // Ensure document number is available
 
+        var bookingForState = await _bookingService.GetBookingByDocumentNumberAsync(documentNumber);
+        ViewBag.CurrentStatus = bookingForState.Status;
+
+        // Preserve the user's image deletion choices on validation failure
+        var currentImagePaths = bookingForState.ImagePaths?.ToList() ?? new List<string>();
+        if (model.ImagesToDelete != null && model.ImagesToDelete.Any())
+        {
+            currentImagePaths.RemoveAll(p => model.ImagesToDelete.Contains(p));
+        }
+        model.ExistingImagePaths = currentImagePaths;
+
+        return View(model);
+      }
+
+      try
+      {
         // Get current user info
-        string currentLdapUser = User.FindFirst("ldapuser")?.Value ?? "";
-        string currentUserName = User.FindFirst(ClaimTypes.Name)?.Value ?? "";
+        string currentUser = User.FindFirst("ldapuser")?.Value ?? "";
+        string currentUserName = User.FindFirst(ClaimTypes.Name)?.Value ?? currentUser;
 
-        // Check user roles
-        bool isPic = await _roleService.UserHasRoleAsync(currentLdapUser, "pic");
+        // Get current booking to check permissions and get existing images
+        var currentBooking = await _bookingService.GetBookingByDocumentNumberAsync(documentNumber);
+        var finalImagePaths = currentBooking.ImagePaths?.ToList() ?? new List<string>();
+
+        // Check user roles & authorization
+        bool isPic = await _roleService.UserHasRoleAsync(currentUser, "pic");
         bool isBookingCreator = currentBooking.Name == currentUserName;
-
-        // Re-check authorization
         if (!isBookingCreator && !isPic)
         {
           TempData["ErrorMessage"] = "Anda tidak memiliki izin untuk mengedit booking ini.";
           return RedirectToAction("Details", "Booking", new { documentNumber = documentNumber });
         }
 
-        // Update the booking with tracking info
-        var updatedBooking = await _bookingService.UpdateBookingAsync(currentBooking.Id, viewModel, currentUserName);
+        // 1. Handle Image Deletion
+        if (model.ImagesToDelete != null && model.ImagesToDelete.Any())
+        {
+          foreach (var imagePath in model.ImagesToDelete)
+          {
+            await _fileStorageService.DeleteFileAsync(imagePath, "booking-images");
+            finalImagePaths.Remove(imagePath);
+          }
+          _logger.LogInformation("Deleted {Count} images for booking {DocumentNumber}", model.ImagesToDelete.Count, documentNumber);
+        }
+
+        // 2. Handle New Image Uploads (using NewImages to match the view)
+        if (model.NewImages != null && model.NewImages.Any())
+        {
+          var uploadedImagePaths = new List<string>();
+          foreach (var image in model.NewImages)
+          {
+            if (image.Length > 0)
+            {
+              var savedPath = await _fileStorageService.SaveFileAsync(image, "booking-images");
+              uploadedImagePaths.Add(savedPath);
+            }
+          }
+          finalImagePaths.AddRange(uploadedImagePaths);
+          _logger.LogInformation("Uploaded {Count} new images for booking {DocumentNumber}", uploadedImagePaths.Count, documentNumber);
+        }
+
+        // Update the booking with tracking info and new image paths
+        var updatedBooking = await _bookingService.UpdateBookingAsync(currentBooking.Id, model, currentUserName, finalImagePaths);
 
         // Handle post-edit logic based on who edited
         await HandlePostEditLogic(currentBooking.Id, isPic, isBookingCreator, currentUserName);
@@ -217,13 +271,15 @@ namespace AspnetCoreMvcFull.Controllers
         _logger.LogError(ex, "Error updating booking with document number: {DocumentNumber}", documentNumber);
         ModelState.AddModelError("", "Error updating booking: " + ex.Message);
 
-        // Reload form data
-        ViewBag.Cranes = await _craneService.GetAllCranesAsync();
-        ViewBag.ShiftDefinitions = await _shiftService.GetAllShiftDefinitionsAsync();
-        ViewBag.Hazards = await _hazardService.GetAllHazardsAsync();
+        TempData["ErrorMessage"] = "Terjadi kesalahan saat memperbarui booking: " + ex.Message;
+        await PopulateViewBagForEdit(); // Ensure dropdowns are repopulated
         ViewBag.DocumentNumber = documentNumber;
 
-        return View(viewModel);
+        // Re-populate existing images for the view in case of an error
+        var currentBooking = await _bookingService.GetBookingByDocumentNumberAsync(documentNumber);
+        model.ExistingImagePaths = currentBooking.ImagePaths?.ToList() ?? new List<string>();
+
+        return View(model);
       }
     }
 
@@ -383,6 +439,13 @@ namespace AspnetCoreMvcFull.Controllers
         TempData["ErrorMessage"] = "Terjadi kesalahan saat membatalkan booking.";
         return View("Cancel", model);
       }
+    }
+
+    private async Task PopulateViewBagForEdit()
+    {
+      ViewBag.AvailableCranes = await _craneService.GetAllCranesAsync();
+      ViewBag.ShiftDefinitions = await _shiftService.GetAllShiftDefinitionsAsync();
+      ViewBag.Hazards = await _hazardService.GetAllHazardsAsync();
     }
 
     // Helper method to convert shifts to selections

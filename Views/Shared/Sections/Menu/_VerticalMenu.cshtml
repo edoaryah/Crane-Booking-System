@@ -99,10 +99,21 @@
     @if (canAccessCraneUsage)
     {
       <!-- Crane Usage Button -->
-      <li class='menu-item@(currentPage == "/CraneUsage" || currentPage.StartsWith("/CraneUsage") ? " active" : "")'>
+            <li class='menu-item@(currentPage.StartsWith("/CraneUsage") && !currentPage.StartsWith("/CraneUsage/Visualization") ? " active" : "")'>
         <a asp-controller="CraneUsage" asp-action="Index" class="menu-link">
           <i class="menu-icon tf-icons bx bx-time-five"></i>
           <div class="text-truncate" data-i18n="CraneUsage">Penggunaan Crane</div>
+        </a>
+      </li>
+    }
+
+    @if (canAccessCraneUsage)
+    {
+      <!-- Crane Usage Visualization Button -->
+      <li class='menu-item@(currentPage == "/CraneUsage/Visualization" || currentPage.StartsWith("/CraneUsage/Visualization") ? " active" : "")'>
+        <a asp-controller="CraneUsage" asp-action="Visualization" class="menu-link">
+          <i class="menu-icon tf-icons bx bx-bar-chart-alt"></i>
+          <div class="text-truncate" data-i18n="CraneUsage">Visualisasi Penggunaan</div>
         </a>
       </li>
     }

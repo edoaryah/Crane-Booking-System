@@ -920,7 +920,7 @@ namespace AspnetCoreMvcFull.Services.CraneUsage
       }
     }
 
-    public async Task<CraneUsageMinuteVisualizationViewModel> GetMinuteVisualizationDataAsync(int craneId, DateTime date)
+        public async Task<CraneUsageVisualizationViewModel> GetVisualizationDataAsync(int craneId, DateTime date)
     {
       var crane = await _context.Cranes.FindAsync(craneId);
       if (crane == null)
@@ -928,7 +928,7 @@ namespace AspnetCoreMvcFull.Services.CraneUsage
         throw new KeyNotFoundException($"Crane with ID {craneId} not found");
       }
 
-      var viewModel = new CraneUsageMinuteVisualizationViewModel
+            var viewModel = new CraneUsageVisualizationViewModel
       {
         CraneId = craneId,
         Date = date,

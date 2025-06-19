@@ -525,65 +525,57 @@ var CraneUsageHistory = (function () {
    * Create and add export buttons
    */
   function setupExportButtons() {
-    // Clear previous buttons
-    $('#' + config.exportContainerId).empty();
+    var exportContainer = $('#' + config.exportContainerId);
+    if (exportContainer.length === 0) {
+      console.warn('Export container not found');
+      return;
+    }
 
-    // Create button group container
-    var buttonGroup = $('<div class="btn-group" role="group"></div>');
+    // Hapus tombol yang ada sebelumnya untuk menghindari duplikasi
+    exportContainer.empty();
 
-    // Create buttons dengan improved styling (hanya Excel dan PDF)
-    var excelBtn = $(
-      '<button type="button" class="btn btn-sm btn-success">' + '<i class="bx bx-file me-1"></i> Excel</button>'
+    // Tombol Excel
+    var excelButton = $(
+      '<button type="button" class="btn btn-outline-secondary">' +
+      '<i class="bx bxs-spreadsheet me-1"></i> Excel' +
+      '</button>'
     );
-    var pdfBtn = $(
-      '<button type="button" class="btn btn-sm btn-danger">' + '<i class="bx bx-file me-1"></i> PDF</button>'
-    );
-
-    // Add to button group
-    buttonGroup.append(excelBtn).append(pdfBtn);
-
-    // Add to container
-    $('#' + config.exportContainerId).append(buttonGroup);
-
-    // Add click handlers with improved error handling
-    excelBtn.on('click', function (e) {
+    excelButton.on('click', function (e) {
       e.preventDefault();
-      if (dataTable) {
-        try {
-          dataTable.button(0).trigger(); // Excel
-        } catch (error) {
-          console.error('Excel export error:', error);
-          showExportError('Excel', error.message);
+      try {
+        if (dataTable) {
+          dataTable.button('.buttons-excel').trigger();
         }
+      } catch (error) {
+        showExportError('Excel', error.message);
       }
     });
 
-    pdfBtn.on('click', function (e) {
+    // Tombol PDF
+    var pdfButton = $(
+      '<button type="button" class="btn btn-outline-secondary">' +
+      '<i class="bx bxs-file-pdf me-1"></i> PDF' +
+      '</button>'
+    );
+    pdfButton.on('click', function (e) {
       e.preventDefault();
-      if (dataTable) {
-        try {
-          // Ensure pdfMake is loaded
-          if (typeof window.pdfMake === 'undefined') {
-            throw new Error('pdfMake library is not loaded');
-          }
-
-          dataTable.button(1).trigger(); // PDF
-        } catch (error) {
-          console.error('PDF export error:', error);
-          showExportError('PDF', error.message);
+      try {
+        if (dataTable) {
+          dataTable.button('.buttons-pdf').trigger();
         }
+      } catch (error) {
+        showExportError('PDF', error.message);
       }
     });
 
-    // Enhanced CSS for buttons
+    // Tambahkan tombol ke kontainer
+    exportContainer.append(excelButton).append(pdfButton);
+
+    // CSS penting untuk menyembunyikan tombol asli DataTables dan mengatur border
     if (!$('#datatables-export-style').length) {
       $(
         '<style id="datatables-export-style">' +
           '.hidden-button, .dt-buttons { display: none !important; }' +
-          '.btn-group .btn { border-radius: 0; }' +
-          '.btn-group .btn:first-child { border-top-left-radius: 0.375rem; border-bottom-left-radius: 0.375rem; }' +
-          '.btn-group .btn:last-child { border-top-right-radius: 0.375rem; border-bottom-right-radius: 0.375rem; }' +
-          '.btn-group .btn:hover { transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }' +
           '#craneUsageHistoryTable thead tr:first-child th { border-top: 1px solid #B2B2B2 !important; }' +
           '#craneUsageHistoryTable tbody tr:last-child td { border-bottom: none !important; }' +
           '</style>'

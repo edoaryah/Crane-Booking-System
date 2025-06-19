@@ -22,10 +22,10 @@ namespace AspnetCoreMvcFull.Services
     Task<CalendarResponseViewModel> GetCalendarViewAsync(DateTime startDate, DateTime endDate);
 
     // Buat booking baru
-    Task<BookingDetailViewModel> CreateBookingAsync(BookingCreateViewModel bookingViewModel);
+    Task<BookingDetailViewModel> CreateBookingAsync(BookingCreateViewModel bookingViewModel, List<string> imagePaths);
 
     // Perbarui booking yang ada
-    Task<BookingDetailViewModel> UpdateBookingAsync(int id, BookingUpdateViewModel bookingViewModel);
+    Task<BookingDetailViewModel> UpdateBookingAsync(int id, BookingUpdateViewModel bookingViewModel, string updatedBy, List<string> finalImagePaths);
 
     // Hapus booking
     Task DeleteBookingAsync(int id);
@@ -55,10 +55,5 @@ namespace AspnetCoreMvcFull.Services
       List<string>? userRoles = null);
 
     Task<IEnumerable<string>> GetDistinctDepartmentsAsync();
-
-    // ✅ Updated method signatures for tracking support
-    // Task<BookingDetailViewModel> UpdateBookingAsync(int id, BookingUpdateViewModel bookingViewModel);
-
-    Task<BookingDetailViewModel> UpdateBookingAsync(int id, BookingUpdateViewModel bookingViewModel, string modifiedBy);
   }
 }

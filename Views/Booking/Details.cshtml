@@ -201,6 +201,15 @@
     .timeline-body {
       margin-bottom: 0.5rem;
     }
+
+    .booking-image-gallery img {
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+
+    .booking-image-gallery img:hover {
+        transform: scale(1.05);
+    }
   </style>
 }
 
@@ -829,7 +838,25 @@
                 </div>
               </div>
 
-              <!-- Hazards Section -->
+              <!-- Area/Item Photos Section -->
+            @if (Model.ImagePaths != null && Model.ImagePaths.Any())
+            {
+                <div class="form-section">
+                    <h6 class="form-section-title">Area/Item Photos</h6>
+                    <div class="row booking-image-gallery">
+                        @foreach (var imagePath in Model.ImagePaths)
+                        {
+                            <div class="col-md-3 mb-3">
+                                <a href="#" data-bs-toggle="modal" data-bs-target="#imageModal" data-bs-image="@imagePath">
+                                    <img src="@imagePath" class="img-fluid rounded" alt="Booking Image" style="width: 100%; height: 150px; object-fit: cover;">
+                                </a>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
+            <!-- Hazards Section -->
               <div class="row mb-3">
                 <div class="col-12 mb-6">
                   <label class="form-label">Potential Hazards</label>
@@ -867,6 +894,20 @@
             </div>
           </form>
         }
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Image Modal -->
+<div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center">
+        <img src="" id="modalImage" class="img-fluid">
       </div>
     </div>
   </div>
@@ -949,4 +990,24 @@
       </div>
     </div>
   </div>
+}
+
+@section PageScripts
+{
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const imageModal = document.getElementById('imageModal');
+            if (imageModal) {
+                imageModal.addEventListener('show.bs.modal', function (event) {
+                    // Button that triggered the modal
+                    const button = event.relatedTarget;
+                    // Extract info from data-bs-* attributes
+                    const imageUrl = button.getAttribute('data-bs-image');
+                    // Update the modal's content.
+                    const modalImage = imageModal.querySelector('#modalImage');
+                    modalImage.src = imageUrl;
+                });
+            }
+        });
+    </script>
 }

@@ -140,7 +140,8 @@ namespace AspnetCoreMvcFull.Migrations
                     BillingNotes = table.Column<string>(type: "text", nullable: true),
                     ReminderEmailSent = table.Column<bool>(type: "boolean", nullable: false),
                     ReminderEmailSentAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
-                    ReminderEmailSentTo = table.Column<string>(type: "text", nullable: true)
+                    ReminderEmailSentTo = table.Column<string>(type: "text", nullable: true),
+                    ImagePaths = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -396,9 +397,9 @@ namespace AspnetCoreMvcFull.Migrations
                 values: new object[,]
                 {
                     { 1, 250, "LC008", null, "KPC", "Available" },
-                    { 2, 150, "LC009", null, "KPC", "Available" },
-                    { 3, 100, "LC010", null, "KPC", "Available" },
-                    { 4, 150, "LC011", null, "KPC", "Available" },
+                    { 2, 100, "LC009", null, "KPC", "Available" },
+                    { 3, 150, "LC010", null, "KPC", "Available" },
+                    { 4, 100, "LC011", null, "KPC", "Available" },
                     { 5, 35, "LC012", null, "KPC", "Available" },
                     { 6, 15, "LC013", null, "KPC", "Available" }
                 });

@@ -1,4 +1,4 @@
-@model AspnetCoreMvcFull.ViewModels.CraneUsage.CraneUsageMinuteVisualizationViewModel
+@model AspnetCoreMvcFull.ViewModels.CraneUsage.CraneUsageVisualizationViewModel
 
 @{
   ViewData["Title"] = "Visualisasi Detail Penggunaan Crane";
@@ -97,36 +97,26 @@
   </div>
 }
 
-<div class="card mb-4">
-  <div class="card-header">
-    <i class="bx bx-filter me-1"></i>
-    Filter
-  </div>
-  <div class="card-body">
-    <form asp-action="MinuteVisualization" method="get" id="filterForm">
-      <div class="row g-3">
-        <div class="col-md-4">
-          <label asp-for="CraneId" class="form-label">Crane</label>
-          <select asp-for="CraneId" asp-items="Model.CraneList" class="form-select" required>
-            <option value="">-- Pilih Crane --</option>
-          </select>
-        </div>
-        <div class="col-md-4">
-          <label asp-for="Date" class="form-label">Tanggal</label>
-          <input asp-for="Date" class="form-control" type="date" required />
-        </div>
-        <div class="col-md-4 d-flex align-items-end">
-          <button type="submit" class="btn btn-primary">
-            <i class="bx bx-search me-1"></i> Tampilkan
-          </button>
-        </div>
-      </div>
-    </form>
-  </div>
-</div>
-
 <div class="row">
   <div class="col-md-8">
+    <div class="card mb-4">
+      <div class="card-body">
+        <form asp-action="Visualization" method="get" id="filterForm">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label asp-for="CraneId" class="form-label">Crane</label>
+              <select asp-for="CraneId" asp-items="Model.CraneList" class="form-select" required>
+                <option value="">-- Pilih Crane --</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label asp-for="Date" class="form-label">Tanggal</label>
+              <input asp-for="Date" class="form-control" type="date" required />
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
     <div class="card mb-4">
       <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0">
@@ -137,6 +127,28 @@
       <div class="card-body">
         <div class="minute-chart-container">
           <div id="minuteVisualizationChart"></div>
+        </div>
+        <div class="mt-3 d-flex justify-content-center flex-wrap">
+          <div class="legend-item me-4">
+            <div class="legend-color" style="background-color: #28a745;"></div>
+            <div>Operating</div>
+          </div>
+          <div class="legend-item me-4">
+            <div class="legend-color" style="background-color: #ffc107;"></div>
+            <div>Delay</div>
+          </div>
+          <div class="legend-item me-4">
+            <div class="legend-color" style="background-color: #6c757d;"></div>
+            <div>Standby</div>
+          </div>
+          <div class="legend-item me-4">
+            <div class="legend-color" style="background-color: #17a2b8;"></div>
+            <div>Service</div>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color" style="background-color: #dc3545;"></div>
+            <div>Breakdown</div>
+          </div>
         </div>
       </div>
     </div>
@@ -155,36 +167,7 @@
       </div>
     </div>
 
-    <div class="card mb-4">
-      <div class="card-header">
-        <i class="bx bx-palette me-1"></i>
-        Legenda
-      </div>
-      <div class="card-body">
-        <div class="legend-container">
-          <div class="legend-item">
-            <div class="legend-color" style="background-color: #28a745;"></div>
-            <div>Operating</div>
-          </div>
-          <div class="legend-item">
-            <div class="legend-color" style="background-color: #ffc107;"></div>
-            <div>Delay</div>
-          </div>
-          <div class="legend-item">
-            <div class="legend-color" style="background-color: #6c757d;"></div>
-            <div>Standby</div>
-          </div>
-          <div class="legend-item">
-            <div class="legend-color" style="background-color: #17a2b8;"></div>
-            <div>Service</div>
-          </div>
-          <div class="legend-item">
-            <div class="legend-color" style="background-color: #dc3545;"></div>
-            <div>Breakdown</div>
-          </div>
-        </div>
-      </div>
-    </div>
+
 
     <div class="card mb-4">
       <div class="card-header">
@@ -192,95 +175,87 @@
         Ringkasan
       </div>
       <div class="card-body">
-        <h5>Jam Penggunaan</h5>
-        <div class="progress mb-3" style="height: 25px;">
-          <div class="progress-bar bg-success" role="progressbar" style="width: @Model.Summary.OperatingPercentage%;"
-            title="Operating: @Model.Summary.OperatingHours.ToString("0.0") jam">
-            @Model.Summary.OperatingHours.ToString("0.0")
-          </div>
-          <div class="progress-bar bg-warning" role="progressbar" style="width: @Model.Summary.DelayPercentage%;"
-            title="Delay: @Model.Summary.DelayHours.ToString("0.0") jam">
-            @Model.Summary.DelayHours.ToString("0.0")
-          </div>
-          <div class="progress-bar bg-secondary" role="progressbar" style="width: @Model.Summary.StandbyPercentage%;"
-            title="Standby: @Model.Summary.StandbyHours.ToString("0.0") jam">
-            @Model.Summary.StandbyHours.ToString("0.0")
-          </div>
-          <div class="progress-bar bg-info" role="progressbar" style="width: @Model.Summary.ServicePercentage%;"
-            title="Service: @Model.Summary.ServiceHours.ToString("0.0") jam">
-            @Model.Summary.ServiceHours.ToString("0.0")
-          </div>
-          <div class="progress-bar bg-danger" role="progressbar" style="width: @Model.Summary.BreakdownPercentage%;"
-            title="Breakdown: @Model.Summary.BreakdownHours.ToString("0.0") jam">
-            @Model.Summary.BreakdownHours.ToString("0.0")
-          </div>
+        <h6 class="card-title mb-3">Jam Penggunaan</h6>
+        <div class="progress rounded-pill mb-4" style="height: 14px; overflow: hidden;">
+          <div class="progress-bar bg-success" role="progressbar" style="width: @Model.Summary.OperatingPercentage%" title="Operating: @Model.Summary.OperatingHours.ToString("0.0") jam"></div>
+          <div class="progress-bar bg-warning" role="progressbar" style="width: @Model.Summary.DelayPercentage%" title="Delay: @Model.Summary.DelayHours.ToString("0.0") jam"></div>
+          <div class="progress-bar bg-secondary" role="progressbar" style="width: @Model.Summary.StandbyPercentage%" title="Standby: @Model.Summary.StandbyHours.ToString("0.0") jam"></div>
+          <div class="progress-bar bg-info" role="progressbar" style="width: @Model.Summary.ServicePercentage%" title="Service: @Model.Summary.ServiceHours.ToString("0.0") jam"></div>
+          <div class="progress-bar bg-danger" role="progressbar" style="width: @Model.Summary.BreakdownPercentage%" title="Breakdown: @Model.Summary.BreakdownHours.ToString("0.0") jam"></div>
         </div>
 
-        <table class="table table-sm">
-          <tr>
-            <td>Operating</td>
-            <td>@Model.Summary.OperatingHours.ToString("0.0") jam</td>
-            <td>@Model.Summary.OperatingPercentage.ToString("0.0")%</td>
-          </tr>
-          <tr>
-            <td>Delay</td>
-            <td>@Model.Summary.DelayHours.ToString("0.0") jam</td>
-            <td>@Model.Summary.DelayPercentage.ToString("0.0")%</td>
-          </tr>
-          <tr>
-            <td>Standby</td>
-            <td>@Model.Summary.StandbyHours.ToString("0.0") jam</td>
-            <td>@Model.Summary.StandbyPercentage.ToString("0.0")%</td>
-          </tr>
-          <tr>
-            <td>Service</td>
-            <td>@Model.Summary.ServiceHours.ToString("0.0") jam</td>
-            <td>@Model.Summary.ServicePercentage.ToString("0.0")%</td>
-          </tr>
-          <tr>
-            <td>Breakdown</td>
-            <td>@Model.Summary.BreakdownHours.ToString("0.0") jam</td>
-            <td>@Model.Summary.BreakdownPercentage.ToString("0.0")%</td>
-          </tr>
-          <!-- Tambahkan divider untuk memisahkan metrik asli dengan metrik baru -->
-          <tr class="table-secondary">
-            <td colspan="2" class="text-center">
-              <strong>Key Performance Indicators</strong>
-            </td>
-          </tr>
-          <!-- Metrik baru -->
-          <tr class="table-primary">
-            <th>Availability</th>
-            <th>@Model.Summary.AvailabilityPercentage.ToString("0.0")%</th>
-            @* <th>
-              <small>Available Time / Calendar Time</small>
-            </th> *@
-          </tr>
-          <tr class="table-info">
-            <th>Utilisation</th>
-            <th>@Model.Summary.UtilisationPercentage.ToString("0.0")%</th>
-            @* <th>
-              <small>Operating / Calendar Time</small>
-            </th> *@
-          </tr>
-          <tr class="table-success">
-            <th>Usage</th>
-            <th>@Model.Summary.UsagePercentage.ToString("0.0")%</th>
-            @* <th>
-              <small>Utilized Time / Available Time</small>
-            </th> *@
-          </tr>
-          <!-- Optional: metrik asli jika masih ingin ditampilkan -->
-          <tr class="table-active" style="display: none;">
-            <th>Available Time</th>
-            <th>@Model.Summary.AvailableHours.ToString("0.0") jam</th>
-            <th>@Model.Summary.AvailablePercentage.ToString("0.0")%</th>
-          </tr>
-          <tr class="table-active" style="display: none;">
-            <th>Maintenance Time</th>
-            <th>@Model.Summary.MaintenanceHours.ToString("0.0") jam</th>
-            <th>@Model.Summary.MaintenancePercentage.ToString("0.0")%</th>
-          </tr>
+        <ul class="list-group list-group-flush">
+          <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+            <span><i class="bx bxs-circle me-2" style="color: #28a745;"></i>Operating</span>
+            <div>
+              <span class="fw-bold me-3">@Model.Summary.OperatingHours.ToString("0.0") jam</span>
+              <span class="badge bg-label-secondary rounded-pill">@Model.Summary.OperatingPercentage.ToString("0.0")%</span>
+            </div>
+          </li>
+          <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+            <span><i class="bx bxs-circle me-2" style="color: #ffc107;"></i>Delay</span>
+            <div>
+              <span class="fw-bold me-3">@Model.Summary.DelayHours.ToString("0.0") jam</span>
+              <span class="badge bg-label-secondary rounded-pill">@Model.Summary.DelayPercentage.ToString("0.0")%</span>
+            </div>
+          </li>
+          <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+            <span><i class="bx bxs-circle me-2" style="color: #6c757d;"></i>Standby</span>
+            <div>
+              <span class="fw-bold me-3">@Model.Summary.StandbyHours.ToString("0.0") jam</span>
+              <span class="badge bg-label-secondary rounded-pill">@Model.Summary.StandbyPercentage.ToString("0.0")%</span>
+            </div>
+          </li>
+          <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+            <span><i class="bx bxs-circle me-2" style="color: #17a2b8;"></i>Service</span>
+            <div>
+              <span class="fw-bold me-3">@Model.Summary.ServiceHours.ToString("0.0") jam</span>
+              <span class="badge bg-label-secondary rounded-pill">@Model.Summary.ServicePercentage.ToString("0.0")%</span>
+            </div>
+          </li>
+          <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+            <span><i class="bx bxs-circle me-2" style="color: #dc3545;"></i>Breakdown</span>
+            <div>
+              <span class="fw-bold me-3">@Model.Summary.BreakdownHours.ToString("0.0") jam</span>
+              <span class="badge bg-label-secondary rounded-pill">@Model.Summary.BreakdownPercentage.ToString("0.0")%</span>
+            </div>
+          </li>
+        </ul>
+
+        <hr class="my-4">
+
+        <table class="table table-bordered mb-0">
+          <tbody>
+            <tr class="table-secondary">
+              <td colspan="2" class="text-center">
+                <strong>Key Performance Indicators</strong>
+              </td>
+            </tr>
+            <!-- Metrik baru -->
+            <tr class="table-primary">
+              <th>Availability</th>
+              <th>@Model.Summary.AvailabilityPercentage.ToString("0.0")%</th>
+            </tr>
+            <tr class="table-info">
+              <th>Utilisation</th>
+              <th>@Model.Summary.UtilisationPercentage.ToString("0.0")%</th>
+            </tr>
+            <tr class="table-success">
+              <th>Usage</th>
+              <th>@Model.Summary.UsagePercentage.ToString("0.0")%</th>
+            </tr>
+            <!-- Optional: metrik asli jika masih ingin ditampilkan -->
+            <tr class="table-active" style="display: none;">
+              <th>Available Time</th>
+              <th>@Model.Summary.AvailableHours.ToString("0.0") jam</th>
+              <th>@Model.Summary.AvailablePercentage.ToString("0.0")%</th>
+            </tr>
+            <tr class="table-active" style="display: none;">
+              <th>Maintenance Time</th>
+              <th>@Model.Summary.MaintenanceHours.ToString("0.0") jam</th>
+              <th>@Model.Summary.MaintenancePercentage.ToString("0.0")%</th>
+            </tr>
+          </tbody>
         </table>
       </div>
     </div>
@@ -297,12 +272,10 @@
   </a>
 </div>
 
-@section VendorScripts {
+@section PageScripts {
   <!-- D3.js CDN -->
   <script src="~/vendor/libs/d3/d3.v7.min.js"></script>
-}
-
-@section PageScripts {
+  <script src="~/js/crane-usage-visualization.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function () {
       // Ambil data dari model

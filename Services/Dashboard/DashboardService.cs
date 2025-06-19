@@ -59,8 +59,8 @@ namespace AspnetCoreMvcFull.Services.Dashboard
           {
             try
             {
-              // Gunakan method yang sama dengan MinuteVisualization untuk mendapatkan KPI
-              var visualizationData = await _craneUsageService.GetMinuteVisualizationDataAsync(crane.Id, date);
+              // Gunakan method yang sama dengan Visualization untuk mendapatkan KPI
+              var visualizationData = await _craneUsageService.GetVisualizationDataAsync(crane.Id, date);
 
               // Jika ini tanggal pertama atau hari ini, tambahkan ke CraneMetrics untuk chart
               if (date == startDate || date == DateTime.Today)

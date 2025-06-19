@@ -422,25 +422,31 @@ var BookingList = (function () {
   }
 
   function setupExportButtons() {
+    // Hapus tombol yang ada untuk memastikan tidak ada duplikat
     $('#' + config.exportContainerId).empty();
 
-    var buttonGroup = $('<div class="btn-group" role="group"></div>');
-
+    // Buat tombol Excel dengan gaya yang konsisten
     var excelBtn = $(
-      '<button type="button" class="btn btn-sm btn-success">' + '<i class="bx bx-file me-1"></i> Excel</button>'
+      '<button type="button" class="btn btn-outline-secondary">' +
+        '<i class="bx bxs-spreadsheet me-1"></i> Excel</button>'
     );
+
+    // Buat tombol PDF dengan gaya yang konsisten
     var pdfBtn = $(
-      '<button type="button" class="btn btn-sm btn-danger">' + '<i class="bx bx-file me-1"></i> PDF</button>'
+      '<button type="button" class="btn btn-outline-secondary">' + '<i class="bx bxs-file-pdf me-1"></i> PDF</button>'
     );
 
-    buttonGroup.append(excelBtn).append(pdfBtn);
-    $('#' + config.exportContainerId).append(buttonGroup);
+    // Tambahkan tombol baru ke dalam kontainer
+    $('#' + config.exportContainerId)
+      .append(excelBtn)
+      .append(pdfBtn);
 
+    // Tambahkan event listener untuk tombol Excel
     excelBtn.on('click', function (e) {
       e.preventDefault();
       if (dataTable) {
         try {
-          dataTable.button(0).trigger();
+          dataTable.button(0).trigger(); // Asumsi: Tombol Excel adalah yang pertama
         } catch (error) {
           console.error('Excel export error:', error);
           showExportError('Excel', error.message);
@@ -448,6 +454,7 @@ var BookingList = (function () {
       }
     });
 
+    // Tambahkan event listener untuk tombol PDF
     pdfBtn.on('click', function (e) {
       e.preventDefault();
       if (dataTable) {
@@ -455,8 +462,7 @@ var BookingList = (function () {
           if (typeof window.pdfMake === 'undefined') {
             throw new Error('pdfMake library is not loaded');
           }
-
-          dataTable.button(1).trigger();
+          dataTable.button(1).trigger(); // Asumsi: Tombol PDF adalah yang kedua
         } catch (error) {
           console.error('PDF export error:', error);
           showExportError('PDF', error.message);
@@ -464,14 +470,11 @@ var BookingList = (function () {
       }
     });
 
+    // Tambahkan style yang diperlukan jika belum ada (tanpa style btn-group)
     if (!$('#datatables-export-style').length) {
       $(
         '<style id="datatables-export-style">' +
           '.hidden-button, .dt-buttons { display: none !important; }' +
-          '.btn-group .btn { border-radius: 0; }' +
-          '.btn-group .btn:first-child { border-top-left-radius: 0.375rem; border-bottom-left-radius: 0.375rem; }' +
-          '.btn-group .btn:last-child { border-top-right-radius: 0.375rem; border-bottom-right-radius: 0.375rem; }' +
-          '.btn-group .btn:hover { transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }' +
           '#bookingListTable thead tr:first-child th { border-top: 1px solid #B2B2B2 !important; }' +
           '#bookingListTable tbody tr:last-child td { border-bottom: none !important; }' +
           '</style>'

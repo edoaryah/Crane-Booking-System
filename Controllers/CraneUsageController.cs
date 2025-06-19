@@ -428,8 +428,8 @@ namespace AspnetCoreMvcFull.Controllers
       }
     }
 
-    // The MinuteVisualization action
-    public async Task<IActionResult> MinuteVisualization(int craneId = 0, DateTime? date = null)
+    // The Visualization action
+    public async Task<IActionResult> Visualization(int craneId = 0, DateTime? date = null)
     {
       try
       {
@@ -444,7 +444,7 @@ namespace AspnetCoreMvcFull.Controllers
         }
 
         var viewDate = date ?? DateTime.Today;
-        var viewModel = await _craneUsageService.GetMinuteVisualizationDataAsync(craneId, viewDate);
+        var viewModel = await _craneUsageService.GetVisualizationDataAsync(craneId, viewDate);
 
         // Messages from TempData
         ViewBag.SuccessMessage = TempData["CraneUsageSuccessMessage"] as string;
@@ -460,7 +460,7 @@ namespace AspnetCoreMvcFull.Controllers
       {
         _logger.LogError(ex, "Error retrieving crane usage minute visualization data");
         TempData["CraneUsageErrorMessage"] = "Terjadi kesalahan saat memuat visualisasi penggunaan crane: " + ex.Message;
-        return View(new CraneUsageMinuteVisualizationViewModel());
+        return View(new CraneUsageVisualizationViewModel());
       }
     }
   }

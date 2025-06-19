@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AspnetCoreMvcFull.Models
 {
@@ -123,5 +124,16 @@ namespace AspnetCoreMvcFull.Models
     public virtual ICollection<BookingShift> BookingShifts { get; set; } = new List<BookingShift>();
     public virtual ICollection<BookingItem> BookingItems { get; set; } = new List<BookingItem>();
     public virtual ICollection<BookingHazard> BookingHazards { get; set; } = new List<BookingHazard>();
+
+    // Property to store image paths as a single string, separated by a delimiter
+    public string? ImagePaths { get; set; }
+
+    // Not-mapped property to easily access image paths as a list
+    [NotMapped]
+    public List<string> Images
+    {
+      get { return !string.IsNullOrEmpty(ImagePaths) ? ImagePaths.Split(';').ToList() : new List<string>(); }
+      set { ImagePaths = string.Join(";", value); }
+    }
   }
 }

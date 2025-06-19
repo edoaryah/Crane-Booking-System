@@ -88,6 +88,9 @@ namespace AspnetCoreMvcFull.ViewModels.BookingManagement
     public List<BookingItemViewModel> Items { get; set; } = new List<BookingItemViewModel>();
     public List<HazardViewModel> SelectedHazards { get; set; } = new List<HazardViewModel>();
     public string? CustomHazard { get; set; }
+
+    // Properti untuk menampilkan gambar
+    public List<string> ImagePaths { get; set; } = new List<string>();
   }
 
   // ViewModel untuk shift dalam booking
@@ -151,6 +154,9 @@ namespace AspnetCoreMvcFull.ViewModels.BookingManagement
     public List<BookingItemCreateViewModel> Items { get; set; } = new List<BookingItemCreateViewModel>();
     public List<int>? HazardIds { get; set; } = new List<int>();
     public string? CustomHazard { get; set; }
+
+    // Properti untuk upload gambar
+    public List<IFormFile>? Images { get; set; } = new List<IFormFile>();
   }
 
   // ViewModel untuk memperbarui booking yang ada
@@ -190,6 +196,13 @@ namespace AspnetCoreMvcFull.ViewModels.BookingManagement
     public List<BookingItemCreateViewModel> Items { get; set; } = new List<BookingItemCreateViewModel>();
     public List<int>? HazardIds { get; set; } = new List<int>();
     public string? CustomHazard { get; set; }
+
+    // Properti untuk upload gambar baru dan menampilkan gambar yang sudah ada
+    public List<IFormFile>? NewImages { get; set; } = new List<IFormFile>();
+    public List<string> ExistingImagePaths { get; set; } = new List<string>();
+
+    // To capture which images to delete
+    public List<string>? ImagesToDelete { get; set; }
   }
 
   // ViewModel untuk membuat item dalam booking

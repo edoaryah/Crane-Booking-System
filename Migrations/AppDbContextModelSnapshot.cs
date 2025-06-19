@@ -101,6 +101,9 @@ namespace AspnetCoreMvcFull.Migrations
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("timestamp without time zone");
 
+                    b.Property<string>("ImagePaths")
+                        .HasColumnType("text");
+
                     b.Property<bool>("IsBilled")
                         .HasColumnType("boolean");
 
@@ -351,7 +354,7 @@ namespace AspnetCoreMvcFull.Migrations
                         new
                         {
                             Id = 2,
-                            Capacity = 150,
+                            Capacity = 100,
                             Code = "LC009",
                             Ownership = "KPC",
                             Status = "Available"
@@ -359,7 +362,7 @@ namespace AspnetCoreMvcFull.Migrations
                         new
                         {
                             Id = 3,
-                            Capacity = 100,
+                            Capacity = 150,
                             Code = "LC010",
                             Ownership = "KPC",
                             Status = "Available"
@@ -367,7 +370,7 @@ namespace AspnetCoreMvcFull.Migrations
                         new
                         {
                             Id = 4,
-                            Capacity = 150,
+                            Capacity = 100,
                             Code = "LC011",
                             Ownership = "KPC",
                             Status = "Available"
