@@ -120,10 +120,7 @@
                     {
                       <span class="badge bg-primary">@entry.BookingNumber</span>
                     }
-                    @if (!string.IsNullOrEmpty(entry.MaintenanceTitle))
-                    {
-                      <span class="badge bg-info">@entry.MaintenanceTitle</span>
-                    }
+
                   </td>
                   <td>@entry.Notes</td>
                   @if (!Model.IsFinalized)
@@ -134,7 +131,7 @@
                           data-start="@entry.StartTime.ToString(@"hh\:mm")" data-end="@entry.EndTime.ToString(@"hh\:mm")"
                           data-category="@((int)entry.Category)" data-subcategory="@entry.UsageSubcategoryId"
                           data-operator="@entry.OperatorName" data-booking="@entry.BookingId"
-                          data-maintenance="@entry.MaintenanceScheduleId" data-notes="@entry.Notes">
+                           data-notes="@entry.Notes">
                           <i class="bx bx-edit"></i>
                         </button>
                         <button type="button" class="btn btn-sm btn-danger delete-entry" data-id="@entry.Id">
@@ -151,7 +148,6 @@
                   <input type="hidden" name="Entries[@i].UsageSubcategoryId" value="@entry.UsageSubcategoryId" />
                   <input type="hidden" name="Entries[@i].OperatorName" value="@entry.OperatorName" />
                   <input type="hidden" name="Entries[@i].BookingId" value="@entry.BookingId" />
-                  <input type="hidden" name="Entries[@i].MaintenanceScheduleId" value="@entry.MaintenanceScheduleId" />
                   <input type="hidden" name="Entries[@i].Notes" value="@entry.Notes" />
                 </tr>
               }
@@ -257,13 +253,6 @@
               </div>
               <div id="bookingSearchResults" class="search-results mt-1"></div>
               <div id="selectedBookingInfo" class="mt-2"></div>
-            </div>
-
-            <div class="mb-3">
-              <label for="maintenance" class="form-label">Maintenance (Optional)</label>
-              <select id="maintenance" class="form-select">
-                <option value="">-- No Maintenance --</option>
-              </select>
             </div>
 
             <div class="mb-3">
@@ -428,28 +417,6 @@
         $('#selectedBookingInfo').empty();
       }
 
-      // Update related maintenance when time changes
-      function updateRelatedMaintenanceOptions() {
-        var startTime = $('#startTime').val();
-        var endTime = $('#endTime').val();
-
-        if (startTime && endTime) {
-          // Load maintenance options
-          $('#maintenance').html('<option value="">Loading...</option>');
-
-          $.getJSON('@Url.Action("GetRelatedMaintenance")?craneId=@Model.CraneId&date=@Model.Date.ToString("yyyy-MM-dd")&startTime=' + startTime + '&endTime=' + endTime, function (data) {
-            var maintenanceSelect = $('#maintenance');
-            maintenanceSelect.empty();
-            maintenanceSelect.append($('<option></option>').val('').text('-- No Maintenance --'));
-            $.each(data, function (index, item) {
-              maintenanceSelect.append($('<option></option>').val(item.value).text(item.text));
-            });
-          });
-        }
-      }
-
-      $('#startTime, #endTime').change(updateRelatedMaintenanceOptions);
-
       // ---------------------------------------------------------------------
       // Modal handling
       // ---------------------------------------------------------------------
@@ -468,7 +435,6 @@
           $('#category').val('');
           $('#subcategory').empty().append($('<option></option>').val('').text('-- Select Subcategory --'));
           $('#operator').val(currentUser); // Default to current user
-          $('#maintenance').empty().append($('<option></option>').val('').text('-- No Maintenance --'));
           $('#notes').val('');
 
           removeSelectedBooking();
@@ -488,7 +454,6 @@
         var operator = $(this).data('operator');
         var booking = $(this).data('booking');
         var bookingText = $(this).closest('tr').find('td:eq(4) .badge.bg-primary').text() || '';
-        var maintenance = $(this).data('maintenance');
         var notes = $(this).data('notes');
 
         // Format time
@@ -516,22 +481,12 @@
         setTimeout(function () {
           $('#subcategory').val(subcategory);
 
-          // Load maintenance options
-          updateRelatedMaintenanceOptions();
+          // Update modal title
+          $('#addEntryModalLabel').text('Edit Entry');
 
-          // Set timeout to allow maintenance to load
-          setTimeout(function () {
-            if (maintenance) {
-              $('#maintenance').val(maintenance);
-            }
-          }, 500);
+          // Show modal
+          $('#addEntryModal').modal('show');
         }, 500);
-
-        // Update modal title
-        $('#addEntryModalLabel').text('Edit Entry');
-
-        // Show modal
-        $('#addEntryModal').modal('show');
       });
 
       // ---------------------------------------------------------------------
@@ -555,7 +510,6 @@
         var subcategory = $('#subcategory').val();
         var operator = $('#operator').val();
         var booking = $('#booking').val();
-        var maintenance = $('#maintenance').val();
         var notes = $('#notes').val();
 
         // Validate times
@@ -583,7 +537,6 @@
           UsageSubcategoryId: parseInt(subcategory),
           OperatorName: operator,
           BookingId: booking ? parseInt(booking) : null,
-          MaintenanceScheduleId: maintenance ? parseInt(maintenance) : null,
           Notes: notes
         };
 
@@ -706,9 +659,6 @@
         if (entry.bookingNumber) {
           relatedItems += '<span class="badge bg-primary">' + entry.bookingNumber + '</span> ';
         }
-        if (entry.maintenanceTitle) {
-          relatedItems += '<span class="badge bg-info">' + entry.maintenanceTitle + '</span>';
-        }
 
         var newRow = `
             <tr data-entry-id="${entry.id}">
@@ -730,9 +680,9 @@
                     data-end="${formatTime(entry.endTime)}"
                     data-category="${entry.category}"
                     data-subcategory="${entry.usageSubcategoryId}"
+
                     data-operator="${entry.operatorName || ''}"
                     data-booking="${entry.bookingId || ''}"
-                    data-maintenance="${entry.maintenanceScheduleId || ''}"
                     data-notes="${entry.notes || ''}">
                     <i class="bx bx-edit"></i>
                   </button>
@@ -747,9 +697,9 @@
               <input type="hidden" name="Entries[${index}].EndTime" value="${entry.endTime}" />
               <input type="hidden" name="Entries[${index}].Category" value="${entry.category}" />
               <input type="hidden" name="Entries[${index}].UsageSubcategoryId" value="${entry.usageSubcategoryId}" />
+
               <input type="hidden" name="Entries[${index}].OperatorName" value="${entry.operatorName || ''}" />
               <input type="hidden" name="Entries[${index}].BookingId" value="${entry.bookingId || ''}" />
-              <input type="hidden" name="Entries[${index}].MaintenanceScheduleId" value="${entry.maintenanceScheduleId || ''}" />
               <input type="hidden" name="Entries[${index}].Notes" value="${entry.notes || ''}" />
             </tr>
           `;
@@ -770,9 +720,6 @@
         if (entry.bookingNumber) {
           relatedItems += '<span class="badge bg-primary">' + entry.bookingNumber + '</span> ';
         }
-        if (entry.maintenanceTitle) {
-          relatedItems += '<span class="badge bg-info">' + entry.maintenanceTitle + '</span>';
-        }
 
         // Update visible cells
         row.find('td').eq(0).text(startTimeFormatted + ' - ' + endTimeFormatted);
@@ -788,9 +735,9 @@
         editButton.data('end', endTimeFormatted);
         editButton.data('category', entry.category);
         editButton.data('subcategory', entry.usageSubcategoryId);
+
         editButton.data('operator', entry.operatorName || '');
         editButton.data('booking', entry.bookingId || '');
-        editButton.data('maintenance', entry.maintenanceScheduleId || '');
         editButton.data('notes', entry.notes || '');
 
         // Update hidden inputs
@@ -798,9 +745,9 @@
         row.find('input[name$=".EndTime"]').val(entry.endTime);
         row.find('input[name$=".Category"]').val(entry.category);
         row.find('input[name$=".UsageSubcategoryId"]').val(entry.usageSubcategoryId);
+
         row.find('input[name$=".OperatorName"]').val(entry.operatorName || '');
         row.find('input[name$=".BookingId"]').val(entry.bookingId || '');
-        row.find('input[name$=".MaintenanceScheduleId"]').val(entry.maintenanceScheduleId || '');
         row.find('input[name$=".Notes"]').val(entry.notes || '');
       }
 
