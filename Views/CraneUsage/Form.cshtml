@@ -19,8 +19,17 @@
   </div>
 }
 
-<h1>Input Crane Usage</h1>
-<p class="lead">Record usage for crane @Model.CraneCode on @Model.Date.ToString("dd MMMM yyyy")</p>
+<!-- <h1>Input Crane Usage</h1>
+<p class="lead">Record usage for crane @Model.CraneCode on @Model.Date.ToString("dd MMMM yyyy")</p> -->
+<!-- Last Selected Booking Card -->
+<div id="lastSelectedBookingCard" class="card border-primary mb-3" style="display:none;">
+  <div class="card-header">
+    <i class="bx bx-bookmark me-1"></i> Last Selected Booking
+  </div>
+  <div class="card-body">
+    <p id="lastSelectedBookingText" class="mb-0"></p>
+  </div>
+</div>
 
 <!-- Record Information Card -->
 <div class="card mb-4">
@@ -244,6 +253,9 @@
 
             <div class="mb-3">
               <label for="booking" class="form-label">Booking (Optional)</label>
+              <select id="bookingDropdown" class="form-select mb-2">
+                <option value="">-- Select Booking (±5 days) --</option>
+              </select>
               <div class="input-group">
                 <input type="hidden" id="booking" />
                 <input type="text" id="bookingSearch" class="form-control" placeholder="Search bookings..." />
@@ -315,6 +327,7 @@
       var isEditMode = false;
       var entryCount = @(Model.Entries?.Count ?? 0);
       var searchTimeout;
+      var lastSelectedBooking = null;
       var selectedBooking = null;
 
       // Get current user name from claims
@@ -340,6 +353,36 @@
           });
         }
       });
+
+      // Load nearby bookings dropdown on page ready
+      function loadNearbyBookings() {
+        $.getJSON('@Url.Action("NearbyBookings")?craneId=@Model.CraneId&date=@Model.Date.ToString("yyyy-MM-dd")', function (data) {
+          var dropdown = $('#bookingDropdown');
+          dropdown.empty();
+          dropdown.append($('<option></option>').val('').text('-- Select Booking (±5 days) --'));
+          $.each(data, function (index, item) {
+            dropdown.append($('<option></option>').val(item.value).text(item.text));
+          });
+
+          // Auto-select last booking if applicable
+          if (lastSelectedBooking && dropdown.find('option[value="' + lastSelectedBooking.id + '"]').length) {
+            dropdown.val(lastSelectedBooking.id);
+          }
+        });
+      }
+
+      // Handle dropdown change
+      $(document).on('change', '#bookingDropdown', function () {
+        var id = $(this).val();
+        var text = $(this).find('option:selected').text();
+        if (id) {
+          selectBooking(id, text);
+        } else {
+          removeSelectedBooking();
+        }
+      });
+
+      loadNearbyBookings();
 
       // Search bookings as user types
       $('#bookingSearch').on('input', function () {
@@ -389,6 +432,9 @@
       // Function to select booking
       function selectBooking(id, text) {
         selectedBooking = { id: id, text: text };
+        lastSelectedBooking = selectedBooking;
+        $('#lastSelectedBookingText').text(text);
+        $('#lastSelectedBookingCard').show();
         $('#booking').val(id);
         $('#bookingSearch').val('');
 
@@ -412,6 +458,8 @@
       // Function to remove selected booking
       function removeSelectedBooking() {
         selectedBooking = null;
+        lastSelectedBooking = null;
+        $('#lastSelectedBookingCard').hide();
         $('#booking').val('');
         $('#bookingSearch').val('');
         $('#selectedBookingInfo').empty();
