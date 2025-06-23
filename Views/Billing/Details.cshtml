@@ -20,8 +20,8 @@
   </div>
 }
 
-<h1>Detail Penagihan</h1>
-<p class="lead">Detail penggunaan crane untuk booking @Model.Booking.BookingNumber</p>
+<!-- <h1>Detail Penagihan</h1>
+<p class="lead">Detail penggunaan crane untuk booking @Model.Booking.BookingNumber</p> -->
 
 <!-- Card Info Booking -->
 <div class="card mb-4">
@@ -36,20 +36,23 @@
           <dt class="col-sm-4">No. Booking:</dt>
           <dd class="col-sm-8">@Model.Booking.BookingNumber</dd>
 
-          <dt class="col-sm-4">No. Dokumen:</dt>
-          <dd class="col-sm-8">@Model.Booking.DocumentNumber</dd>
+          <!-- <dt class="col-sm-4">No. Dokumen:</dt>
+          <dd class="col-sm-8">@Model.Booking.DocumentNumber</dd> -->
 
           <dt class="col-sm-4">Requester:</dt>
           <dd class="col-sm-8">@Model.Booking.RequesterName</dd>
 
           <dt class="col-sm-4">Departemen:</dt>
           <dd class="col-sm-8">@Model.Booking.Department</dd>
+
+          <dt class="col-sm-4">Crane:</dt>
+          <dd class="col-sm-8">@Model.Booking.CraneCode (@Model.Booking.CraneCapacity Ton)</dd>
         </dl>
       </div>
       <div class="col-md-6">
         <dl class="row">
-          <dt class="col-sm-4">Crane:</dt>
-          <dd class="col-sm-8">@Model.Booking.CraneCode (@Model.Booking.CraneCapacity Ton)</dd>
+          <!-- <dt class="col-sm-4">Crane:</dt>
+          <dd class="col-sm-8">@Model.Booking.CraneCode (@Model.Booking.CraneCapacity Ton)</dd> -->
 
           <dt class="col-sm-4">Tanggal Booking:</dt>
           <dd class="col-sm-8">@Model.Booking.BookingStartDate.ToString("dd/MM/yyyy") -

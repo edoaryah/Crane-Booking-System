@@ -400,64 +400,49 @@ namespace AspnetCoreMvcFull.Controllers
     }
 
     [HttpGet]
-    public async Task<IActionResult> SearchBookings(string term, int craneId)
-{
-  try
-  {
-    var bookings = await _context.Bookings
-        .Where(b => b.CraneId == craneId &&
-                   (b.Status == BookingStatus.PICApproved ||
-                    b.Status == BookingStatus.Done) &&
-                   (b.BookingNumber.Contains(term) ||
-                    b.DocumentNumber.Contains(term) ||
-                    b.Name.Contains(term)))
-        .Select(b => new SelectListItem
+    public async Task<IActionResult> SearchBookings(string term, int craneId, DateTime date)
+    {
+      try
+      {
+        IQueryable<Booking> query = _context.Bookings
+            .Where(b => b.CraneId == craneId &&
+                       (b.Status == BookingStatus.Cancelled ||
+                        b.Status == BookingStatus.Done));
+
+        if (string.IsNullOrEmpty(term))
         {
-          Value = b.Id.ToString(),
-          Text = $"{b.BookingNumber} - {b.Name} ({b.StartDate:dd/MM/yyyy} - {b.EndDate:dd/MM/yyyy})"
-        })
-        .Take(10)
-        .ToListAsync();
-
-    return Json(bookings);
-  }
-  catch (Exception ex)
-  {
-    _logger.LogError(ex, "Error searching bookings");
-    return Json(new List<SelectListItem>());
-  }
-}
-
-// Get bookings within ±5 days of selected date for dropdown
-[HttpGet]
-public async Task<IActionResult> NearbyBookings(int craneId, DateTime date)
-{
-  try
-  {
-    var startDate = date.AddDays(-5);
-    var endDate = date.AddDays(5);
-
-    var bookings = await _context.Bookings
-        .Where(b => b.CraneId == craneId &&
-                    (b.Status == BookingStatus.PICApproved || b.Status == BookingStatus.Done) &&
-                    b.StartDate <= endDate && b.EndDate >= startDate)
-        .OrderBy(b => b.StartDate)
-        .Select(b => new SelectListItem
+          // If no search term, get nearby bookings for the given date
+          var startDate = date.AddDays(-5);
+          var endDate = date.AddDays(5);
+          query = query.Where(b => b.StartDate <= endDate && b.EndDate >= startDate)
+                       .OrderBy(b => b.StartDate);
+        }
+        else
         {
-          Value = b.Id.ToString(),
-          Text = $"{b.BookingNumber} - {b.Name} ({b.StartDate:dd/MM/yyyy} - {b.EndDate:dd/MM/yyyy})"
-        })
-        .Take(50)
-        .ToListAsync();
+          // If there is a search term, filter by it
+          query = query.Where(b => b.BookingNumber.Contains(term) ||
+                                   b.DocumentNumber.Contains(term) ||
+                                   b.Name.Contains(term))
+                       .OrderBy(b => b.StartDate);
+        }
 
-    return Json(bookings);
-  }
-  catch (Exception ex)
-  {
-    _logger.LogError(ex, "Error getting nearby bookings");
-    return Json(new List<SelectListItem>());
-  }
-}
+        var bookings = await query
+            .Select(b => new SelectListItem
+            {
+              Value = b.Id.ToString(),
+              Text = $"{b.BookingNumber} - {b.Name} ({b.StartDate:dd/MM/yyyy} - {b.EndDate:dd/MM/yyyy})"
+            })
+            .Take(50)
+            .ToListAsync();
+
+        return Json(bookings);
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Error searching or getting nearby bookings");
+        return Json(new List<SelectListItem>());
+      }
+    }
     // The Visualization action
     public async Task<IActionResult> Visualization(int craneId = 0, DateTime? date = null)
     {

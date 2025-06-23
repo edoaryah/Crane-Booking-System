@@ -343,11 +343,8 @@ namespace AspnetCoreMvcFull.Services.CraneUsage
         existingEntry.OperatorName = entry.OperatorName?.Trim();
         _logger.LogInformation($"Service - Setting operator name to: {existingEntry.OperatorName}");
 
-        // Pastikan BookingId tetap ada
-        if (entry.BookingId.HasValue)
-        {
-          existingEntry.BookingId = entry.BookingId;
-        }
+        // Update BookingId. This allows setting it to null.
+        existingEntry.BookingId = entry.BookingId;
 
         existingEntry.Notes = entry.Notes;
 
