@@ -134,69 +134,52 @@
     Ringkasan Penggunaan
   </div>
   <div class="card-body">
-    <div class="row">
-      <div class="col-md-6">
-        <h5>Total Jam Penggunaan</h5>
-        <div class="progress mb-3" style="height: 25px;">
-          <div class="progress-bar bg-success" role="progressbar"
-            style="width: @Model.Calculation.OperatingPercentage%;"
-            title="Operating: @Model.Calculation.OperatingHours.ToString("0.0") jam">
-            @Model.Calculation.OperatingHours.ToString("0.0")
-          </div>
-          <div class="progress-bar bg-warning" role="progressbar" style="width: @Model.Calculation.DelayPercentage%;"
-            title="Delay: @Model.Calculation.DelayHours.ToString("0.0") jam">
-            @Model.Calculation.DelayHours.ToString("0.0")
-          </div>
-          <div class="progress-bar bg-secondary" role="progressbar"
-            style="width: @Model.Calculation.StandbyPercentage%;"
-            title="Standby: @Model.Calculation.StandbyHours.ToString("0.0") jam">
-            @Model.Calculation.StandbyHours.ToString("0.0")
-          </div>
-          <div class="progress-bar bg-info" role="progressbar" style="width: @Model.Calculation.ServicePercentage%;"
-            title="Service: @Model.Calculation.ServiceHours.ToString("0.0") jam">
-            @Model.Calculation.ServiceHours.ToString("0.0")
-          </div>
-          <div class="progress-bar bg-danger" role="progressbar" style="width: @Model.Calculation.BreakdownPercentage%;"
-            title="Breakdown: @Model.Calculation.BreakdownHours.ToString("0.0") jam">
-            @Model.Calculation.BreakdownHours.ToString("0.0")
-          </div>
-        </div>
-      </div>
-      <div class="col-md-6">
-        <table class="table table-sm">
-          <tr>
-            <td>Operating</td>
-            <td>@Model.Calculation.OperatingHours.ToString("0.0") jam</td>
-            <td>@Model.Calculation.OperatingPercentage.ToString("0.0")%</td>
-          </tr>
-          <tr>
-            <td>Delay</td>
-            <td>@Model.Calculation.DelayHours.ToString("0.0") jam</td>
-            <td>@Model.Calculation.DelayPercentage.ToString("0.0")%</td>
-          </tr>
-          <tr>
-            <td>Standby</td>
-            <td>@Model.Calculation.StandbyHours.ToString("0.0") jam</td>
-            <td>@Model.Calculation.StandbyPercentage.ToString("0.0")%</td>
-          </tr>
-          <tr>
-            <td>Service</td>
-            <td>@Model.Calculation.ServiceHours.ToString("0.0") jam</td>
-            <td>@Model.Calculation.ServicePercentage.ToString("0.0")%</td>
-          </tr>
-          <tr>
-            <td>Breakdown</td>
-            <td>@Model.Calculation.BreakdownHours.ToString("0.0") jam</td>
-            <td>@Model.Calculation.BreakdownPercentage.ToString("0.0")%</td>
-          </tr>
-          <tr class="table-active">
-            <th>Total</th>
-            <th>@Model.Calculation.TotalHours.ToString("0.0") jam</th>
-            <th>100%</th>
-          </tr>
-        </table>
-      </div>
+    <h6 class="card-title mb-3">Total Jam Penggunaan: <strong>@Model.Calculation.TotalHours.ToString("0.0") jam</strong></h6>
+    <div class="progress rounded-pill mb-4" style="height: 18px; overflow: hidden;">
+        <div class="progress-bar" role="progressbar" style="width: @Model.Calculation.OperatingPercentage%; background-color: @GetCategoryColor(AspnetCoreMvcFull.Models.UsageCategory.Operating);" title="Operating: @Model.Calculation.OperatingHours.ToString("0.0") jam"></div>
+        <div class="progress-bar" role="progressbar" style="width: @Model.Calculation.DelayPercentage%; background-color: @GetCategoryColor(AspnetCoreMvcFull.Models.UsageCategory.Delay);" title="Delay: @Model.Calculation.DelayHours.ToString("0.0") jam"></div>
+        <div class="progress-bar" role="progressbar" style="width: @Model.Calculation.StandbyPercentage%; background-color: @GetCategoryColor(AspnetCoreMvcFull.Models.UsageCategory.Standby);" title="Standby: @Model.Calculation.StandbyHours.ToString("0.0") jam"></div>
+        <div class="progress-bar" role="progressbar" style="width: @Model.Calculation.ServicePercentage%; background-color: @GetCategoryColor(AspnetCoreMvcFull.Models.UsageCategory.Service);" title="Service: @Model.Calculation.ServiceHours.ToString("0.0") jam"></div>
+        <div class="progress-bar" role="progressbar" style="width: @Model.Calculation.BreakdownPercentage%; background-color: @GetCategoryColor(AspnetCoreMvcFull.Models.UsageCategory.Breakdown);" title="Breakdown: @Model.Calculation.BreakdownHours.ToString("0.0") jam"></div>
     </div>
+
+    <ul class="list-group list-group-flush">
+        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+            <span><i class="bx bxs-circle me-2" style="color: @GetCategoryColor(AspnetCoreMvcFull.Models.UsageCategory.Operating);"></i>Operating</span>
+            <div>
+                <span class="fw-bold me-3">@Model.Calculation.OperatingHours.ToString("0.0") jam</span>
+                <span class="badge bg-label-secondary rounded-pill">@Model.Calculation.OperatingPercentage.ToString("0.0")%</span>
+            </div>
+        </li>
+        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+            <span><i class="bx bxs-circle me-2" style="color: @GetCategoryColor(AspnetCoreMvcFull.Models.UsageCategory.Delay);"></i>Delay</span>
+            <div>
+                <span class="fw-bold me-3">@Model.Calculation.DelayHours.ToString("0.0") jam</span>
+                <span class="badge bg-label-secondary rounded-pill">@Model.Calculation.DelayPercentage.ToString("0.0")%</span>
+            </div>
+        </li>
+        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+            <span><i class="bx bxs-circle me-2" style="color: @GetCategoryColor(AspnetCoreMvcFull.Models.UsageCategory.Standby);"></i>Standby</span>
+            <div>
+                <span class="fw-bold me-3">@Model.Calculation.StandbyHours.ToString("0.0") jam</span>
+                <span class="badge bg-label-secondary rounded-pill">@Model.Calculation.StandbyPercentage.ToString("0.0")%</span>
+            </div>
+        </li>
+        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+            <span><i class="bx bxs-circle me-2" style="color: @GetCategoryColor(AspnetCoreMvcFull.Models.UsageCategory.Service);"></i>Service</span>
+            <div>
+                <span class="fw-bold me-3">@Model.Calculation.ServiceHours.ToString("0.0") jam</span>
+                <span class="badge bg-label-secondary rounded-pill">@Model.Calculation.ServicePercentage.ToString("0.0")%</span>
+            </div>
+        </li>
+        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+            <span><i class="bx bxs-circle me-2" style="color: @GetCategoryColor(AspnetCoreMvcFull.Models.UsageCategory.Breakdown);"></i>Breakdown</span>
+            <div>
+                <span class="fw-bold me-3">@Model.Calculation.BreakdownHours.ToString("0.0") jam</span>
+                <span class="badge bg-label-secondary rounded-pill">@Model.Calculation.BreakdownPercentage.ToString("0.0")%</span>
+            </div>
+        </li>
+    </ul>
   </div>
 </div>
 
