@@ -442,11 +442,11 @@ namespace AspnetCoreMvcFull.Controllers
         ViewBag.Cranes = await _craneService.GetAllCranesAsync();
         ViewBag.ShiftDefinitions = await _shiftService.GetAllShiftDefinitionsAsync();
         ViewBag.Hazards = await _hazardService.GetAllHazardsAsync();
-        
+
         var bookingToUpdate = await _bookingService.GetBookingByIdAsync(id);
         ViewBag.DocumentNumber = bookingToUpdate.DocumentNumber;
         ViewBag.BookingId = id;
-        
+
         return View(viewModel);
       }
       catch (Exception ex)
@@ -458,11 +458,11 @@ namespace AspnetCoreMvcFull.Controllers
         ViewBag.Cranes = await _craneService.GetAllCranesAsync();
         ViewBag.ShiftDefinitions = await _shiftService.GetAllShiftDefinitionsAsync();
         ViewBag.Hazards = await _hazardService.GetAllHazardsAsync();
-        
+
         var booking = await _bookingService.GetBookingByIdAsync(id);
         ViewBag.DocumentNumber = booking.DocumentNumber;
         ViewBag.BookingId = id;
-        
+
         return View(viewModel);
       }
     }

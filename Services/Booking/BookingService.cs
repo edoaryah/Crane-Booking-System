@@ -121,6 +121,8 @@ namespace AspnetCoreMvcFull.Services
         CraneId = booking.CraneId ?? 0,
         // Prioritaskan data historis yang disimpan jika CraneId null
         CraneCode = booking.CraneId.HasValue ? booking.Crane?.Code : booking.CraneCode,
+        // Pastikan kapasitas crane terisi, prioritaskan data dari entitas Crane jika tersedia
+        CraneCapacity = booking.CraneId.HasValue ? booking.Crane?.Capacity : booking.CraneCapacity,
         StartDate = booking.StartDate,
         EndDate = booking.EndDate,
         SubmitTime = booking.SubmitTime,
