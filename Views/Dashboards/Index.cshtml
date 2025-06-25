@@ -1,6 +1,7 @@
 @model AspnetCoreMvcFull.ViewModels.Dashboard.DashboardViewModel
 @{
   ViewData["Title"] = "Dashboard - Analytics";
+  @using AspnetCoreMvcFull.Models
 }
 @section VendorStyles {
   <link rel="stylesheet" href="~/vendor/libs/apex-charts/apex-charts.css" />
@@ -292,51 +293,57 @@
         </div>
       </div>
       <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center mb-6">
-          <div class="d-flex flex-column align-items-center gap-1">
-            <h3 class="mb-1">@Model.BookingStatistics.TotalBookings</h3>
-            <small>Total Booking</small>
-          </div>
-
-
-        </div>
         <ul class="p-0 m-0">
-          <li class="d-flex align-items-center">
+          <li class="d-flex mb-4 pb-1">
             <div class="avatar flex-shrink-0 me-3">
-              <span class="avatar-initial rounded bg-label-primary"><i class='bx bx-check-circle'></i></span>
+              <span class="avatar-initial rounded bg-label-success"><i class='bx bx-check-double'></i></span>
             </div>
             <div class="d-flex w-100 flex-wrap align-items-center justify-content-between gap-2">
               <div class="me-2">
-                <h6 class="mb-0">Cancelled</h6>
-                <small>@Model.BookingStatistics.CancelledBookings booking</small>
+                <h6 class="mb-0">Selesai</h6>
+                <small class="text-muted">@Model.BookingStatistics.DoneBookings Booking</small>
               </div>
-              <div class="user-progress">
-
+              <div class="user-progress d-flex align-items-center gap-1">
+                <h6 class="mb-0">@Model.BookingStatistics.DonePercentage.ToString("0.0")</h6><span
+                  class="text-muted">%</span>
               </div>
             </div>
           </li>
-          <li class="d-flex align-items-center">
+          <li class="d-flex mb-4 pb-1">
             <div class="avatar flex-shrink-0 me-3">
-              <span class="avatar-initial rounded bg-label-warning"><i class='bx bx-time'></i></span>
+              <span class="avatar-initial rounded bg-label-warning"><i class='bx bx-time-five'></i></span>
             </div>
             <div class="d-flex w-100 flex-wrap align-items-center justify-content-between gap-2">
               <div class="me-2">
-                <h6 class="mb-0">Ongoing</h6>
-                <small>@Model.BookingStatistics.OngoingBookings booking</small>
+                <h6 class="mb-0">Berlangsung</h6>
+                <small class="text-muted">@Model.BookingStatistics.OngoingBookings Booking</small>
               </div>
-              <div class="user-progress">
-
+              <div class="user-progress d-flex align-items-center gap-1">
+                <h6 class="mb-0">@Model.BookingStatistics.OngoingPercentage.ToString("0.0")</h6><span
+                  class="text-muted">%</span>
               </div>
             </div>
           </li>
-
+          <li class="d-flex mb-4 pb-1">
+            <div class="avatar flex-shrink-0 me-3">
+              <span class="avatar-initial rounded bg-label-danger"><i class='bx bx-x-circle'></i></span>
+            </div>
+            <div class="d-flex w-100 flex-wrap align-items-center justify-content-between gap-2">
+              <div class="me-2">
+                <h6 class="mb-0">Dibatalkan</h6>
+                <small class="text-muted">@Model.BookingStatistics.CancelledBookings Booking</small>
+              </div>
+              <div class="user-progress d-flex align-items-center gap-1">
+                <h6 class="mb-0">@Model.BookingStatistics.CancelledPercentage.ToString("0.0")</h6><span
+                  class="text-muted">%</span>
+              </div>
+            </div>
+          </li>
         </ul>
       </div>
     </div>
   </div>
 
-  <!-- Bagian Latest Bookings dan Breakdown History tetap sama -->
-  <!-- ... -->
   <!-- Latest Bookings -->
   <div class="col-md-6 col-lg-4 order-1 mb-6">
     <div class="card h-100">
@@ -353,78 +360,36 @@
           </div>
         </div>
       </div>
+
       <div class="card-body">
         <ul class="p-0 m-0">
-          <li class="d-flex align-items-center mb-4 pb-1">
-            <div class="avatar flex-shrink-0 me-3">
-              <span class="avatar-initial rounded bg-label-primary"><i class='bx bx-calendar'></i></span>
-            </div>
-            <div class="d-flex w-100 flex-wrap align-items-center justify-content-between gap-2">
-              <div class="me-2">
-                <h6 class="mb-0">C0031</h6>
-                <small class="text-muted d-block">LC009 - Dept. Maintenance</small>
+          @foreach (var booking in Model.LatestBookings)
+          {
+            var badgeClass = booking.Status switch
+            {
+              BookingStatus.Done => "bg-label-success",
+              BookingStatus.Cancelled => "bg-label-danger",
+              BookingStatus.PendingApproval => "bg-label-warning",
+              BookingStatus.ManagerApproved or BookingStatus.PICApproved => "bg-label-primary",
+              _ => "bg-label-secondary"
+            };
+            <li class="d-flex mb-4">
+              <div class="avatar flex-shrink-0 me-3">
+                <span class="avatar-initial rounded bg-label-primary"><i class='bx bx-calendar-event'></i></span>
               </div>
-              <div>
-                <span class="badge bg-label-primary">Approved</span>
+              <div class="d-flex w-100 flex-wrap align-items-center justify-content-between gap-2">
+                <div class="me-2">
+                  <h6 class="mb-0"><a
+                      href="@Url.Action("Details", "Booking", new { documentNumber = booking.DocumentNumber })"
+                      class="text-body">@booking.BookingNumber</a></h6>
+                  <small class="text-muted">@booking.Department</small>
+                </div>
+                <div class="user-progress">
+                  <span class="badge @badgeClass">@booking.Status</span>
+                </div>
               </div>
-            </div>
-          </li>
-          <li class="d-flex align-items-center mb-4 pb-1">
-            <div class="avatar flex-shrink-0 me-3">
-              <span class="avatar-initial rounded bg-label-primary"><i class='bx bx-calendar'></i></span>
-            </div>
-            <div class="d-flex w-100 flex-wrap align-items-center justify-content-between gap-2">
-              <div class="me-2">
-                <h6 class="mb-0">C0030</h6>
-                <small class="text-muted d-block">LC012 - Dept. Engineering</small>
-              </div>
-              <div>
-                <span class="badge bg-label-warning">Pending</span>
-              </div>
-            </div>
-          </li>
-          <li class="d-flex align-items-center mb-4 pb-1">
-            <div class="avatar flex-shrink-0 me-3">
-              <span class="avatar-initial rounded bg-label-primary"><i class='bx bx-calendar'></i></span>
-            </div>
-            <div class="d-flex w-100 flex-wrap align-items-center justify-content-between gap-2">
-              <div class="me-2">
-                <h6 class="mb-0">C0029</h6>
-                <small class="text-muted d-block">LC011 - Dept. Procurement</small>
-              </div>
-              <div>
-                <span class="badge bg-label-success">Done</span>
-              </div>
-            </div>
-          </li>
-          <li class="d-flex align-items-center mb-4 pb-1">
-            <div class="avatar flex-shrink-0 me-3">
-              <span class="avatar-initial rounded bg-label-primary"><i class='bx bx-calendar'></i></span>
-            </div>
-            <div class="d-flex w-100 flex-wrap align-items-center justify-content-between gap-2">
-              <div class="me-2">
-                <h6 class="mb-0">C0028</h6>
-                <small class="text-muted d-block">LC008 - Dept. Construction</small>
-              </div>
-              <div>
-                <span class="badge bg-label-success">Done</span>
-              </div>
-            </div>
-          </li>
-          <li class="d-flex align-items-center">
-            <div class="avatar flex-shrink-0 me-3">
-              <span class="avatar-initial rounded bg-label-primary"><i class='bx bx-calendar'></i></span>
-            </div>
-            <div class="d-flex w-100 flex-wrap align-items-center justify-content-between gap-2">
-              <div class="me-2">
-                <h6 class="mb-0">C0027</h6>
-                <small class="text-muted d-block">LC010 - Dept. Production</small>
-              </div>
-              <div>
-                <span class="badge bg-label-success">Done</span>
-              </div>
-            </div>
-          </li>
+            </li>
+          }
         </ul>
       </div>
     </div>
@@ -446,78 +411,26 @@
           </div>
         </div>
       </div>
-      <div class="card-body pt-4">
+      <div class="card-body">
         <ul class="p-0 m-0">
-          <li class="d-flex align-items-center mb-4">
-            <div class="avatar flex-shrink-0 me-3">
-              <img src="~/img/icons/unicons/chart.png" alt="Breakdown" class="rounded">
-            </div>
-            <div class="d-flex w-100 flex-wrap align-items-center justify-content-between gap-2">
-              <div class="me-2">
-                <small class="text-muted d-block">LC011</small>
-                <h6 class="fw-normal mb-0">Hydraulic Failure</h6>
+          @foreach (var item in Model.BreakdownHistories)
+          {
+            string reasonsDisplay = item.Reasons.Length > 25 ? item.Reasons.Substring(0, 22) + "..." : item.Reasons;
+            <li class="d-flex mb-4">
+              <div class="avatar flex-shrink-0 me-3">
+                <span class="avatar-initial rounded bg-label-danger"><i class='bx bx-wrench'></i></span>
               </div>
-              <div class="user-progress d-flex align-items-center gap-2">
-                <h6 class="fw-normal mb-0">4h 12m</h6>
+              <div class="d-flex w-100 flex-wrap align-items-center justify-content-between gap-2">
+                <div class="me-2">
+                  <h6 class="mb-0">@item.CraneCode</h6>
+                  <small class="text-muted">@reasonsDisplay</small>
+                </div>
+                <div class="user-progress">
+                  <small class="text-muted">@item.DurationText</small>
+                </div>
               </div>
-            </div>
-          </li>
-          <li class="d-flex align-items-center mb-4">
-            <div class="avatar flex-shrink-0 me-3">
-              <img src="~/img/icons/unicons/chart.png" alt="Breakdown" class="rounded">
-            </div>
-            <div class="d-flex w-100 flex-wrap align-items-center justify-content-between gap-2">
-              <div class="me-2">
-                <small class="text-muted d-block">LC009</small>
-                <h6 class="fw-normal mb-0">Electrical Failure</h6>
-              </div>
-              <div class="user-progress d-flex align-items-center gap-2">
-                <h6 class="fw-normal mb-0">2h 30m</h6>
-              </div>
-            </div>
-          </li>
-          <li class="d-flex align-items-center mb-4">
-            <div class="avatar flex-shrink-0 me-3">
-              <img src="~/img/icons/unicons/chart.png" alt="Breakdown" class="rounded">
-            </div>
-            <div class="d-flex w-100 flex-wrap align-items-center justify-content-between gap-2">
-              <div class="me-2">
-                <small class="text-muted d-block">LC008</small>
-                <h6 class="fw-normal mb-0">Mechanical Failure</h6>
-              </div>
-              <div class="user-progress d-flex align-items-center gap-2">
-                <h6 class="fw-normal mb-0">6h 45m</h6>
-              </div>
-            </div>
-          </li>
-          <li class="d-flex align-items-center mb-4">
-            <div class="avatar flex-shrink-0 me-3">
-              <img src="~/img/icons/unicons/chart.png" alt="Breakdown" class="rounded">
-            </div>
-            <div class="d-flex w-100 flex-wrap align-items-center justify-content-between gap-2">
-              <div class="me-2">
-                <small class="text-muted d-block">LC013</small>
-                <h6 class="fw-normal mb-0">Control System Failure</h6>
-              </div>
-              <div class="user-progress d-flex align-items-center gap-2">
-                <h6 class="fw-normal mb-0">3h 15m</h6>
-              </div>
-            </div>
-          </li>
-          <li class="d-flex align-items-center">
-            <div class="avatar flex-shrink-0 me-3">
-              <img src="~/img/icons/unicons/chart.png" alt="Breakdown" class="rounded">
-            </div>
-            <div class="d-flex w-100 flex-wrap align-items-center justify-content-between gap-2">
-              <div class="me-2">
-                <small class="text-muted d-block">LC010</small>
-                <h6 class="fw-normal mb-0">Hydraulic Failure</h6>
-              </div>
-              <div class="user-progress d-flex align-items-center gap-2">
-                <h6 class="fw-normal mb-0">5h 10m</h6>
-              </div>
-            </div>
-          </li>
+            </li>
+          }
         </ul>
       </div>
     </div>
