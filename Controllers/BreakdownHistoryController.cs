@@ -24,6 +24,19 @@ namespace AspnetCoreMvcFull.Controllers
       if (craneId.HasValue)
       {
         breakdowns = breakdowns.Where(b => b.CraneId == craneId.Value).ToList();
+
+        // Fetch crane code for header display
+        try
+        {
+          var crane = await _craneService.GetCraneByIdAsync(craneId.Value);
+          ViewData["CraneCode"] = crane.Code;
+        }
+        catch
+        {
+          // Fallback to ID if crane not found
+          ViewData["CraneCode"] = null;
+        }
+
         ViewData["CraneId"] = craneId.Value;
       }
 

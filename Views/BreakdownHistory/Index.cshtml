@@ -10,9 +10,19 @@
 <div class="card">
   <div class="card-header d-flex justify-content-between align-items-center">
     <h5 class="mb-0">
+      @{
+        string? craneCode = ViewData["CraneCode"] as string;
+      }
       @if (craneId.HasValue)
       {
-        <span>Breakdown History for Crane ID: @craneId</span>
+        if (!string.IsNullOrEmpty(craneCode))
+        {
+          <span>Breakdown History for Crane @craneCode</span>
+        }
+        else
+        {
+          <span>Breakdown History for Crane ID: @craneId</span>
+        }
       }
       else
       {
@@ -48,12 +58,30 @@
       <tbody class="table-border-bottom-0">
         @if (Model.Any())
         {
+          @functions {
+            private string FormatTimespan(TimeSpan ts)
+            {
+              var parts = new List<string>();
+              if (ts.Days > 0)
+              {
+                parts.Add($"{ts.Days} Day{(ts.Days == 1 ? "" : "s")}");
+              }
+              if (ts.Hours > 0)
+              {
+                parts.Add($"{ts.Hours} Hour{(ts.Hours == 1 ? "" : "s")}");
+              }
+              // Always show minutes, even 0
+              parts.Add($"{ts.Minutes} Minute{(ts.Minutes == 1 ? "" : "s")}");
+              return string.Join(" ", parts);
+            }
+          }
+
           @foreach (var breakdown in Model)
           {
-            var planned = (breakdown.UrgentEndTime - breakdown.UrgentStartTime).ToString(@"d\.hh\:mm");
+            var planned = FormatTimespan(breakdown.UrgentEndTime - breakdown.UrgentStartTime);
             var actual = breakdown.ActualUrgentEndTime.HasValue
-            ? (breakdown.ActualUrgentEndTime.Value - breakdown.UrgentStartTime).ToString(@"d\.hh\:mm")
-            : "Not completed";
+              ? FormatTimespan(breakdown.ActualUrgentEndTime.Value - breakdown.UrgentStartTime)
+              : "Not completed";
 
             <tr>
               <td>
@@ -75,8 +103,8 @@
                 }
               </td>
               <td>
-                <span class="badge bg-primary">Planned: @planned</span><br />
-                <span class="badge bg-info">Actual: @actual</span>
+                <span class="badge bg-primary d-block mb-1">Planned: @planned</span>
+                <span class="badge bg-info d-block">Actual: @actual</span>
               </td>
               <td>@breakdown.Reasons</td>
             </tr>

@@ -15,6 +15,9 @@
   // Get the previous and next week dates
   DateTime prevWeekStart = Model.StartDate.AddDays(-7);
   DateTime nextWeekStart = Model.StartDate.AddDays(7);
+
+  // Color palette for up to 5 shifts
+  var shiftColors = new[] { "primary", "success", "warning", "danger", "info" };
 }
 
 <div class="card">
@@ -55,10 +58,12 @@
     <div class="row mb-4">
       <div class="col-12">
         <div class="d-flex flex-wrap gap-3">
-          @foreach (var shift in Model.ShiftDefinitions)
+          @for (int i = 0; i < Model.ShiftDefinitions.Count; i++)
           {
+            var shift = Model.ShiftDefinitions[i];
+            var color = shiftColors[i % shiftColors.Length];
             <div class="d-flex align-items-center">
-              <span class="badge bg-primary me-1">&nbsp;</span>
+              <span class="badge bg-@color me-1">&nbsp;</span>
               <small>@shift.Name (@shift.FormattedStartTime - @shift.FormattedEndTime)</small>
             </div>
           }
