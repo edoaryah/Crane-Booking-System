@@ -8,6 +8,18 @@
   var userDepartment = User.FindFirst("department")?.Value ?? "";
 }
 
+@section PageStyles {
+  <style>
+    .shift-status {
+      font-size: 0.75rem;
+      margin-top: 2px;
+    }
+    .shift-status.available { color: green; }
+    .shift-status.booked { color: red; }
+    .shift-status.maintenance { color: orange; }
+  </style>
+}
+
 @if (TempData["MaintenanceSuccessMessage"] != null)
 {
   <div class="alert alert-success alert-dismissible" role="alert">
@@ -127,6 +139,7 @@
     document.addEventListener('DOMContentLoaded', function () {
       const startDateInput = document.getElementById('startDate');
       const endDateInput = document.getElementById('endDate');
+      const craneIdSelect = document.getElementById('craneId');
       const shiftSelectionTable = document.getElementById('shiftSelectionTable');
       const dateRangeMessage = document.getElementById('dateRangeMessage');
       const resetFormBtn = document.getElementById('resetFormBtn');
@@ -185,17 +198,39 @@
           </text>
       }
 
-          // Set default dates (today and tomorrow)
+          // Set default dates (today)
         const today = new Date();
       startDateInput.value = formatDateForInput(today);
-      endDateInput.value = formatDateForInput(new Date(today.getTime() + 24 * 60 * 60 * 1000)); // tomorrow
+      endDateInput.value = formatDateForInput(today);
+
+      // Auto-select first crane option
+      if (craneIdSelect && craneIdSelect.options.length > 1) {
+        craneIdSelect.selectedIndex = 1;
+      }
 
       // Initialize shift definitions
       const shiftDefinitions = @Html.Raw(Json.Serialize(Model.ShiftDefinitions));
+      let bookedShifts = [];
+      let maintenanceShifts = [];
 
-      // Event listeners for date changes
+      function isShiftBooked(craneId, date, shiftId) {
+        if (!bookedShifts || !bookedShifts.length || !craneId) return false;
+        const dateStr = new Date(date).toISOString().split('T')[0];
+        return bookedShifts.some(item => item.craneId === parseInt(craneId) && item.date.split('T')[0] === dateStr && item.shiftDefinitionId === shiftId);
+      }
+
+      function isShiftMaintenance(craneId, date, shiftId) {
+        if (!maintenanceShifts || !maintenanceShifts.length || !craneId) return false;
+        const dateStr = new Date(date).toISOString().split('T')[0];
+        return maintenanceShifts.some(item => item.craneId === parseInt(craneId) && item.date.split('T')[0] === dateStr && item.shiftDefinitionId === shiftId);
+      }
+
+      // Event listeners for date & crane changes
       startDateInput.addEventListener('change', updateShiftSelectionTable);
       endDateInput.addEventListener('change', updateShiftSelectionTable);
+      if (craneIdSelect) {
+        craneIdSelect.addEventListener('change', updateShiftSelectionTable);
+      }
 
       // Reset form event handler
       resetFormBtn.addEventListener('click', resetForm);
@@ -215,7 +250,7 @@
       }
 
       // Function to update the shift selection table
-      function updateShiftSelectionTable() {
+      async function updateShiftSelectionTable() {
         const startDate = new Date(startDateInput.value);
         const endDate = new Date(endDateInput.value);
 
@@ -230,6 +265,19 @@
           dateRangeMessage.textContent = 'Start date must be before or equal to end date';
           shiftSelectionTable.style.display = 'none';
           return;
+        }
+
+        // Fetch shift availability data
+        const craneIdSelect = document.getElementById('craneId');
+        const craneId = craneIdSelect ? craneIdSelect.value : '';
+        try {
+          const bookedResponse = await fetch(`/Booking/GetBookedShifts?craneId=${craneId}&startDate=${startDateInput.value}&endDate=${endDateInput.value}`);
+          bookedShifts = bookedResponse.ok ? await bookedResponse.json() : [];
+          const maintenanceResponse = await fetch(`/Booking/GetMaintenanceShifts?craneId=${craneId}&startDate=${startDateInput.value}&endDate=${endDateInput.value}`);
+          maintenanceShifts = maintenanceResponse.ok ? await maintenanceResponse.json() : [];
+        } catch (error) {
+          bookedShifts = [];
+          maintenanceShifts = [];
         }
 
         // Create date range
@@ -280,13 +328,31 @@
 
           // Create checkboxes for each shift
           shiftDefinitions.forEach(shift => {
+            const isBooked = isShiftBooked(craneId, dateString, shift.id);
+            const isMaintenance = isShiftMaintenance(craneId, dateString, shift.id);
+
+            let statusText = 'Available';
+            let statusClass = 'available';
+            let disabledAttr = '';
+
+            if (isBooked) {
+              statusText = 'Booked';
+              statusClass = 'booked';
+              disabledAttr = 'disabled';
+            } else if (isMaintenance) {
+              statusText = 'Maintenance';
+              statusClass = 'maintenance';
+              disabledAttr = 'disabled';
+            }
+
             tableHtml += `
                   <div class="col-md-4 mb-2">
-                    <div class="form-check">
+                    <div class="form-check d-flex justify-content-center flex-column align-items-center">
                       <input class="form-check-input" type="checkbox"
                         id="shift_${index}_${shift.id}"
                         name="ShiftSelections[${index}].SelectedShiftIds"
-                        value="${shift.id}">
+                        value="${shift.id}" ${disabledAttr}>
+                      <span class="shift-status ${statusClass}">${statusText}</span>
                       <label class="form-check-label" for="shift_${index}_${shift.id}">
                         ${shift.name} (${shift.formattedStartTime} - ${shift.formattedEndTime})
                       </label>
@@ -317,8 +383,14 @@
         maintenanceForm.reset();
 
         // Reset date inputs to default values
-        startDateInput.value = formatDateForInput(new Date());
-        endDateInput.value = formatDateForInput(new Date(new Date().getTime() + 24 * 60 * 60 * 1000));
+        const now = new Date();
+        startDateInput.value = formatDateForInput(now);
+        endDateInput.value = formatDateForInput(now);
+
+        // Reset crane selection to first option
+        if (craneIdSelect && craneIdSelect.options.length > 1) {
+          craneIdSelect.selectedIndex = 1;
+        }
 
         // Update shift selection table
         updateShiftSelectionTable();

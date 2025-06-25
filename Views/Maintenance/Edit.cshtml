@@ -1,4 +1,13 @@
 @model AspnetCoreMvcFull.ViewModels.MaintenanceManagement.MaintenanceScheduleUpdateViewModel
+@section PageStyles {
+  <style>
+    .shift-status {font-size:0.75rem;margin-top:2px;}
+    .shift-status.available{color:green;}
+    .shift-status.booked{color:red;}
+    .shift-status.maintenance{color:orange;}
+  </style>
+}
+
 @{
   ViewData["Title"] = "Edit Maintenance Schedule";
   Layout = "_ContentNavbarLayout";
@@ -110,12 +119,39 @@
     document.addEventListener('DOMContentLoaded', function () {
       const startDateInput = document.getElementById('startDate');
       const endDateInput = document.getElementById('endDate');
+      const craneIdSelect = document.getElementById('craneId');
       const shiftSelectionTable = document.getElementById('shiftSelectionTable');
       const dateRangeMessage = document.getElementById('dateRangeMessage');
       const maintenanceForm = document.getElementById('maintenanceForm');
 
       // Initialize shift definitions
       const shiftDefinitions = @Html.Raw(Json.Serialize(ViewBag.ShiftDefinitions));
+      const currentScheduleId = @scheduleId;
+      let bookedShifts = [];
+      let maintenanceShifts = [];
+
+      function isShiftBooked(craneId, date, shiftId) {
+        if (!bookedShifts.length || !craneId) return false;
+        const dateStr = dateKeyFromDate(new Date(date));
+        return bookedShifts.some(b => b.craneId === parseInt(craneId) && b.date.split('T')[0] === dateStr && b.shiftDefinitionId === shiftId);
+      }
+      function isShiftMaintenance(craneId, date, shiftId) {
+        if (!maintenanceShifts.length || !craneId) return false;
+        const dateStr = dateKeyFromDate(new Date(date));
+        // if this shift is part of current schedule selections, treat as not maintenance
+        const selectedForDate = existingDates[dateStr] || [];
+        if (selectedForDate.includes(Number(shiftId))) return false;
+        return maintenanceShifts.some(m => m.craneId === parseInt(craneId) && m.date.split('T')[0] === dateStr && m.shiftDefinitionId === shiftId);
+      }
+
+      // Helper to get YYYY-MM-DD string consistently (no timezone shift)
+      function dateKeyFromString(dateStr) {
+        // assumes dateStr like '2025-06-25' or '2025-06-25T00:00:00+07:00'
+        return dateStr.split('T')[0];
+      }
+      function dateKeyFromDate(dateObj) {
+        return `${dateObj.getFullYear()}-${(dateObj.getMonth() + 1).toString().padStart(2, '0')}-${dateObj.getDate().toString().padStart(2, '0')}`;
+      }
 
       // Initialize existing shift selections
       const existingSelections = @Html.Raw(Json.Serialize(Model.ShiftSelections));
@@ -123,13 +159,17 @@
       // Convert selection dates to JS Date objects for comparison
       const existingDates = {};
       existingSelections.forEach(selection => {
-        const dateKey = new Date(selection.date).toISOString().split('T')[0];
-        existingDates[dateKey] = selection.selectedShiftIds;
+        const dateKey = dateKeyFromString(selection.date);
+        // Normalize shift IDs to numbers for reliable comparison
+        existingDates[dateKey] = (selection.selectedShiftIds || []).map(id => Number(id));
       });
 
-      // Event listeners for date changes
+      // Event listeners for date & crane changes
       startDateInput.addEventListener('change', updateShiftSelectionTable);
       endDateInput.addEventListener('change', updateShiftSelectionTable);
+      if (craneIdSelect) {
+        craneIdSelect.addEventListener('change', updateShiftSelectionTable);
+      }
 
       // Form submission handler
       maintenanceForm.addEventListener('submit', validateForm);
@@ -138,9 +178,18 @@
       updateShiftSelectionTable();
 
       // Function to update the shift selection table
-      function updateShiftSelectionTable() {
+      async function updateShiftSelectionTable() {
         const startDate = new Date(startDateInput.value);
         const endDate = new Date(endDateInput.value);
+
+        // Fetch latest availability
+        const craneId = craneIdSelect ? craneIdSelect.value : '';
+        try {
+          const bookedRes = await fetch(`/Booking/GetBookedShifts?craneId=${craneId}&startDate=${startDateInput.value}&endDate=${endDateInput.value}`);
+          bookedShifts = bookedRes.ok ? await bookedRes.json() : [];
+          const maintRes = await fetch(`/Booking/GetMaintenanceShifts?craneId=${craneId}&startDate=${startDateInput.value}&endDate=${endDateInput.value}`);
+          maintenanceShifts = maintRes.ok ? (await maintRes.json()).filter(m => (m.id ?? m.Id) !== currentScheduleId) : [];
+        } catch { bookedShifts = []; maintenanceShifts = []; }
 
         // Validate date range
         if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
@@ -191,7 +240,7 @@
             day: 'numeric'
           });
           const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'long' });
-          const dateString = formatDateForInput(date);
+          const dateString = dateKeyFromDate(date);
 
           // Check if we have existing selections for this date
           const dateKey = dateString;
@@ -217,7 +266,10 @@
                                                 id="shift_${index}_${shift.id}"
                                                 name="ShiftSelections[${index}].SelectedShiftIds"
                                                 value="${shift.id}"
-                                                ${isChecked ? 'checked' : ''}>
+                                                ${isChecked ? 'checked' : ''} ${((isShiftBooked(craneIdSelect.value, dateString, shift.id) || isShiftMaintenance(craneIdSelect.value, dateString, shift.id)) && !isChecked) ? 'disabled' : ''}>
+                                            <span class="shift-status ${isShiftBooked(craneIdSelect.value, dateString, shift.id) ? 'booked' : (isShiftMaintenance(craneIdSelect.value, dateString, shift.id) ? 'maintenance' : 'available')}">
+                                                ${isShiftBooked(craneIdSelect.value, dateString, shift.id) ? 'Booked' : (isShiftMaintenance(craneIdSelect.value, dateString, shift.id) ? 'Maintenance' : 'Available')}
+                                              </span>
                                             <label class="form-check-label" for="shift_${index}_${shift.id}">
                                                 ${shift.name} (${shift.formattedStartTime} - ${shift.formattedEndTime})
                                             </label>

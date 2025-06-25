@@ -481,25 +481,23 @@ var MaintenanceHistory = (function () {
    * Create and add export buttons
    */
   function setupExportButtons() {
-    // Clear previous buttons
+    // Hapus tombol yang ada untuk memastikan tidak ada duplikat
     $('#' + config.exportContainerId).empty();
 
-    // Create button group container
-    var buttonGroup = $('<div class="btn-group" role="group"></div>');
-
-    // Create buttons dengan improved styling (hanya Excel dan PDF)
+    // Buat tombol Excel dengan gaya yang konsisten
     var excelBtn = $(
-      '<button type="button" class="btn btn-sm btn-success">' + '<i class="bx bx-file me-1"></i> Excel</button>'
+      '<button type="button" class="btn btn-outline-secondary">' +
+        '<i class="bx bxs-spreadsheet me-1"></i> Excel</button>'
     );
+
+    // Buat tombol PDF dengan gaya yang konsisten
     var pdfBtn = $(
-      '<button type="button" class="btn btn-sm btn-danger">' + '<i class="bx bx-file me-1"></i> PDF</button>'
+      '<button type="button" class="btn btn-outline-secondary">' +
+        '<i class="bx bxs-file-pdf me-1"></i> PDF</button>'
     );
 
-    // Add to button group
-    buttonGroup.append(excelBtn).append(pdfBtn);
-
-    // Add to container
-    $('#' + config.exportContainerId).append(buttonGroup);
+    // Tambahkan tombol baru ke dalam kontainer
+    $('#' + config.exportContainerId).append(excelBtn).append(pdfBtn);
 
     // Add click handlers with improved error handling
     excelBtn.on('click', function (e) {
@@ -531,15 +529,11 @@ var MaintenanceHistory = (function () {
       }
     });
 
-    // Enhanced CSS for buttons
+    // CSS penting untuk menyembunyikan tombol asli DataTables dan mengatur border
     if (!$('#datatables-export-style').length) {
       $(
         '<style id="datatables-export-style">' +
           '.hidden-button, .dt-buttons { display: none !important; }' +
-          '.btn-group .btn { border-radius: 0; }' +
-          '.btn-group .btn:first-child { border-top-left-radius: 0.375rem; border-bottom-left-radius: 0.375rem; }' +
-          '.btn-group .btn:last-child { border-top-right-radius: 0.375rem; border-bottom-right-radius: 0.375rem; }' +
-          '.btn-group .btn:hover { transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }' +
           '#maintenanceHistoryTable thead tr:first-child th { border-top: 1px solid #B2B2B2 !important; }' +
           '#maintenanceHistoryTable tbody tr:last-child td { border-bottom: none !important; }' +
           '</style>'
