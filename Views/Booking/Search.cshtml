@@ -87,13 +87,13 @@
           </tbody>
         </table>
       </div>
-      <div class="card-footer d-flex justify-content-between align-items-center py-3">
+      <div class="card-footer d-flex justify-content-between align-items-center py-5 px-0 pb-0">
         <div>
           @(((Model.PagedBookings.PageNumber - 1) * Model.PagedBookings.PageSize) + 1) to
           @(Math.Min(Model.PagedBookings.PageNumber * Model.PagedBookings.PageSize, Model.PagedBookings.TotalCount))
           of @Model.PagedBookings.TotalCount entries
         </div>
-        <div class="btn-group">
+        @* <div class="btn-group m-0">
           <a class="btn btn-outline-primary @(Model.PagedBookings.HasPreviousPage ? "" : "disabled")"
             href="@Url.Action("Search", new { searchTerm = Model.SearchTerm, pageNumber = Model.PagedBookings.PageNumber - 1 })"><i
               class="bx bx-chevron-left"></i></a>
@@ -105,8 +105,34 @@
           <a class="btn btn-outline-primary @(Model.PagedBookings.HasNextPage ? "" : "disabled")"
             href="@Url.Action("Search", new { searchTerm = Model.SearchTerm, pageNumber = Model.PagedBookings.PageNumber + 1 })"><i
               class="bx bx-chevron-right"></i></a>
+        </div> *@
+        <div class="pagination-container text-center mx-auto"></div>
+          <div class="btn-group pagination-group">
+          <a href="@Url.Action("Search", new { searchTerm = Model.SearchTerm, pageNumber = Model.PagedBookings.PageNumber - 1 })" class="btn btn-icon btn-outline-primary @(Model.PagedBookings.HasPreviousPage ? "" : "disabled")" aria-label="Previous" @(Model.PagedBookings.HasPreviousPage ? "" : "aria-disabled=\"true\"")>
+              <i class="tf-icon bx bx-chevron-left"></i>
+            </a>
+          @{
+              int startPage = Math.Max(1, Model.PagedBookings.PageNumber - 2);
+              int endPage = Math.Min(Model.PagedBookings.PageCount, startPage + 4);
+              if (endPage - startPage < 4 && endPage < Model.PagedBookings.PageCount)
+              {
+                  endPage = Math.Min(Model.PagedBookings.PageCount, endPage + (4 - (endPage - startPage)));
+              }
+              if (endPage - startPage < 4 && startPage > 1)
+              {
+                  startPage = Math.Max(1, startPage - (4 - (endPage - startPage)));
+              }
+            }
+
+            @for (int i = startPage; i <= endPage; i++)
+            {
+              <a href="@Url.Action("Search", new { searchTerm = Model.SearchTerm, pageNumber = i })" class="btn @(Model.PagedBookings.PageNumber == i ? "btn-primary" : "btn-outline-primary")" data-page="@i">@i</a>
+            }
+          <a href="@Url.Action("Search", new { searchTerm = Model.SearchTerm, pageNumber = Model.PagedBookings.PageNumber + 1 })" class="btn btn-icon btn-outline-primary @(Model.PagedBookings.HasNextPage ? "" : "disabled")" aria-label="Next" @(Model.PagedBookings.HasNextPage ? "" : "aria-disabled=\"true\"")>
+              <i class="tf-icon bx bx-chevron-right"></i>
+            </a>
+          </div>
         </div>
-      </div>
     }
 
   </div>
