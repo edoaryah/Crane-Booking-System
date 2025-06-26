@@ -89,7 +89,7 @@
                                 @if (Model.Status == AspnetCoreMvcFull.Models.CraneStatus.Maintenance)
                                 {
                                     <div class="alert alert-danger">
-                                        <h5 class="alert-heading mb-2">Crane is currently under maintenance</h5>
+                                        <h5 class="alert-heading my-0">Crane is currently under maintenance</h5>
                                         @if (Model.Breakdowns.Any())
                                         {
                                             var latestBreakdown = Model.Breakdowns.First();
@@ -104,7 +104,7 @@
                                 else
                                 {
                                     <div class="alert alert-success">
-                                        <h5 class="alert-heading mb-2">Crane is available for booking</h5>
+                                        <h5 class="alert-heading my-0">Crane is available for booking</h5>
                                     </div>
                                 }
                             </div>
