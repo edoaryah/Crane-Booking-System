@@ -23,11 +23,6 @@
   align-items: center;
 }
 
-/* Action buttons */
-.action-buttons-cell {
-  cursor: default;
-}
-
 .action-buttons {
   display: flex;
   justify-content: flex-start;
