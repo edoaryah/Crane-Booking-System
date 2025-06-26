@@ -214,7 +214,12 @@ namespace AspnetCoreMvcFull.Services.Dashboard
           break;
         case "by_month":
           int targetMonth = month ?? now.Month;
-          int year = now.Year; // Selalu tahun ini
+          int year = now.Year;
+          // Jika bulan yang dipilih lebih besar dari bulan sekarang, asumsi data yang diminta adalah tahun sebelumnya
+          if (targetMonth > now.Month)
+          {
+            year -= 1;
+          }
           startDate = new DateTime(year, targetMonth, 1);
           endDate = startDate.AddMonths(1).AddDays(-1);
           break;

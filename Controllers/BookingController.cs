@@ -6,7 +6,7 @@ using AspnetCoreMvcFull.Services.Role;
 using AspnetCoreMvcFull.ViewModels.BookingManagement;
 using AspnetCoreMvcFull.Models;
 using Microsoft.Extensions.Logging;
-using System.Security.Claims;
+using System.Linq;
 
 namespace AspnetCoreMvcFull.Controllers
 {
@@ -317,20 +317,20 @@ namespace AspnetCoreMvcFull.Controllers
         if (ModelState.IsValid)
         {
           // Handle image uploads
-      var imagePaths = new List<string>();
-      if (viewModel.Images != null && viewModel.Images.Count > 0)
-      {
-        foreach (var image in viewModel.Images)
-        {
-          if (image.Length > 0)
+          var imagePaths = new List<string>();
+          if (viewModel.Images != null && viewModel.Images.Count > 0)
           {
-            var savedPath = await _fileStorageService.SaveFileAsync(image, "booking-images");
-            imagePaths.Add(savedPath);
+            foreach (var image in viewModel.Images)
+            {
+              if (image.Length > 0)
+              {
+                var savedPath = await _fileStorageService.SaveFileAsync(image, "booking-images");
+                imagePaths.Add(savedPath);
+              }
+            }
           }
-        }
-      }
 
-      var createdBooking = await _bookingService.CreateBookingAsync(viewModel, imagePaths);
+          var createdBooking = await _bookingService.CreateBookingAsync(viewModel, imagePaths);
 
           // Simpan data untuk ditampilkan di modal
           TempData["BookingFormSuccessMessage"] = "Booking berhasil dibuat";
@@ -560,8 +560,9 @@ namespace AspnetCoreMvcFull.Controllers
         // Ambil data kalender
         var calendarData = await _bookingService.GetCalendarViewAsync(start, end);
 
-        // Ambil data shift definitions dan kirim ke view via ViewBag
-        ViewBag.ShiftDefinitions = await _shiftService.GetAllShiftDefinitionsAsync();
+        // Ambil data shift definitions aktif dan kirim ke view via ViewBag
+        var allShifts = await _shiftService.GetAllShiftDefinitionsAsync();
+        ViewBag.ShiftDefinitions = allShifts.Where(s => s.IsActive).ToList();
 
         return View(calendarData);
       }

@@ -131,7 +131,7 @@ namespace AspnetCoreMvcFull.Services
         CostCode = booking.CostCode,
         PhoneNumber = booking.PhoneNumber,
         Description = booking.Description,
-      ImagePaths = booking.Images,
+        ImagePaths = booking.Images,
         CustomHazard = booking.CustomHazard,
 
         // Status approval
@@ -259,7 +259,9 @@ namespace AspnetCoreMvcFull.Services
           .Where(bs => bs.Date >= startDateLocal && bs.Date <= endDateLocal)
           // Filter hanya booking dengan status PICApproved (sedang aktif/berjalan)
           .Where(bs => bs.Booking != null &&
-                      bs.Booking.Status == BookingStatus.PICApproved)
+                      // bs.Booking.Status == BookingStatus.PICApproved)
+                      bs.Booking.Status != BookingStatus.Cancelled &&
+                      bs.Booking.Status != BookingStatus.Done)
           .ToListAsync();
 
       // Kelompokkan berdasarkan crane

@@ -113,13 +113,25 @@
                               var shiftsForBooking = booking.Shifts.Where(s => s.ShiftDefinitionId == shift.Id).ToList();
                               foreach (var bookingShift in shiftsForBooking)
                               {
+                                // Tentukan class berdasarkan status booking
+                                string statusClass = booking.Status switch
+                                {
+                                  AspnetCoreMvcFull.Models.BookingStatus.PendingApproval => "status-pending",
+                                  AspnetCoreMvcFull.Models.BookingStatus.ManagerApproved => "status-mgr-approved",
+                                  AspnetCoreMvcFull.Models.BookingStatus.ManagerRejected => "status-rejected",
+                                  AspnetCoreMvcFull.Models.BookingStatus.PICApproved => "status-pic-approved",
+                                  AspnetCoreMvcFull.Models.BookingStatus.PICRejected => "status-rejected",
+                                  _ => "status-default"
+                                };
+
                                 string deptClass = "dept-default";
                                 if (booking.Department.ToLower().Contains("stores") ||
                                 booking.Department.ToLower().Contains("inventory"))
                                 {
                                   deptClass = "dept-stores";
                                 }
-                                <div class="booking-card @deptClass" data-booking-id="@booking.Id"
+
+                                <div class="booking-card @statusClass @deptClass" data-booking-id="@booking.Id"
                                   data-booking-number="@booking.BookingNumber" data-department="@booking.Department"
                                   data-shift-name="@bookingShift.ShiftName" data-start-time="@bookingShift.StartTime"
                                   data-end-time="@bookingShift.EndTime">
@@ -311,6 +323,31 @@
       color: #8592a3;
     }
 
+    /* Status-based booking colors */
+    .booking-card.status-pending {
+      background-color: rgba(255, 193, 7, 0.1);
+      border-left: 5px solid #ffc107;
+      color: #ffc107;
+    }
+
+    .booking-card.status-mgr-approved {
+      background-color: rgba(3, 195, 236, 0.1);
+      border-left: 5px solid #03c3ec;
+      color: #03c3ec;
+    }
+
+    .booking-card.status-pic-approved {
+      background-color: rgba(113, 221, 55, 0.1);
+      border-left: 5px solid #71dd37;
+      color: #71dd37;
+    }
+
+    .booking-card.status-rejected {
+      background-color: rgba(255, 62, 29, 0.1);
+      border-left: 5px solid #ff3e1d;
+      color: #ff3e1d;
+    }
+
     /* Maintenance Card Styles */
     .maintenance-card {
       background-color: rgba(255, 62, 29, 0.1);
@@ -411,13 +448,13 @@
           const endTime = this.dataset.endTime ? this.dataset.endTime.substring(0, 5) : ''; // Format HH:MM
 
           tooltip.innerHTML = `
-                              <div class="calendar-tooltip-title">${bookingNumber}</div>
-                              <div class="calendar-tooltip-content">
-                                  <div>Department: ${department}</div>
-                                  <div>Shift: ${shiftName}</div>
-                                  <div>Time: ${startTime} - ${endTime}</div>
-                              </div>
-                          `;
+                                <div class="calendar-tooltip-title">${bookingNumber}</div>
+                                <div class="calendar-tooltip-content">
+                                    <div>Department: ${department}</div>
+                                    <div>Shift: ${shiftName}</div>
+                                    <div>Time: ${startTime} - ${endTime}</div>
+                                </div>
+                            `;
 
           // Position tooltip near the cursor
           tooltip.style.left = (e.pageX + 10) + 'px';
@@ -439,13 +476,13 @@
           const endTime = this.dataset.endTime ? this.dataset.endTime.substring(0, 5) : ''; // Format HH:MM
 
           tooltip.innerHTML = `
-                              <div class="calendar-tooltip-title">Maintenance</div>
-                              <div class="calendar-tooltip-content">
-                                  <div>Title: ${title}</div>
-                                  <div>Shift: ${shiftName}</div>
-                                  <div>Time: ${startTime} - ${endTime}</div>
-                              </div>
-                          `;
+                                <div class="calendar-tooltip-title">Maintenance</div>
+                                <div class="calendar-tooltip-content">
+                                    <div>Title: ${title}</div>
+                                    <div>Shift: ${shiftName}</div>
+                                    <div>Time: ${startTime} - ${endTime}</div>
+                                </div>
+                            `;
 
           // Position tooltip near the cursor
           tooltip.style.left = (e.pageX + 10) + 'px';
