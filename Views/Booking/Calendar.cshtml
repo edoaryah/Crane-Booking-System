@@ -4,6 +4,21 @@
   Layout = "_ContentNavbarLayout";
   bool isPic = ViewData["IsPicRole"] is bool pic && pic;
   bool isAdmin = ViewData["IsAdminRole"] is bool adm && adm;
+  var userRolesList = ViewData["UserRoles"] as IEnumerable<string> ?? Enumerable.Empty<string>();
+  // Define roles that should NOT see the New Booking button
+  string[] elevatedRoles = new[] { "pic", "admin", "manager", "operator", "msd" };
+  bool isRegularUser = !userRolesList.Any(r => elevatedRoles.Contains(r, StringComparer.OrdinalIgnoreCase));
+  // Fallback: derive from ViewData["UserRoles"] or User claims if flag not set
+  if (!isPic || !isAdmin)
+  {
+    if (ViewData["UserRoles"] is IEnumerable<string> roles)
+    {
+      if (!isPic) isPic = roles.Any(r => string.Equals(r, "pic", StringComparison.OrdinalIgnoreCase));
+      if (!isAdmin) isAdmin = roles.Any(r => string.Equals(r, "admin", StringComparison.OrdinalIgnoreCase));
+    }
+    if (!isPic) isPic = User.IsInRole("pic");
+    if (!isAdmin) isAdmin = User.IsInRole("admin");
+  }
 }
 
 <!-- Card Calendar -->
@@ -36,11 +51,14 @@
       <!--Column 2: Contains buttons -->
       <div class="d-flex flex-row justify-content-between align-items-center">
         <!--New Booking button -->
-        <div>
-          <a href="/Booking" class="btn btn-primary">
+        @if (isRegularUser)
+        {
+          <div>
+            <a href="/Booking" class="btn btn-primary">
             <i class="bx bx-plus me-1"></i> New Booking
           </a>
         </div>
+        }
 
         <!--Prev / Next buttons -->
         <div class="ms-2">
@@ -141,20 +159,37 @@
                                   deptClass = "dept-stores";
                                 }
 
-                                @* <div class="booking-card @statusClass @deptClass" data-booking-id="@booking.Id" *@
-                                <div class="booking-card @statusClass @deptClass @(isPic || isAdmin ? "clickable" : "")" data-document-number="@booking.DocumentNumber" @(isPic || isAdmin ? $"onclick=\"window.location='/Booking/Details/{booking.DocumentNumber}'\"" : "")
-                                  data-booking-number="@booking.BookingNumber" data-department="@booking.Department"
-                                  data-shift-name="@bookingShift.ShiftName" data-start-time="@bookingShift.StartTime"
-                                  data-end-time="@bookingShift.EndTime">
-                                  <div class="booking-card-content">
-                                    @* @booking.Department *@
-                                    @{
-                                       var displayDept = !string.IsNullOrEmpty(booking.Department) && booking.Department.Length > 18 ? booking.Department.Substring(0,17) + "..." : booking.Department;
-                                     }
-                                    <div class="booking-dept">@displayDept</div>
-                                    <div class="booking-name">@booking.Name</div>
+                                @if (isPic || isAdmin)
+                                {
+                                  <a href="/Booking/Details?documentNumber=@booking.DocumentNumber" class="booking-link">                                    <div class="booking-card @statusClass @deptClass clickable" data-document-number="@booking.DocumentNumber"
+                                      data-booking-number="@booking.BookingNumber" data-department="@booking.Department"
+                                      data-shift-name="@bookingShift.ShiftName" data-start-time="@bookingShift.StartTime"
+                                      data-end-time="@bookingShift.EndTime">
+                                      <div class="booking-card-content">
+                                        @{
+                                           var displayDept = !string.IsNullOrEmpty(booking.Department) && booking.Department.Length > 18 ? booking.Department.Substring(0,17) + "..." : booking.Department;
+                                         }
+                                        <div class="booking-dept">@displayDept</div>
+                                        <div class="booking-name">@booking.Name</div>
+                                      </div>
+                                    </div>
+                                  </a>
+                                }
+                                else
+                                {
+                                  <div class="booking-card @statusClass @deptClass" data-document-number="@booking.DocumentNumber"
+                                    data-booking-number="@booking.BookingNumber" data-department="@booking.Department"
+                                    data-shift-name="@bookingShift.ShiftName" data-start-time="@bookingShift.StartTime"
+                                    data-end-time="@bookingShift.EndTime">
+                                    <div class="booking-card-content">
+                                      @{
+                                         var displayDept = !string.IsNullOrEmpty(booking.Department) && booking.Department.Length > 18 ? booking.Department.Substring(0,17) + "..." : booking.Department;
+                                       }
+                                      <div class="booking-dept">@displayDept</div>
+                                      <div class="booking-name">@booking.Name</div>
+                                    </div>
                                   </div>
-                                </div>
+                                }
                               }
                             }
 
@@ -519,10 +554,25 @@
 
       // Setup tooltips untuk booking cards
       setupTooltips();
+
+      // Setup click navigation for authorized users
+      setupBookingCardClicks();
     });
 
     // Fungsi untuk mengatur tooltips
-    function setupTooltips() {
+    function setupBookingCardClicks() {
+        document.querySelectorAll('.booking-card.clickable').forEach(card => {
+          card.addEventListener('click', function () {
+            const docNum = this.dataset.documentNumber;
+            if (docNum) {
+              window.location = `/Booking/Details?documentNumber=${docNum}`;
+            }
+          });
+        });
+      }
+
+      // Fungsi untuk mengatur tooltips
+      function setupTooltips() {
       const tooltip = document.getElementById('calendar-tooltip');
 
       // Add event listeners to booking cards
