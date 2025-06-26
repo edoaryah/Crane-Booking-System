@@ -121,9 +121,6 @@
   top: 50%;
   transform: translateY(-50%);
   width: 100%;
-  /* display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical; */
   text-overflow: ellipsis;
   overflow: hidden;
 }
@@ -184,14 +181,6 @@
   background-color: #8592a3;
 }
 
-/* .booking-card .booking-dept {
-      font-weight: 600;
-    }
-
-    .booking-card .booking-name {
-      font-size: 12px;
-    } */
-
 .booking-card .booking-dept {
   font-weight: 600;
   white-space: nowrap;
@@ -240,9 +229,6 @@
 
 /* Maintenance Card Styles */
 .maintenance-card {
-  /* background-color: rgba(255, 62, 29, 0.1);
-      border-left: 5px solid #ff3e1d;
-      color: #ff3e1d; */
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -330,8 +316,8 @@
 }
 
 .btn-nav {
-  /* min-width: 44px;
-      min-height: 44px; */
+  min-width: 40px;
+  min-height: 40px;
   font-size: 1.25rem;
   padding: 0;
   display: flex;
@@ -348,6 +334,36 @@
 }
 
 .calendar-legend {
-  margin-top: 0.25rem; /* slightly increase spacing from date */
-  margin-bottom: 0; /* no extra gap below legend */
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
+  margin-bottom: 0;
+}
+
+.btn-new-booking {
+  white-space: nowrap;
+}
+@media (max-width: 991.98px) {
+  /* md and below */
+  .btn-new-booking {
+    font-size: 0.9rem;
+    padding: 0.5rem 1.25rem;
+  }
+}
+@media (max-width: 575.98px) {
+  /* xs */
+  .calendar-header-actions {
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+  }
+  .d-flex.flex-row.justify-content-between.align-items-center {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  .btn-new-booking {
+    width: 100%;
+  }
 }

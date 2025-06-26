@@ -41,28 +41,27 @@
           <!-- Legend -->
           <div class="calendar-legend mt-2 small">
             <span class="legend-item"><span class="legend-color status-pending"></span> Pending</span>
-            <span class="legend-item ms-3"><span class="legend-color status-mgr-approved"></span> Manager
-              Approved</span>
-            <span class="legend-item ms-3"><span class="legend-color status-rejected"></span> Rejected</span>
-            <span class="legend-item ms-3"><span class="legend-color status-pic-approved"></span> PIC Approved</span>
-            <span class="legend-item ms-3"><span class="legend-color maintenance"></span> Maintenance</span>
+            <span class="legend-item"><span class="legend-color status-mgr-approved"></span> Manager Approved</span>
+            <span class="legend-item"><span class="legend-color status-rejected"></span> Rejected</span>
+            <span class="legend-item"><span class="legend-color status-pic-approved"></span> PIC Approved</span>
+            <span class="legend-item"><span class="legend-color maintenance"></span> Maintenance</span>
           </div>
       </div>
 
       <!--Column 2: Contains buttons -->
-      <div class="d-flex flex-row justify-content-between align-items-center">
+      <div class="d-flex flex-row justify-content-between align-items-center calendar-header-actions">
         <!--New Booking button -->
         @if (isRegularUser)
         {
           <div>
-            <a href="/Booking" class="btn btn-primary">
+            <a href="/Booking" class="btn btn-primary btn-new-booking" style="margin-right: 10px;">
               <i class="bx bx-plus me-1"></i> New Booking
             </a>
           </div>
         }
 
         <!--Prev / Next buttons -->
-        <div class="ms-2">
+        <div>
           <div class="btn-group">
             <a asp-action="Calendar" asp-route-startDate="@startDate.AddDays(-7).ToString("yyyy-MM-dd")"
               class="btn btn-icon btn-outline-primary btn-nav @(startDate <= DateTime.Today ? "disabled" : "")">
@@ -289,13 +288,13 @@
           const endTime = this.dataset.endTime ? this.dataset.endTime.substring(0, 5) : ''; // Format HH:MM
 
           tooltip.innerHTML = `
-                                          <div class="calendar-tooltip-title">${bookingNumber}</div>
-                                          <div class="calendar-tooltip-content">
-                                              <div>Department: ${department}</div>
-                                              <div>Shift: ${shiftName}</div>
-                                              <div>Time: ${startTime} - ${endTime}</div>
-                                          </div>
-                                      `;
+                                            <div class="calendar-tooltip-title">${bookingNumber}</div>
+                                            <div class="calendar-tooltip-content">
+                                                <div>Department: ${department}</div>
+                                                <div>Shift: ${shiftName}</div>
+                                                <div>Time: ${startTime} - ${endTime}</div>
+                                            </div>
+                                        `;
 
           // Position tooltip near the cursor
           tooltip.style.left = (e.pageX + 10) + 'px';
@@ -317,13 +316,13 @@
           const endTime = this.dataset.endTime ? this.dataset.endTime.substring(0, 5) : ''; // Format HH:MM
 
           tooltip.innerHTML = `
-                                          <div class="calendar-tooltip-title">Maintenance</div>
-                                          <div class="calendar-tooltip-content">
-                                              <div>Title: ${title}</div>
-                                              <div>Shift: ${shiftName}</div>
-                                              <div>Time: ${startTime} - ${endTime}</div>
-                                          </div>
-                                      `;
+                                            <div class="calendar-tooltip-title">Maintenance</div>
+                                            <div class="calendar-tooltip-content">
+                                                <div>Title: ${title}</div>
+                                                <div>Shift: ${shiftName}</div>
+                                                <div>Time: ${startTime} - ${endTime}</div>
+                                            </div>
+                                        `;
 
           // Position tooltip near the cursor
           tooltip.style.left = (e.pageX + 10) + 'px';
