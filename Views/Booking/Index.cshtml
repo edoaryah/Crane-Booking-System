@@ -151,7 +151,8 @@
         </div>
       </div>
       <div class="card-body">
-        <form id="craneBookingForm" asp-controller="Booking" asp-action="Create" method="post" enctype="multipart/form-data">
+        <form id="craneBookingForm" asp-controller="Booking" asp-action="Create" method="post"
+          enctype="multipart/form-data">
           @Html.AntiForgeryToken()
 
           <input type="hidden" id="shiftDefinitionsData"
@@ -332,78 +333,78 @@
             </div>
           </div>
 
-            <!-- Replace the current hazards section with this code -->
-            <div class="row mb-3">
-              <div class="col-12 mb-6">
-                <label class="form-label required-label">Potential Hazards</label>
-                <div id="hazardsCardContainer" class="card">
-                  <div class="table-responsive">
-                    <div id="hazardsContainer" class="row">
-                      <!-- Hazards will be loaded dynamically -->
-                      @foreach (var hazard in Model.AvailableHazards)
-                      {
-                        <div class="col-md-4 mb-2">
-                          <div class="form-check">
-                            <input class="form-check-input hazard-checkbox" type="checkbox" name="hazardIds[]"
-                              id="hazard-@hazard.Id" value="@hazard.Id" />
-                            <label class="form-check-label" for="hazard-@hazard.Id">
-                              @hazard.Name
-                            </label>
-                          </div>
+          <!-- Replace the current hazards section with this code -->
+          <div class="row mb-3">
+            <div class="col-12 mb-6">
+              <label class="form-label required-label">Potential Hazards</label>
+              <div id="hazardsCardContainer" class="card">
+                <div class="table-responsive">
+                  <div id="hazardsContainer" class="row">
+                    <!-- Hazards will be loaded dynamically -->
+                    @foreach (var hazard in Model.AvailableHazards)
+                    {
+                      <div class="col-md-4 mb-2">
+                        <div class="form-check">
+                          <input class="form-check-input hazard-checkbox" type="checkbox" name="hazardIds[]"
+                            id="hazard-@hazard.Id" value="@hazard.Id" />
+                          <label class="form-check-label" for="hazard-@hazard.Id">
+                            @hazard.Name
+                          </label>
                         </div>
-                      }
-                    </div>
+                      </div>
+                    }
+                  </div>
 
-                    <div class="custom-hazard">
-                      <label class="form-label">Custom Hazard (Optional)</label>
-                      <input id="customHazard" name="customHazard" class="form-control"
-                        placeholder="Specify any other hazards not listed above" />
-                    </div>
+                  <div class="custom-hazard">
+                    <label class="form-label">Custom Hazard (Optional)</label>
+                    <input id="customHazard" name="customHazard" class="form-control"
+                      placeholder="Specify any other hazards not listed above" />
                   </div>
                 </div>
-                <span class="text-danger" id="hazardsError"></span>
+              </div>
+              <span class="text-danger" id="hazardsError"></span>
+            </div>
+          </div>
+
+          <!-- Terms and Submission Section -->
+          <div class="form-section">
+            <h6 class="form-section-title">Requirements</h6>
+            <div class="row mb-6">
+              <div class="col-12">
+                <div class="form-check mb-2">
+                  <input id="termsAgreement1" class="form-check-input" type="checkbox" required />
+                  <label class="form-check-label required-label" for="termsAgreement1">
+                    Pengguna harus menyiapkan akses yang aman ke area kerja dan tempat kerja yang aman. Untuk bekerja
+                    pada malam hari, pengguna harus menyediakan penerangan yang cukup memadahi.
+                  </label>
+                </div>
+                <div class="form-check mb-2">
+                  <input id="termsAgreement2" class="form-check-input" type="checkbox" required />
+                  <label class="form-check-label required-label" for="termsAgreement2">
+                    Penguna harus melengkapi izin yang sudah disetujui. Misalnya izin bekerja di dekat saluran
+                    listrik,
+                    Akses PIT dll dan pengguna harus memandu bila diperlukan untuk ke lokasi pekerjaan dan
+                    membantu mengawasi pekerjaan yang sedang berlangsung dan juga pengguna harus menginformasikan
+                    secara
+                    tertulis jika ada perubahan akses atau jalur yang akan dilalui.
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input id="termsAgreement3" class="form-check-input" type="checkbox" required />
+                  <label class="form-check-label required-label" for="termsAgreement3">
+                    Hanya pekerjaan yang sesuai denga persyaratan yang akan diproses.
+                  </label>
+                </div>
               </div>
             </div>
 
-            <!-- Terms and Submission Section -->
-            <div class="form-section">
-              <h6 class="form-section-title">Requirements</h6>
-              <div class="row mb-6">
-                <div class="col-12">
-                  <div class="form-check mb-2">
-                    <input id="termsAgreement1" class="form-check-input" type="checkbox" required />
-                    <label class="form-check-label required-label" for="termsAgreement1">
-                      Pengguna harus menyiapkan akses yang aman ke area kerja dan tempat kerja yang aman. Untuk bekerja
-                      pada malam hari, pengguna harus menyediakan penerangan yang cukup memadahi.
-                    </label>
-                  </div>
-                  <div class="form-check mb-2">
-                    <input id="termsAgreement2" class="form-check-input" type="checkbox" required />
-                    <label class="form-check-label required-label" for="termsAgreement2">
-                      Penguna harus melengkapi izin yang sudah disetujui. Misalnya izin bekerja di dekat saluran
-                      listrik,
-                      Akses PIT dll dan pengguna harus memandu bila diperlukan untuk ke lokasi pekerjaan dan
-                      membantu mengawasi pekerjaan yang sedang berlangsung dan juga pengguna harus menginformasikan
-                      secara
-                      tertulis jika ada perubahan akses atau jalur yang akan dilalui.
-                    </label>
-                  </div>
-                  <div class="form-check">
-                    <input id="termsAgreement3" class="form-check-input" type="checkbox" required />
-                    <label class="form-check-label required-label" for="termsAgreement3">
-                      Hanya pekerjaan yang sesuai denga persyaratan yang akan diproses.
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              <div class="row">
-                <div class="col-12 d-flex justify-content-between">
-                  <a href="/Booking/Calendar" class="btn btn-secondary">Cancel</a>
-                  <button type="submit" id="submitButton" class="btn btn-primary">Submit Booking</button>
-                </div>
+            <div class="row">
+              <div class="col-12 d-flex justify-content-between">
+                <a href="/Booking/Calendar" class="btn btn-secondary">Cancel</a>
+                <button type="submit" id="submitButton" class="btn btn-primary">Submit Booking</button>
               </div>
             </div>
+          </div>
         </form>
       </div>
     </div>
@@ -709,21 +710,21 @@
 
           const cell = document.createElement('td');
           cell.innerHTML = `
-                    <div class="form-check d-flex justify-content-center flex-column align-items-center">
-                      <input type="checkbox" class="form-check-input shift-checkbox"
-                        id="shift-${shiftId}-${dayShift.date}"
-                        name="shiftSelections[${index}].selectedShiftIds[]"
-                        value="${shiftId}"
-                        data-date="${dayShift.date}"
-                        data-shift-id="${shiftId}"
-                        ${isSelected ? 'checked' : ''}
-                        ${isDisabled ? 'disabled' : ''} />
-                      <span class="shift-status ${statusClass}">
-                        ${statusText}
-                      </span>
-                      <input type="hidden" name="shiftSelections[${index}].date" value="${dayShift.date}" />
-                    </div>
-                  `;
+                        <div class="form-check d-flex justify-content-center flex-column align-items-center">
+                          <input type="checkbox" class="form-check-input shift-checkbox"
+                            id="shift-${shiftId}-${dayShift.date}"
+                            name="shiftSelections[${index}].selectedShiftIds[]"
+                            value="${shiftId}"
+                            data-date="${dayShift.date}"
+                            data-shift-id="${shiftId}"
+                            ${isSelected ? 'checked' : ''}
+                            ${isDisabled ? 'disabled' : ''} />
+                          <span class="shift-status ${statusClass}">
+                            ${statusText}
+                          </span>
+                          <input type="hidden" name="shiftSelections[${index}].date" value="${dayShift.date}" />
+                        </div>
+                      `;
 
           row.appendChild(cell);
         });
@@ -752,31 +753,31 @@
       const row = document.createElement('tr');
 
       row.innerHTML = `
-                <td style="min-width: 220px; padding-right: 5px;">
-                  <input type="text" class="form-control item-name"
-                        name="items[${rowIndex}].itemName" required />
-                </td>
-                <td style="min-width: 140px; padding-right: 5px;">
-                  <input type="number" class="form-control item-height"
-                        name="items[${rowIndex}].height"
-                        min="0.01" step="0.01" required />
-                </td>
-                <td style="min-width: 140px; padding-right: 5px;">
-                  <input type="number" class="form-control item-weight"
-                        name="items[${rowIndex}].weight"
-                        min="0.01" step="0.01" required />
-                </td>
-                <td style="min-width: 140px; padding-right: 5px;">
-                  <input type="number" class="form-control item-quantity"
-                        name="items[${rowIndex}].quantity"
-                        min="1" step="1" value="1" required />
-                </td>
-                <td style="width: 1%; white-space: nowrap;">
-                  <button type="button" class="btn btn-outline-danger btn-sm remove-item-btn">
-                    <i class="bx bx-trash"></i>
-                  </button>
-                </td>
-              `;
+                    <td style="min-width: 220px; padding-right: 5px;">
+                      <input type="text" class="form-control item-name"
+                            name="items[${rowIndex}].itemName" required />
+                    </td>
+                    <td style="min-width: 140px; padding-right: 5px;">
+                      <input type="number" class="form-control item-height"
+                            name="items[${rowIndex}].height"
+                            min="0.01" step="0.01" required />
+                    </td>
+                    <td style="min-width: 140px; padding-right: 5px;">
+                      <input type="number" class="form-control item-weight"
+                            name="items[${rowIndex}].weight"
+                            min="0.01" step="0.01" required />
+                    </td>
+                    <td style="min-width: 140px; padding-right: 5px;">
+                      <input type="number" class="form-control item-quantity"
+                            name="items[${rowIndex}].quantity"
+                            min="1" step="1" value="1" required />
+                    </td>
+                    <td style="width: 1%; white-space: nowrap;">
+                      <button type="button" class="btn btn-outline-danger btn-sm remove-item-btn">
+                        <i class="bx bx-trash"></i>
+                      </button>
+                    </td>
+                  `;
 
       const removeBtn = row.querySelector('.remove-item-btn');
       removeBtn.addEventListener('click', function () {
@@ -937,16 +938,16 @@
       @if (TempData["BookingFormSuccessMessage"] != null)
         {
           <text>
-          // ✅ Jika ada success message, tampilkan success modal dan jangan tampilkan error modal
+                  // ✅ Jika ada success message, tampilkan success modal dan jangan tampilkan error modal
             const successModal = new bootstrap.Modal(document.getElementById('successModal'), {
               backdrop: 'static',
             keyboard: false
-          });
+                  });
             successModal.show();
 
             document.querySelector('#successModal .btn-close').addEventListener('click', function() {
               window.location.href = '@(TempData["BookingDocumentNumber"] != null ? $"/Booking/Details?documentNumber={TempData["BookingDocumentNumber"]}" : "/Booking/Calendar")';
-          });
+                  });
 
             // ✅ Bersihkan TempData setelah success modal ditampilkan
             fetch('/Booking/ClearTempData', {
@@ -954,14 +955,14 @@
             headers: {
               'Content-Type': 'application/json',
             'X-CSRF-TOKEN': document.querySelector('input[name="__RequestVerificationToken"]').value
-            }
-          });
+                    }
+                  });
           </text>
       }
-    else if (TempData["BookingFormErrorMessage"] != null || ViewData["BookingFormErrorMessage"] != null)
+        else if (TempData["BookingFormErrorMessage"] != null || ViewData["BookingFormErrorMessage"] != null)
         {
           <text>
-          // ✅ Hanya tampilkan error modal jika TIDAK ada success message
+                  // ✅ Hanya tampilkan error modal jika TIDAK ada success message
             const errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
             errorModal.show();
 
@@ -974,22 +975,22 @@
                   'X-CSRF-TOKEN': document.querySelector('input[name="__RequestVerificationToken"]').value
                 }
               });
-          });
+                  });
           </text>
       }
-    else if (ViewData["CleanTempData"] != null && ViewData["CleanTempData"] as bool? == true)
+        else if (ViewData["CleanTempData"] != null && ViewData["CleanTempData"] as bool? == true)
         {
           <text>
-          // ✅ Bersihkan TempData jika tidak ada modal yang ditampilkan tapi ada flag CleanTempData
+                  // ✅ Bersihkan TempData jika tidak ada modal yang ditampilkan tapi ada flag CleanTempData
             fetch('/Booking/ClearTempData', {
               method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             'X-CSRF-TOKEN': document.querySelector('input[name="__RequestVerificationToken"]').value
-            }
-          });
+                    }
+                  });
           </text>
       }
-  });
+      });
   </script>
 }
