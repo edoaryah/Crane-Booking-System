@@ -79,8 +79,7 @@
             <th style="width: 150px;">Crane</th>
             @foreach (var day in days)
             {
-              <th
-                class="text-center @(day.DayOfWeek == DayOfWeek.Saturday || day.DayOfWeek == DayOfWeek.Sunday ? "bg-light" : "")">
+              <th>
                 <div>@day.ToString("ddd")</div>
                 <div>@day.ToString("MMM d")</div>
               </th>
@@ -98,7 +97,7 @@
 
               @foreach (var day in days)
               {
-                <td class="@(day.DayOfWeek == DayOfWeek.Saturday || day.DayOfWeek == DayOfWeek.Sunday ? "bg-light" : "")">
+                <td>
                   @{
                     // Find maintenance schedules for this crane and date
                     var schedulesForDay = Model.Schedules
