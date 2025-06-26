@@ -14,9 +14,18 @@
       font-size: 0.75rem;
       margin-top: 2px;
     }
-    .shift-status.available { color: green; }
-    .shift-status.booked { color: red; }
-    .shift-status.maintenance { color: orange; }
+
+    .shift-status.available {
+      color: green;
+    }
+
+    .shift-status.booked {
+      color: red;
+    }
+
+    .shift-status.maintenance {
+      color: orange;
+    }
   </style>
 }
 
@@ -71,7 +80,8 @@
                 <option value="">-- Select Crane --</option>
                 @foreach (var crane in Model.AvailableCranes)
                 {
-                  <option value="@crane.Id">@crane.Code (@crane.Capacity ton)</option>
+                  <option value="@crane.Id" selected="@(((int?)ViewBag.DefaultCraneId == crane.Id) ? "selected" : null)">
+                    @crane.Code (@crane.Capacity ton)</option>
                 }
               </select>
             </div>
@@ -84,11 +94,13 @@
           <div class="row mb-3">
             <div class="col-md-6">
               <label class="form-label" for="startDate">Start Date</label>
-              <input type="date" class="form-control" id="startDate" name="StartDate" required />
+              <input type="date" class="form-control" id="startDate" name="StartDate" value="@ViewBag.DefaultStartDate"
+                required />
             </div>
             <div class="col-md-6">
               <label class="form-label" for="endDate">End Date</label>
-              <input type="date" class="form-control" id="endDate" name="EndDate" required />
+              <input type="date" class="form-control" id="endDate" name="EndDate" value="@ViewBag.DefaultEndDate"
+                required />
             </div>
           </div>
           <div class="row mb-3">
@@ -137,6 +149,11 @@
 @section PageScripts {
   <script>
     document.addEventListener('DOMContentLoaded', function () {
+      // Default values passed from server
+      const defaultCraneId = '@(ViewBag.DefaultCraneId ?? "")';
+      const defaultStartDate = '@(ViewBag.DefaultStartDate ?? "")';
+      const defaultEndDate = '@(ViewBag.DefaultEndDate ?? "")';
+
       const startDateInput = document.getElementById('startDate');
       const endDateInput = document.getElementById('endDate');
       const craneIdSelect = document.getElementById('craneId');
@@ -145,8 +162,19 @@
       const resetFormBtn = document.getElementById('resetFormBtn');
       const maintenanceForm = document.getElementById('maintenanceForm');
 
-      // ✅ PERBAIKAN: Auto-clear TempData untuk alerts
-      const successAlert = document.getElementById('successAlert');
+      // JS default no longer needed as values are rendered server-side
+      @* if (defaultCraneId) {
+        craneIdSelect.value = defaultCraneId;
+      }
+      if (defaultStartDate) {
+        startDateInput.value = defaultStartDate;
+      }
+      if (defaultEndDate) {
+        endDateInput.value = defaultEndDate;
+      } *@
+
+          // ✅ PERBAIKAN: Auto-clear TempData untuk alerts
+          const successAlert = document.getElementById('successAlert');
       const errorAlert = document.getElementById('errorAlert');
 
       // Function untuk membersihkan TempData
@@ -194,17 +222,19 @@
           <text>
             if (!successAlert && !errorAlert) {
               clearMaintenanceTempData();
-                  }
+                                  }
           </text>
       }
 
-          // Set default dates (today)
-        const today = new Date();
-      startDateInput.value = formatDateForInput(today);
-      endDateInput.value = formatDateForInput(today);
-
-      // Auto-select first crane option
-      if (craneIdSelect && craneIdSelect.options.length > 1) {
+                  // If no defaults from server, initialize to today and first crane
+                const today = new Date();
+      if (!startDateInput.value) {
+        startDateInput.value = formatDateForInput(today);
+      }
+      if (!endDateInput.value) {
+        endDateInput.value = formatDateForInput(today);
+      }
+      if (craneIdSelect && !craneIdSelect.value && craneIdSelect.options.length > 1) {
         craneIdSelect.selectedIndex = 1;
       }
 
@@ -294,17 +324,17 @@
 
         // Create table HTML
         let tableHtml = `
-              <div class="table-responsive">
-                <table class="table table-bordered">
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Day</th>
-                      <th>Shifts</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-            `;
+                      <div class="table-responsive">
+                        <table class="table table-bordered">
+                          <thead>
+                            <tr>
+                              <th>Date</th>
+                              <th>Day</th>
+                              <th>Shifts</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                    `;
 
         // Create rows for each date
         dateRange.forEach((date, index) => {
@@ -318,13 +348,13 @@
           const dateString = formatDateForInput(date);
 
           tableHtml += `
-                <tr>
-                  <td>${formattedDate}</td>
-                  <td>${dayOfWeek}</td>
-                  <td>
-                    <input type="hidden" name="ShiftSelections[${index}].Date" value="${dateString}">
-                    <div class="row">
-              `;
+                        <tr>
+                          <td>${formattedDate}</td>
+                          <td>${dayOfWeek}</td>
+                          <td>
+                            <input type="hidden" name="ShiftSelections[${index}].Date" value="${dateString}">
+                            <div class="row">
+                      `;
 
           // Create checkboxes for each shift
           shiftDefinitions.forEach(shift => {
@@ -346,33 +376,33 @@
             }
 
             tableHtml += `
-                  <div class="col-md-4 mb-2">
-                    <div class="form-check d-flex justify-content-center flex-column align-items-center">
-                      <input class="form-check-input" type="checkbox"
-                        id="shift_${index}_${shift.id}"
-                        name="ShiftSelections[${index}].SelectedShiftIds"
-                        value="${shift.id}" ${disabledAttr}>
-                      <span class="shift-status ${statusClass}">${statusText}</span>
-                      <label class="form-check-label" for="shift_${index}_${shift.id}">
-                        ${shift.name} (${shift.formattedStartTime} - ${shift.formattedEndTime})
-                      </label>
-                    </div>
-                  </div>
-                `;
+                          <div class="col-md-4 mb-2">
+                            <div class="form-check d-flex justify-content-center flex-column align-items-center">
+                              <input class="form-check-input" type="checkbox"
+                                id="shift_${index}_${shift.id}"
+                                name="ShiftSelections[${index}].SelectedShiftIds"
+                                value="${shift.id}" ${disabledAttr}>
+                              <span class="shift-status ${statusClass}">${statusText}</span>
+                              <label class="form-check-label" for="shift_${index}_${shift.id}">
+                                ${shift.name} (${shift.formattedStartTime} - ${shift.formattedEndTime})
+                              </label>
+                            </div>
+                          </div>
+                        `;
           });
 
           tableHtml += `
-                    </div>
-                  </td>
-                </tr>
-              `;
+                            </div>
+                          </td>
+                        </tr>
+                      `;
         });
 
         tableHtml += `
-                  </tbody>
-                </table>
-              </div>
-            `;
+                          </tbody>
+                        </table>
+                      </div>
+                    `;
 
         // Add table to DOM
         shiftSelectionTable.innerHTML = tableHtml;

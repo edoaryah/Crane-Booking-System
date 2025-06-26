@@ -21,35 +21,38 @@
 }
 
 <div class="card">
-  <div class="card-header d-flex justify-content-between align-items-center">
-    <h5 class="mb-0">Maintenance Calendar</h5>
-    <div>
-      <a href="@Url.Action("Index", "Maintenance")" class="btn btn-primary me-2">
-        <i class="bx bx-plus me-1"></i> Create New
-      </a>
-      <a href="@Url.Action("Index", "MaintenanceHistory")" class="btn btn-outline-secondary">
-        <i class="bx bx-list-ul me-1"></i> History
-      </a>
-    </div>
-  </div>
+  @* <div class="card-header"> *@
+
   <div class="card-body">
     <!-- Calendar Navigation -->
     <div class="row mb-4">
       <div class="col-12 d-flex justify-content-between align-items-center">
         <div>
-          <a href="@Url.Action("Calendar", "Maintenance", new { start = prevWeekStart })"
-            class="btn btn-outline-primary">
-            <i class="bx bx-chevron-left me-1"></i> Previous Week
-          </a>
+          @* Small screens (icon only) *@
+            <a href="@Url.Action("Calendar", "Maintenance", new { start = prevWeekStart })"
+               class="btn btn-icon btn-outline-primary d-sm-none @(Model.StartDate == DateTime.Today ? "disabled" : "")">
+              <span class="tf-icons bx bx-chevron-left"></span>
+            </a>
+            @* Medium+ screens (icon + text) *@
+            <a href="@Url.Action("Calendar", "Maintenance", new { start = prevWeekStart })"
+               class="btn btn-outline-primary d-none d-sm-inline-flex align-items-center gap-1 @(Model.StartDate == DateTime.Today ? "disabled" : "")">
+              <span class="tf-icons bx bx-chevron-left"></span><span>Previous Week</span>
+            </a>
         </div>
         <div class="text-center">
-          <h6 class="mb-0">@Model.StartDate.ToString("MMMM d, yyyy") - @Model.EndDate.ToString("MMMM d, yyyy")</h6>
+          <h5 class="card-title mb-0">@Model.StartDate.ToString("MMMM d, yyyy") - @Model.EndDate.ToString("MMMM d, yyyy")</h6>
         </div>
         <div>
-          <a href="@Url.Action("Calendar", "Maintenance", new { start = nextWeekStart })"
-            class="btn btn-outline-primary">
-            Next Week <i class="bx bx-chevron-right ms-1"></i>
-          </a>
+          @* Small screens (icon only) *@
+            <a href="@Url.Action("Calendar", "Maintenance", new { start = nextWeekStart })"
+               class="btn btn-icon btn-outline-primary d-sm-none">
+              <span class="tf-icons bx bx-chevron-right"></span>
+            </a>
+            @* Medium+ screens (icon + text) *@
+            <a href="@Url.Action("Calendar", "Maintenance", new { start = nextWeekStart })"
+               class="btn btn-outline-primary d-none d-sm-inline-flex align-items-center gap-1">
+              <span>Next Week</span><span class="tf-icons bx bx-chevron-right"></span>
+            </a>
         </div>
       </div>
     </div>
@@ -138,6 +141,7 @@
         </tbody>
       </table>
     </div>
+    @* </div> *@
   </div>
 </div>
 

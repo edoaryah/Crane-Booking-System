@@ -34,7 +34,7 @@ namespace AspnetCoreMvcFull.Controllers
     // GET: /Maintenance - Only Admin and MSD can create
     [RequireRole("admin")]
     [RequireRole("msd")]
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(int? craneId = null, DateTime? startDate = null)
     {
       // ✅ PERBAIKAN: Bersihkan TempData umum untuk mencegah "bocor" dari controller lain
       TempData.Remove("SuccessMessage");
@@ -64,8 +64,22 @@ namespace AspnetCoreMvcFull.Controllers
           ShiftDefinitions = await _shiftService.GetAllShiftDefinitionsAsync()
         };
 
+        // pass pre-selected values to view via ViewBag
+        if (craneId.HasValue)
+        {
+          ViewBag.DefaultCraneId = craneId.Value;
+        }
+        if (startDate.HasValue)
+        {
+          string dateStr = startDate.Value.ToString("yyyy-MM-dd");
+          ViewBag.DefaultStartDate = dateStr;
+          ViewBag.DefaultEndDate = dateStr;
+        }
+
         // ✅ PERBAIKAN: Tambahkan flag untuk membersihkan TempData
         ViewData["CleanTempData"] = hasSuccessMessage || hasErrorMessage;
+
+        Console.WriteLine($"DefaultCraneId={ViewBag.DefaultCraneId}, DefaultStartDate={ViewBag.DefaultStartDate}");
 
         return View(viewModel);
       }
@@ -329,8 +343,13 @@ namespace AspnetCoreMvcFull.Controllers
     {
       try
       {
-        var startDate = start ?? DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek);
-        var endDate = end ?? startDate.AddDays(6);
+        var startDate = (start ?? DateTime.Today).Date;
+        // Prevent navigating to a week that starts before today
+        if (startDate < DateTime.Today)
+        {
+          startDate = DateTime.Today;
+        }
+        var endDate = startDate.AddDays(6);
 
         var cranes = await _craneService.GetAllCranesAsync();
         var shifts = await _shiftService.GetAllShiftDefinitionsAsync();
