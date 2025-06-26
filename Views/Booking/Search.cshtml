@@ -1,4 +1,4 @@
-@model AspnetCoreMvcFull.ViewModels.BookingManagement.BookingSearchViewModel
+@model AspnetCoreMvcFull.ViewModels.BookingManagement.BookingPagedViewModel
 @{
   ViewData["Title"] = "Search Results";
 }
@@ -13,24 +13,24 @@
   </div>
 
   <!-- Alert messages -->
-  @if (!string.IsNullOrEmpty(Model.SuccessMessage))
-  {
+@if (!string.IsNullOrEmpty(Model.SuccessMessage))
+{
     <div class="alert alert-success alert-dismissible" role="alert">
       @Model.SuccessMessage
       <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
-  }
+}
 
-  @if (!string.IsNullOrEmpty(Model.ErrorMessage))
-  {
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
     <div class="alert alert-danger alert-dismissible" role="alert">
       @Model.ErrorMessage
       <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
-  }
+}
 
   <div class="card-body">
-    @if (!Model.Bookings.Any())
+    @if (!Model.PagedBookings.Items.Any())
     {
       <div class="text-center my-4">
         <h6 class="text-muted">No bookings found matching the search term.</h6>
@@ -52,7 +52,7 @@
             </tr>
           </thead>
           <tbody>
-            @foreach (var booking in Model.Bookings)
+            @foreach (var booking in Model.PagedBookings.Items)
             {
               <tr>
                 <td>@booking.BookingNumber</td>
@@ -87,6 +87,27 @@
           </tbody>
         </table>
       </div>
+      <div class="card-footer d-flex justify-content-between align-items-center py-3">
+        <div>
+          @(((Model.PagedBookings.PageNumber - 1) * Model.PagedBookings.PageSize) + 1) to
+          @(Math.Min(Model.PagedBookings.PageNumber * Model.PagedBookings.PageSize, Model.PagedBookings.TotalCount))
+          of @Model.PagedBookings.TotalCount entries
+        </div>
+        <div class="btn-group">
+          <a class="btn btn-outline-primary @(Model.PagedBookings.HasPreviousPage ? "" : "disabled")"
+            href="@Url.Action("Search", new { searchTerm = Model.SearchTerm, pageNumber = Model.PagedBookings.PageNumber - 1 })"><i
+              class="bx bx-chevron-left"></i></a>
+          @for (var i = 1; i <= Model.PagedBookings.PageCount; i++)
+          {
+            <a class="btn @(Model.PagedBookings.PageNumber == i ? "btn-primary" : "btn-outline-primary")"
+              href="@Url.Action("Search", new { searchTerm = Model.SearchTerm, pageNumber = i })">@i</a>
+          }
+          <a class="btn btn-outline-primary @(Model.PagedBookings.HasNextPage ? "" : "disabled")"
+            href="@Url.Action("Search", new { searchTerm = Model.SearchTerm, pageNumber = Model.PagedBookings.PageNumber + 1 })"><i
+              class="bx bx-chevron-right"></i></a>
+        </div>
+      </div>
     }
+
   </div>
 </div>

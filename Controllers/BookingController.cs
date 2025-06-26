@@ -693,7 +693,7 @@ namespace AspnetCoreMvcFull.Controllers
 
     // GET: /Booking/Search
     [HttpGet]
-    public async Task<IActionResult> Search(string searchTerm)
+    public async Task<IActionResult> Search(string searchTerm, int pageNumber = 1, int pageSize = 10)
     {
       try
       {
@@ -720,11 +720,22 @@ namespace AspnetCoreMvcFull.Controllers
         // Get search results
         var searchResults = await _bookingService.SearchBookingsAsync(searchTerm, ldapUser, isPic, isAdmin);
 
-        // Create view model for results
-        var viewModel = new BookingSearchViewModel
+        // build paged result
+        var totalCount = searchResults.Count();
+        var pagedItems = searchResults.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
+        var pagedResult = new AspnetCoreMvcFull.Models.Common.PagedResult<BookingViewModel>
+        {
+          Items = pagedItems,
+          TotalCount = totalCount,
+          PageNumber = pageNumber,
+          PageSize = pageSize,
+          PageCount = (int)Math.Ceiling(totalCount / (double)pageSize)
+        };
+
+        var viewModel = new BookingPagedViewModel
         {
           SearchTerm = searchTerm,
-          Bookings = searchResults,
+          PagedBookings = pagedResult,
           SuccessMessage = TempData["BookingSuccessMessage"] as string,
           ErrorMessage = TempData["BookingErrorMessage"] as string
         };
