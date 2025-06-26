@@ -62,13 +62,13 @@
               <div class="status-badge">
                 @if (crane.Status == AspnetCoreMvcFull.Models.CraneStatus.Available)
                 {
-                  <span class="badge bg-success rounded-pill px-3 py-2">
+                  <span class="badge bg-success rounded px-3 py-2">
                     <i class="bx bx-check-circle me-1"></i> Available
                   </span>
                 }
                 else
                 {
-                  <span class="badge bg-danger rounded-pill px-3 py-2">
+                  <span class="badge bg-danger rounded px-3 py-2">
                     <i class="bx bx-x-circle me-1"></i> Maintenance
                   </span>
                 }
@@ -78,10 +78,10 @@
             <div class="card-body">
               <div class="d-flex justify-content-between align-items-center mb-3">
                 <div>
-                  <span class="badge bg-primary rounded-pill">@crane.Capacity Ton</span>
+                  <span class="badge bg-primary rounded">@crane.Capacity Ton</span>
                 </div>
                 <div>
-                  <span class="badge bg-info rounded-pill">@crane.Ownership</span>
+                  <span class="badge bg-info rounded">@crane.Ownership</span>
                 </div>
               </div>
 
