@@ -560,6 +560,12 @@ namespace AspnetCoreMvcFull.Controllers
         // Ambil data kalender
         var calendarData = await _bookingService.GetCalendarViewAsync(start, end);
 
+        // Pass role info to ViewData for calendar view
+        bool isPic = User.IsInRole("PIC");
+        bool isAdmin = User.IsInRole("Admin");
+        ViewData["IsPicRole"] = isPic;
+        ViewData["IsAdminRole"] = isAdmin;
+
         // Ambil data shift definitions aktif dan kirim ke view via ViewBag
         var allShifts = await _shiftService.GetAllShiftDefinitionsAsync();
         ViewBag.ShiftDefinitions = allShifts.Where(s => s.IsActive).ToList();

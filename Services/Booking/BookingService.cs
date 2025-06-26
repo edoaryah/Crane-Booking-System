@@ -293,6 +293,7 @@ namespace AspnetCoreMvcFull.Services
             BookingNumber = firstShift.Booking!.BookingNumber,
             DocumentNumber = firstShift.Booking!.DocumentNumber,
             Department = firstShift.Booking.Department,
+            Name = firstShift.Booking.Name,
             Date = group.Key.Date,
             // Tambahkan status booking untuk styling yang berbeda
             Status = firstShift.Booking.Status,

@@ -237,6 +237,7 @@ namespace AspnetCoreMvcFull.ViewModels.BookingManagement
     public string BookingNumber { get; set; } = string.Empty;
     public string DocumentNumber { get; set; } = string.Empty;
     public string Department { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
     public DateTime Date { get; set; }
     // Tambahkan property Status untuk digunakan dalam styling
     public BookingStatus Status { get; set; }
