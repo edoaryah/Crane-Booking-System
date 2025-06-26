@@ -132,7 +132,7 @@
                     {
                       foreach (var shift in shiftDefinitions)
                       {
-                        <div class="shift-slot" data-shift-id="@shift.Id" style="height: @(100 / shiftDefinitions.Count())%">
+                        <div class="shift-slot" data-shift-id="@shift.Id">
                           @{
                             // Cari booking untuk shift ini
                             var bookingsForDate = crane.Bookings.Where(b => b.Date.Date == currentDate.Date).ToList();
@@ -221,7 +221,7 @@
                     }
                     else
                     {
-                      <div class="shift-slot" style="height: 100%">
+                      <div class="shift-slot">
                         <!-- Fallback jika tidak ada definisi shift -->
                       </div>
                     }
@@ -334,6 +334,7 @@
     }
 
     .shift-slot {
+      flex: 1 1 0;
       border-bottom: 1px dashed #dbdade;
       position: relative;
       overflow: hidden;
