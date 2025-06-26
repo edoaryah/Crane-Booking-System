@@ -28,8 +28,8 @@
     <!-- On small screens: Stack vertically -->
     <div class="d-flex flex-column flex-md-row justify-content-between w-100">
       <!--Column 1: Date Range Text -->
-      <div class="mb-3 mb-md-0">
-        <h5 class="card-title mb-0" id="dateRangeText">
+      <div class="calendar-header-left">
+        <h3 class="card-title mb-1 date-range-title" id="dateRangeText">
           @{
             var startDate = DateTime.Parse(Model.WeekRange.StartDate);
             var endDate = DateTime.Parse(Model.WeekRange.EndDate);
@@ -37,15 +37,16 @@
             var formattedEndDate = endDate.ToString("MMMM d, yyyy");
           }
           @formattedStartDate - @formattedEndDate
-        </h5>
-        <!-- Legend -->
-        <div class="calendar-legend mt-2 small">
-          <span class="legend-item"><span class="legend-color status-pending"></span> Pending</span>
-          <span class="legend-item ms-3"><span class="legend-color status-mgr-approved"></span> Manager Approved</span>
-          <span class="legend-item ms-3"><span class="legend-color status-rejected"></span> Rejected</span>
-          <span class="legend-item ms-3"><span class="legend-color status-pic-approved"></span> PIC Approved</span>
-          <span class="legend-item ms-3"><span class="legend-color maintenance"></span> Maintenance</span>
-        </div>
+          </h5>
+          <!-- Legend -->
+          <div class="calendar-legend mt-2 small">
+            <span class="legend-item"><span class="legend-color status-pending"></span> Pending</span>
+            <span class="legend-item ms-3"><span class="legend-color status-mgr-approved"></span> Manager
+              Approved</span>
+            <span class="legend-item ms-3"><span class="legend-color status-rejected"></span> Rejected</span>
+            <span class="legend-item ms-3"><span class="legend-color status-pic-approved"></span> PIC Approved</span>
+            <span class="legend-item ms-3"><span class="legend-color maintenance"></span> Maintenance</span>
+          </div>
       </div>
 
       <!--Column 2: Contains buttons -->
@@ -55,20 +56,20 @@
         {
           <div>
             <a href="/Booking" class="btn btn-primary">
-            <i class="bx bx-plus me-1"></i> New Booking
-          </a>
-        </div>
+              <i class="bx bx-plus me-1"></i> New Booking
+            </a>
+          </div>
         }
 
         <!--Prev / Next buttons -->
         <div class="ms-2">
           <div class="btn-group">
             <a asp-action="Calendar" asp-route-startDate="@startDate.AddDays(-7).ToString("yyyy-MM-dd")"
-              class="btn btn-icon btn-outline-primary @(startDate <= DateTime.Today ? "disabled" : "")">
+              class="btn btn-icon btn-outline-primary btn-nav @(startDate <= DateTime.Today ? "disabled" : "")">
               <span class="tf-icons bx bx-chevron-left"></span>
             </a>
             <a asp-action="Calendar" asp-route-startDate="@startDate.AddDays(7).ToString("yyyy-MM-dd")"
-              class="btn btn-icon btn-outline-primary">
+              class="btn btn-icon btn-outline-primary btn-nav">
               <span class="tf-icons bx bx-chevron-right"></span>
             </a>
           </div>
@@ -161,14 +162,16 @@
 
                                 @if (isPic || isAdmin)
                                 {
-                                  <a href="/Booking/Details?documentNumber=@booking.DocumentNumber" class="booking-link">                                    <div class="booking-card @statusClass @deptClass clickable" data-document-number="@booking.DocumentNumber"
-                                      data-booking-number="@booking.BookingNumber" data-department="@booking.Department"
-                                      data-shift-name="@bookingShift.ShiftName" data-start-time="@bookingShift.StartTime"
-                                      data-end-time="@bookingShift.EndTime">
+                                  <a href="/Booking/Details?documentNumber=@booking.DocumentNumber" class="booking-link">
+                                    <div class="booking-card @statusClass @deptClass clickable"
+                                      data-document-number="@booking.DocumentNumber" data-booking-number="@booking.BookingNumber"
+                                      data-department="@booking.Department" data-shift-name="@bookingShift.ShiftName"
+                                      data-start-time="@bookingShift.StartTime" data-end-time="@bookingShift.EndTime">
                                       <div class="booking-card-content">
                                         @{
-                                           var displayDept = !string.IsNullOrEmpty(booking.Department) && booking.Department.Length > 18 ? booking.Department.Substring(0,17) + "..." : booking.Department;
-                                         }
+                                          var displayDept = !string.IsNullOrEmpty(booking.Department) && booking.Department.Length > 18 ?
+                                          booking.Department.Substring(0, 17) + "..." : booking.Department;
+                                        }
                                         <div class="booking-dept">@displayDept</div>
                                         <div class="booking-name">@booking.Name</div>
                                       </div>
@@ -183,8 +186,9 @@
                                     data-end-time="@bookingShift.EndTime">
                                     <div class="booking-card-content">
                                       @{
-                                         var displayDept = !string.IsNullOrEmpty(booking.Department) && booking.Department.Length > 18 ? booking.Department.Substring(0,17) + "..." : booking.Department;
-                                       }
+                                        var displayDept = !string.IsNullOrEmpty(booking.Department) && booking.Department.Length > 18 ?
+                                        booking.Department.Substring(0, 17) + "..." : booking.Department;
+                                      }
                                       <div class="booking-dept">@displayDept</div>
                                       <div class="booking-name">@booking.Name</div>
                                     </div>
@@ -237,308 +241,7 @@
 </div>
 
 @section PageStyles {
-  <style>
-    /* Calendar Layout Styles */
-    .calendar-scroll-container {
-      display: flex;
-      overflow-x: auto;
-      position: relative;
-      max-width: 100%;
-    }
-
-    /* Crane Data Column (Sticky) */
-    .crane-data-column {
-      position: sticky;
-      left: 0;
-      z-index: 10;
-      width: 150px;
-      flex-shrink: 0;
-      background-color: #fff;
-      box-shadow: 4px 0 5px -2px rgba(0, 0, 0, 0.05);
-    }
-
-    .crane-header {
-      height: 60px;
-      background-color: #f5f5f9;
-      border-bottom: 1px solid #dbdade;
-      border-right: 1px solid #dbdade;
-      border-top: 1px solid #dbdade;
-    }
-
-    .crane-item {
-      height: 180px;
-      /* Adjusted for more flexible shift rows */
-      border-bottom: 1px solid #dbdade;
-      border-right: 1px solid #dbdade;
-      background-color: #f5f5f9;
-    }
-
-    .crane-list .crane-item:last-child {
-      border-bottom-left-radius: 0.375rem;
-    }
-
-    /* Schedule Table */
-    .schedule-table-container {
-      flex: 1;
-      min-width: 700px;
-      background-color: #fff;
-    }
-
-    .date-headers-row {
-      display: flex;
-      height: 60px;
-      background-color: #f5f5f9;
-    }
-
-    .date-header-cell {
-      flex: 1;
-      min-width: 180px;
-      border-right: 1px solid #dbdade;
-      border-top: 1px solid #dbdade;
-      border-bottom: 1px solid #dbdade;
-      background-color: #f5f5f9;
-    }
-
-    .date-header-cell:last-child {
-      border-right: none;
-    }
-
-    .schedule-rows {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .schedule-row {
-      display: flex;
-      height: 180px;
-      /* Adjusted for more flexible shift rows */
-    }
-
-    .schedule-cell {
-      flex: 1;
-      min-width: 180px;
-      border-right: 1px solid #dbdade;
-      border-bottom: 1px solid #dbdade;
-      position: relative;
-    }
-
-    .schedule-row .schedule-cell:last-child {
-      border-right: none;
-    }
-
-    /* Shift Container Styles */
-    .shift-container {
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .shift-slot {
-      flex: 1 1 0;
-      border-bottom: 1px dashed #dbdade;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .shift-slot:last-child {
-      border-bottom: none;
-    }
-
-    .booking-card {
-      margin: 0;
-      padding: 6px 8px;
-      border-radius: 0;
-      font-size: 14px;
-      overflow: hidden;
-      height: 100%;
-      position: relative;
-      font-weight: 500;
-    }
-
-    .booking-card-content {
-      line-height: 1.2;
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 100%;
-      @* display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical; *@
-      text-overflow: ellipsis;
-      overflow: hidden;
-    }
-
-    /* Department-based styling */
-    .booking-card.dept-stores {
-      background-color: rgba(113, 221, 55, 0.1);
-      border-left: 5px solid #71dd37;
-      color: #71dd37;
-    }
-
-    .booking-card.dept-default {
-      background-color: rgba(133, 146, 163, 0.1);
-      border-left: 5px solid #8592a3;
-      color: #8592a3;
-    }
-
-    /* Legend styling */
-    .calendar-legend .legend-item {
-      display: inline-flex;
-      align-items: center;
-    }
-
-    .calendar-legend .legend-color {
-      display: inline-block;
-      width: 14px;
-      height: 14px;
-      margin-right: 4px;
-      border-radius: 2px;
-    }
-
-    .calendar-legend .status-pending {
-      background-color: #ffc107;
-    }
-
-    .calendar-legend .status-mgr-approved {
-      background-color: #03c3ec;
-    }
-
-    .calendar-legend .status-pic-approved {
-      background-color: #71dd37;
-    }
-
-    .booking-card.clickable {cursor:pointer;}
-    .booking-link{display:block;height:100%;width:100%;}
-
-    .calendar-legend .status-rejected {
-      background-color: #ff3e1d;
-    }
-
-    .calendar-legend .maintenance {
-      background-color: #8592a3;}
-
-    @* .booking-card .booking-dept {
-      font-weight: 600;
-    }
-
-    .booking-card .booking-name {
-      font-size: 12px;
-    } *@
-
-    .booking-card .booking-dept {
-      font-weight: 600;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .booking-card .booking-name {font-size: 12px; white-space: nowrap;}.booking-card .booking-dept {
-      font-weight: 600;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .booking-card .booking-name {font-size: 12px; white-space: nowrap;}
-
-    /* Status-based booking colors */
-    .booking-card.status-pending {
-      background-color: rgba(255, 193, 7, 0.1);
-      border-left: 5px solid #ffc107;
-      color: #ffc107;
-    }
-
-    .booking-card.status-mgr-approved {
-      background-color: rgba(3, 195, 236, 0.1);
-      border-left: 5px solid #03c3ec;
-      color: #03c3ec;
-    }
-
-    .booking-card.status-pic-approved {
-      background-color: rgba(113, 221, 55, 0.1);
-      border-left: 5px solid #71dd37;
-      color: #71dd37;
-    }
-
-    .booking-card.status-rejected {
-      background-color: rgba(255, 62, 29, 0.1);
-      border-left: 5px solid #ff3e1d;
-      color: #ff3e1d;
-    }
-
-    /* Maintenance Card Styles */
-    .maintenance-card {
-      @* background-color: rgba(255, 62, 29, 0.1);
-      border-left: 5px solid #ff3e1d;
-      color: #ff3e1d; *@
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      justify-content: flex-start;
-      background-color: rgba(133, 146, 163, 0.15);
-      border-left: 5px solid #8592a3;
-      color: #8592a3;
-      z-index: 1;
-      height: 100%;
-      padding: 6px 8px;
-      overflow: hidden;
-      position: relative;
-    }
-
-    .maintenance-title {
-      font-weight: bold;
-      margin-bottom: 4px;
-    }
-
-    /* Date Header Styles */
-    .date-header {
-      text-align: left;
-      padding: 8px;
-    }
-
-    .date-header .day-name {
-      font-size: 0.875rem;
-      color: #566a7f;
-      font-weight: 500;
-      margin-bottom: 2px;
-    }
-
-    .date-header .day-number {
-      font-size: 1.25rem;
-      font-weight: 600;
-      color: #566a7f;
-    }
-
-    /* Cell sizing */
-    .date-header-cell {
-      min-width: 150px;
-    }
-
-    .schedule-cell {
-      min-width: 150px;
-    }
-
-    /* Tooltip styles */
-    .calendar-tooltip {
-      position: absolute;
-      z-index: 100;
-      background-color: #fff;
-      border: 1px solid #dbdade;
-      border-radius: 4px;
-      padding: 8px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-      font-size: 12px;
-      max-width: 250px;
-      display: none;
-    }
-
-    .calendar-tooltip-title {
-      font-weight: bold;
-      margin-bottom: 4px;
-    }
-
-    .calendar-tooltip-content {
-      color: #566a7f;
-    }
-  </style>
+  <link rel="stylesheet" href="~/css/calendar.css">
 }
 
 @section PageScripts
@@ -562,18 +265,18 @@
 
     // Fungsi untuk mengatur tooltips
     function setupBookingCardClicks() {
-        document.querySelectorAll('.booking-card.clickable').forEach(card => {
-          card.addEventListener('click', function () {
-            const docNum = this.dataset.documentNumber;
-            if (docNum) {
-              window.location = `/Booking/Details?documentNumber=${docNum}`;
-            }
-          });
+      document.querySelectorAll('.booking-card.clickable').forEach(card => {
+        card.addEventListener('click', function () {
+          const docNum = this.dataset.documentNumber;
+          if (docNum) {
+            window.location = `/Booking/Details?documentNumber=${docNum}`;
+          }
         });
-      }
+      });
+    }
 
-      // Fungsi untuk mengatur tooltips
-      function setupTooltips() {
+    // Fungsi untuk mengatur tooltips
+    function setupTooltips() {
       const tooltip = document.getElementById('calendar-tooltip');
 
       // Add event listeners to booking cards
@@ -586,13 +289,13 @@
           const endTime = this.dataset.endTime ? this.dataset.endTime.substring(0, 5) : ''; // Format HH:MM
 
           tooltip.innerHTML = `
-                                        <div class="calendar-tooltip-title">${bookingNumber}</div>
-                                        <div class="calendar-tooltip-content">
-                                            <div>Department: ${department}</div>
-                                            <div>Shift: ${shiftName}</div>
-                                            <div>Time: ${startTime} - ${endTime}</div>
-                                        </div>
-                                    `;
+                                          <div class="calendar-tooltip-title">${bookingNumber}</div>
+                                          <div class="calendar-tooltip-content">
+                                              <div>Department: ${department}</div>
+                                              <div>Shift: ${shiftName}</div>
+                                              <div>Time: ${startTime} - ${endTime}</div>
+                                          </div>
+                                      `;
 
           // Position tooltip near the cursor
           tooltip.style.left = (e.pageX + 10) + 'px';
@@ -614,13 +317,13 @@
           const endTime = this.dataset.endTime ? this.dataset.endTime.substring(0, 5) : ''; // Format HH:MM
 
           tooltip.innerHTML = `
-                                        <div class="calendar-tooltip-title">Maintenance</div>
-                                        <div class="calendar-tooltip-content">
-                                            <div>Title: ${title}</div>
-                                            <div>Shift: ${shiftName}</div>
-                                            <div>Time: ${startTime} - ${endTime}</div>
-                                        </div>
-                                    `;
+                                          <div class="calendar-tooltip-title">Maintenance</div>
+                                          <div class="calendar-tooltip-content">
+                                              <div>Title: ${title}</div>
+                                              <div>Shift: ${shiftName}</div>
+                                              <div>Time: ${startTime} - ${endTime}</div>
+                                          </div>
+                                      `;
 
           // Position tooltip near the cursor
           tooltip.style.left = (e.pageX + 10) + 'px';
