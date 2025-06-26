@@ -2,395 +2,125 @@
 @{
   ViewData["Title"] = "Maintenance Details";
   Layout = "_ContentNavbarLayout";
+  bool isUpdated = Model.UpdatedAt.HasValue && !string.IsNullOrEmpty(Model.UpdatedBy);
 }
 
-@section PageStyles {
-  <style>
-    .bg-glow {
-      box-shadow: 0 0 10px rgba(var(--bs-primary-rgb), 0.5);
-    }
-
-    .avatar-initial {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .card {
-      transition: all 0.3s ease;
-      @* border: 1px solid rgba(0, 0, 0, 0.08); *@
-    }
-
-    .card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 25px 0 rgba(0, 0, 0, 0.1);
-    }
-
-    .table-hover tbody tr:hover {
-      background-color: rgba(var(--bs-primary-rgb), 0.05);
-    }
-
-    .breadcrumb-style1 .breadcrumb-item+.breadcrumb-item::before {
-      content: ">";
-      color: var(--bs-secondary);
-    }
-
-    .btn-group .btn {
-      transition: all 0.2s ease;
-    }
-
-    .btn-group .btn:hover {
-      transform: translateY(-1px);
-    }
-
-    /* Improved info card styling */
-    .info-card {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    }
-
-    .shift-badge {
-      font-size: 0.75rem;
-      padding: 0.5rem 0.75rem;
-      border-radius: 0.5rem;
-    }
-
-    .status-indicator {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      display: inline-block;
-      margin-right: 0.5rem;
-    }
-
-    .status-indicator.success {
-      background-color: #28a745;
-    }
-
-    .status-indicator.info {
-      background-color: #17a2b8;
-    }
-
-    /* Loading skeleton for future use */
-    .skeleton {
-      background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-      background-size: 200% 100%;
-      animation: loading 1.5s infinite;
-    }
-
-    @* @keyframes loading {
-      0% { background-position: 200% 0; }
-      100% { background-position: -200% 0; }
-    }
-
-    @media (max-width: 768px) {
-      .btn-group {
-        flex-direction: column;
-        width: 100%;
-      }
-
-      .btn-group .btn {
-        margin-bottom: 0.25rem;
-        border-radius: 0.375rem !important;
-      }
-
-      .shift-badge {
-        font-size: 0.7rem;
-        padding: 0.4rem 0.6rem;
-      }
-    } *@
-  </style>
-}
-
-<!-- Document Number Banner -->
+<!-- Maintenance Title Card -->
 <div class="row mb-4">
-  <div class="col-12">
-    <div class="card info-card text-white border-0">
-      <div class="card-body py-4">
-        <div class="d-flex justify-content-between align-items-center">
-          <div>
-            <h4 class="text-white mb-2 fw-bold">
-              <i class="bx bx-file-blank me-2"></i>@Model.Title
-            </h4>
-            <div class="text-white-75 d-flex align-items-center">
-              <i class="bx bx-hash me-1"></i>
-              <span class="me-3">Document: @Model.DocumentNumber</span>
-              @* <span class="badge bg-white text-dark">
-                <i class="bx bx-calendar me-1"></i>
-                @((Model.EndDate - Model.StartDate).Days + 1) days duration
-              </span> *@
-            </div>
-          </div>
-          <div class="text-end">
-            @{
-              var isUpdated = Model.UpdatedAt.HasValue && !string.IsNullOrEmpty(Model.UpdatedBy);
-            }
-            @if (isUpdated)
-            {
-              <span class="badge bg-info bg-glow fs-6">
-                <span class="status-indicator info"></span>
-                <i class="bx bx-edit-alt me-1"></i>Updated
-              </span>
-            }
-            else
-            {
-              <span class="badge bg-success bg-glow fs-6">
-                <span class="status-indicator success"></span>
-                <i class="bx bx-check-circle me-1"></i>Original
-              </span>
-            }
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Action Buttons Card -->
-<div class="row mb-4">
-  <div class="col-12">
-    <div class="card border-0 shadow-sm">
-      <div class="card-body py-3">
-        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-          <div class="d-flex align-items-center">
-            <i class="bx bx-cog text-primary me-2" style="font-size: 1.2rem;"></i>
-            <span class="fw-semibold text-muted">Quick Actions</span>
-          </div>
-          <div class="btn-group" role="group">
-            @* ✅ ROLE-BASED ACTION BUTTONS *@
-            @if (ViewBag.CanEdit == true)
-            {
-              <a href="@Url.Action("Edit", "Maintenance", new { documentNumber = Model.DocumentNumber })"
-                class="btn btn-outline-primary">
-                <i class="bx bx-edit-alt me-1"></i>
-                <span class="d-none d-sm-inline">Edit</span>
-              </a>
-              <a href="@Url.Action("Delete", "Maintenance", new { documentNumber = Model.DocumentNumber })"
-                class="btn btn-outline-danger">
-                <i class="bx bx-trash me-1"></i>
-                <span class="d-none d-sm-inline">Delete</span>
-              </a>
-            }
-            <a href="@Url.Action("Index", "MaintenanceHistory")" class="btn btn-outline-secondary">
-              <i class="bx bx-arrow-back me-1"></i>
-              <span class="d-none d-sm-inline">Back to History</span>
-            </a>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Main Content Cards -->
-<div class="row">
-  <!-- Maintenance Information Card -->
-  <div class="col-lg-6 mb-4">
-    <div class="card h-100">
-      <div class="card-header d-flex align-items-center">
-        <div class="card-title mb-0">
-          <h5 class="m-0 me-2">
-            <i class="bx bx-wrench text-warning me-2"></i>Maintenance Information
-          </h5>
-        </div>
-      </div>
-      <div class="card-body">
-        <div class="row">
-          <div class="col-12">
-            <!-- Crane Info -->
-            <div class="d-flex align-items-center mb-3 p-3 bg-light rounded">
-              <div class="avatar avatar-md me-3">
-                <span class="avatar-initial rounded bg-label-primary">
-                  <i class="bx bx-car"></i>
-                </span>
-              </div>
-              <div>
-                <h6 class="mb-0">@Model.CraneCode</h6>
-                <small class="text-muted">Assigned Crane</small>
-              </div>
-            </div>
-
-            <!-- Date Range -->
-            <div class="mb-3">
-              <label class="form-label text-muted fw-semibold">
-                <i class="bx bx-calendar me-1"></i>Schedule Period
-              </label>
-              <div class="d-flex align-items-center">
-                <span class="badge bg-label-info fs-6 px-3 py-2">
-                  @Model.StartDate.ToString("dd MMM yyyy") - @Model.EndDate.ToString("dd MMM yyyy")
-                </span>
-                <span class="badge bg-label-primary ms-2">
-                  @((Model.EndDate - Model.StartDate).Days + 1) days
-                </span>
-              </div>
-            </div>
-
-            <!-- Description -->
-            <div class="mb-0">
-              <label class="form-label text-muted fw-semibold">
-                <i class="bx bx-note me-1"></i>Description
-              </label>
-              <div class="p-3 bg-light rounded">
-                @if (string.IsNullOrEmpty(Model.Description))
-                {
-                  <em class="text-muted">No description provided</em>
-                }
-                else
-                {
-                  <p class="mb-0">@Model.Description</p>
-                }
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Audit Trail Card -->
-  <div class="col-lg-6 mb-4">
-    <div class="card h-100">
-      <div class="card-header d-flex align-items-center">
-        <div class="card-title mb-0">
-          <h5 class="m-0 me-2">
-            <i class="bx bx-history text-info me-2"></i>Audit Trail
-          </h5>
-        </div>
-      </div>
-      <div class="card-body">
-        <!-- Creation Info -->
-        <div class="d-flex align-items-start mb-4">
-          <div class="avatar avatar-sm me-3 mt-1">
-            <span class="avatar-initial rounded-circle bg-label-success">
-              <i class="bx bx-plus"></i>
-            </span>
-          </div>
-          <div class="flex-grow-1">
-            <div class="d-flex justify-content-between align-items-start mb-1">
-              <h6 class="mb-0">Created</h6>
-              <small class="text-muted">@Model.CreatedAt.ToString("dd/MM/yyyy")</small>
-            </div>
-            <p class="mb-1">
-              <span class="badge bg-label-success">@Model.CreatedBy</span>
-            </p>
-            <small class="text-muted">@Model.CreatedAt.ToString("HH:mm:ss")</small>
-          </div>
-        </div>
-
-        @* ✅ AUDIT TRAIL: Show update info if available *@
-        @if (Model.UpdatedAt.HasValue && !string.IsNullOrEmpty(Model.UpdatedBy))
-        {
-          <!-- Update Info -->
-          <div class="d-flex align-items-start">
-            <div class="avatar avatar-sm me-3 mt-1">
-              <span class="avatar-initial rounded-circle bg-label-info">
-                <i class="bx bx-edit-alt"></i>
-              </span>
-            </div>
-            <div class="flex-grow-1">
-              <div class="d-flex justify-content-between align-items-start mb-1">
-                <h6 class="mb-0">Last Updated</h6>
-                <small class="text-muted">@Model.UpdatedAt.Value.ToString("dd/MM/yyyy")</small>
-              </div>
-              <p class="mb-1">
-                <span class="badge bg-label-info">@Model.UpdatedBy</span>
-              </p>
-              <small class="text-muted">@Model.UpdatedAt.Value.ToString("HH:mm:ss")</small>
-            </div>
-          </div>
-        }
-        else
-        {
-          <!-- No Updates -->
-          <div class="text-center py-3">
-            <div class="avatar avatar-lg mx-auto mb-2">
-              <span class="avatar-initial rounded-circle bg-label-success">
-                <i class="bx bx-check-circle"></i>
-              </span>
-            </div>
-            <h6 class="mb-1">Original Schedule</h6>
-            <small class="text-muted">No modifications made</small>
-          </div>
-        }
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Shifts Schedule Card -->
-<div class="row">
   <div class="col-12">
     <div class="card">
       <div class="card-header d-flex justify-content-between align-items-center">
-        <div class="card-title mb-0">
-          <h5 class="m-0">
-            <i class="bx bx-time text-success me-2"></i>Scheduled Shifts
-          </h5>
+        <h4 class="mb-0">
+          <i class="bx bx-wrench text-primary me-2"></i>@Model.Title
+        </h4>
+        <div class="text-end">
+          <span class="badge @(isUpdated ? "bg-info" : "bg-success")">
+            <i class="bx @(isUpdated ? "bx-edit-alt" : "bx-check-circle") me-1"></i>
+            @(isUpdated ? "Updated" : "Original")
+          </span>
         </div>
-        <span class="badge bg-label-primary">
-          @Model.Shifts.Count() shift(s) scheduled
-        </span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Info + Audit -->
+<div class="row">
+  <!-- Maintenance Info -->
+  <div class="col-lg-8 mb-4">
+    <div class="card shadow-sm h-100">
+      <div class="card-header">
+        <h6 class="mb-0">Maintenance Information</h6>
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Crane Code</label>
+            <input class="form-control" readonly value="@Model.CraneCode" />
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Duration (days)</label>
+            <input class="form-control" readonly value="@((Model.EndDate - Model.StartDate).Days + 1)" />
+          </div>
+          <div class="col-md-12">
+            <label class="form-label">Schedule Period</label>
+            <input class="form-control" readonly
+              value="@($"{Model.StartDate:dd MMM yyyy} - {Model.EndDate:dd MMM yyyy}")" />
+          </div>
+          <div class="col-12">
+            <label class="form-label">Description</label>
+            <textarea class="form-control" style="white-space:pre-wrap;overflow:hidden;resize:none" rows="1" readonly
+              data-autoresize>@(string.IsNullOrWhiteSpace(Model.Description) ? "-" : Model.Description)</textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Audit Trail -->
+  <div class="col-lg-4 mb-4">
+    <div class="card shadow-sm h-100">
+      <div class="card-header">
+        <h6 class="mb-0">Audit Trail</h6>
+      </div>
+      <div class="card-body">
+        <ul class="list-unstyled mb-0">
+          <li class="mb-3">
+            <strong>Created:</strong> @Model.CreatedBy <br />
+            <small class="text-muted">@Model.CreatedAt.ToString("dd/MM/yyyy HH:mm")</small>
+          </li>
+          @if (isUpdated)
+          {
+            <li>
+              <strong>Last Updated:</strong> @Model.UpdatedBy <br />
+              <small class="text-muted">@Model.UpdatedAt.Value.ToString("dd/MM/yyyy HH:mm")</small>
+            </li>
+          }
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Scheduled Shifts -->
+<div class="row">
+  <div class="col-12">
+    <div class="card shadow-sm">
+      <div class="card-header">
+        @* <h6 class="mb-0">Scheduled Shifts (@Model.Shifts.Count())</h6> *@
+        <h6 class="mb-0">Scheduled Shifts</h6>
       </div>
       @if (Model.Shifts.Any())
       {
         <div class="table-responsive">
-          <table class="table table-hover">
+          <table class="table table-hover table-sm mb-0">
             <thead class="table-light">
               <tr>
-                <th class="text-nowrap">
-                  <i class="bx bx-calendar me-1"></i>Date
-                </th>
-                <th class="text-nowrap">
-                  <i class="bx bx-sun me-1"></i>Day
-                </th>
-                <th class="text-nowrap">
-                  <i class="bx bx-time-five me-1"></i>Shifts
-                </th>
+                <th>Date</th>
+                <th>Day</th>
+                <th>Shifts</th>
               </tr>
             </thead>
             <tbody>
               @{
-                // Group shifts by date
-                var shiftsByDate = Model.Shifts
-                .GroupBy(s => s.Date.Date)
-                .OrderBy(g => g.Key)
-                .ToList();
-              }
-
-              @foreach (var group in shiftsByDate)
-              {
-                <tr>
-                  <td>
-                    <div class="d-flex align-items-center">
-                      @* <div class="avatar avatar-xs me-2">
-                        <span class="avatar-initial rounded-circle bg-label-primary">
-                          @group.Key.Day
-                        </span>
-                      </div> *@
-                      <div>
-                        <span class="fw-semibold">@group.Key.ToString("dd MMM yyyy")</span>
-                      </div>
-                    </div>
-                  </td>
-                  <td>
-                    <span class="badge bg-label-secondary">
-                      @group.Key.ToString("dddd")
-                    </span>
-                  </td>
-                  <td>
-                    <div class="d-flex flex-wrap gap-1">
+                var shiftsByDate = Model.Shifts.GroupBy(s => s.Date.Date).OrderBy(g => g.Key);
+                foreach (var group in shiftsByDate)
+                {
+                  <tr>
+                    <td>@group.Key.ToString("dd MMM yyyy")</td>
+                    <td>@group.Key.ToString("dddd")</td>
+                    <td>
                       @foreach (var shift in group.OrderBy(s => s.StartTime))
                       {
-                        <span class="badge bg-primary">
-                          <i class="bx bx-time me-1"></i>
+                        <span class="badge bg-primary mb-1">
                           @shift.ShiftName
-                          <small class="ms-1">
-                            (@(shift.StartTime?.ToString(@"hh\:mm")) - @(shift.EndTime?.ToString(@"hh\:mm")))
-                          </small>
+                          <small class="ms-1">(@(shift.StartTime?.ToString(@"hh\:mm")) -
+                            @(shift.EndTime?.ToString(@"hh\:mm")))</small>
                         </span>
                       }
-                    </div>
-                  </td>
-                </tr>
+                    </td>
+                  </tr>
+                }
               }
             </tbody>
           </table>
@@ -398,17 +128,40 @@
       }
       else
       {
-        <!-- No Shifts -->
-        <div class="text-center py-5">
-          <div class="avatar avatar-xl mx-auto mb-3">
-            <span class="avatar-initial rounded-circle bg-label-secondary">
-              <i class="bx bx-time-five"></i>
-            </span>
-          </div>
-          <h6 class="mb-1">No Shifts Scheduled</h6>
-          <p class="text-muted mb-0">This maintenance schedule has no shifts assigned.</p>
+        <div class="card-body text-center text-muted">
+          No shifts scheduled.
         </div>
       }
     </div>
   </div>
 </div>
+
+<!-- Action buttons -->
+<div class="row mt-4">
+  <div class="col-12">
+    <a href="@Url.Action("Index", "MaintenanceHistory")" class="btn btn-outline-secondary">
+      <i class="bx bx-arrow-back me-1"></i> Back
+    </a>
+    @if (ViewBag.CanEdit == true)
+    {
+      <a href="@Url.Action("Edit", "Maintenance", new { documentNumber = Model.DocumentNumber })" class="btn btn-primary">
+        <i class="bx bx-edit-alt me-1"></i> Edit
+      </a>
+      <a href="@Url.Action("Delete", "Maintenance", new { documentNumber = Model.DocumentNumber })"
+        class="btn btn-danger">
+        <i class="bx bx-trash me-1"></i> Delete
+      </a>
+    }
+  </div>
+</div>
+
+@section PageScripts {
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('textarea[data-autoresize]').forEach(t => {
+        t.style.height = 'auto';
+        t.style.height = t.scrollHeight + 'px';
+      });
+    });
+  </script>
+}
