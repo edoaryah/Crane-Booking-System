@@ -96,6 +96,16 @@ namespace AspnetCoreMvcFull.ViewModels.MaintenanceManagement
     public string? ErrorMessage { get; set; }
   }
 
+  public class MaintenanceShiftEventViewModel
+  {
+    public int CraneId { get; set; }
+    public DateTime Date { get; set; }
+    public int ShiftDefinitionId { get; set; }
+    public string ShiftName { get; set; } = string.Empty;
+    public string DocumentNumber { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+  }
+
   public class MaintenanceCalendarViewModel
   {
     public DateTime StartDate { get; set; }
@@ -103,5 +113,7 @@ namespace AspnetCoreMvcFull.ViewModels.MaintenanceManagement
     public List<CraneViewModel> Cranes { get; set; } = new List<CraneViewModel>();
     public List<ShiftViewModel> ShiftDefinitions { get; set; } = new List<ShiftViewModel>();
     public List<MaintenanceScheduleViewModel> Schedules { get; set; } = new List<MaintenanceScheduleViewModel>();
+    // Events broken down per date and shift so the calendar can display multiple cards on the same day
+    public List<MaintenanceShiftEventViewModel> ShiftEvents { get; set; } = new List<MaintenanceShiftEventViewModel>();
   }
 }

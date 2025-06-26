@@ -338,13 +338,35 @@ namespace AspnetCoreMvcFull.Controllers
         var filteredSchedules = schedules.Where(s =>
             (s.StartDate <= endDate && s.EndDate >= startDate)).ToList();
 
+        // Build shift-level events for the calendar
+        var shiftEvents = new List<MaintenanceShiftEventViewModel>();
+        foreach (var sched in filteredSchedules)
+        {
+          var detail = await _maintenanceService.GetMaintenanceScheduleByIdAsync(sched.Id);
+          foreach (var shift in detail.Shifts)
+          {
+            // include only shifts in the selected date range
+            if (shift.Date.Date < startDate || shift.Date.Date > endDate) continue;
+            shiftEvents.Add(new MaintenanceShiftEventViewModel
+            {
+              CraneId = sched.CraneId,
+              Date = shift.Date.Date,
+              ShiftDefinitionId = shift.ShiftDefinitionId,
+              ShiftName = shift.ShiftName ?? string.Empty,
+              DocumentNumber = sched.DocumentNumber,
+              Title = sched.Title
+            });
+          }
+        }
+
         var viewModel = new MaintenanceCalendarViewModel
         {
           StartDate = startDate,
           EndDate = endDate,
           Cranes = cranes.ToList(),
           ShiftDefinitions = shifts.ToList(),
-          Schedules = filteredSchedules
+          Schedules = filteredSchedules,
+          ShiftEvents = shiftEvents
         };
 
         return View(viewModel);

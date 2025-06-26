@@ -99,24 +99,24 @@
               {
                 <td>
                   @{
-                    // Find maintenance schedules for this crane and date
-                    var schedulesForDay = Model.Schedules
-                    .Where(s => s.CraneId == crane.Id &&
-                    day >= s.StartDate.Date &&
-                    day <= s.EndDate.Date)
+                    // Find maintenance shift events for this crane and date
+                    var eventsForDay = Model.ShiftEvents
+                    .Where(e => e.CraneId == crane.Id && e.Date.Date == day.Date)
                     .ToList();
                   }
 
-                  @if (schedulesForDay.Any())
+                  @if (eventsForDay.Any())
                   {
-                    @foreach (var schedule in schedulesForDay)
+                    @foreach (var ev in eventsForDay)
                     {
+                      var shiftIndex = Model.ShiftDefinitions.FindIndex(sd => sd.Id == ev.ShiftDefinitionId);
+                      var color = shiftIndex >= 0 ? shiftColors[shiftIndex % shiftColors.Length] : "primary";
                       <div class="maintenance-event mb-1">
-                        <a href="@Url.Action("Details", "Maintenance", new { documentNumber = schedule.DocumentNumber })"
-                          class="btn btn-sm btn-primary w-100 text-start">
+                        <a href="@Url.Action("Details", "Maintenance", new { documentNumber = ev.DocumentNumber })"
+                          class="btn btn-sm bg-@color text-white w-100 text-start">
                           <i class="bx bx-wrench me-1"></i>
                           <span class="small d-inline-block text-truncate" style="max-width: 120px;">
-                            @schedule.Title
+                            @ev.Title
                           </span>
                         </a>
                       </div>
