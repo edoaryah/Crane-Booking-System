@@ -1,10 +1,14 @@
 // ViewModels/Dashboard/DashboardViewModel.cs
 using System.Collections.Generic;
+using System;
 namespace AspnetCoreMvcFull.ViewModels.Dashboard
 {
   public class DashboardViewModel
   {
     public string SelectedPeriod { get; set; } = "month"; // Default: bulan ini
+    public int? SelectedMonth { get; set; }
+    public DateTime? StartDate { get; set; }
+    public DateTime? EndDate { get; set; }
 
     // Summary metrics untuk seluruh crane
     public DashboardMetricsViewModel SummaryMetrics { get; set; } = new DashboardMetricsViewModel();

@@ -15,8 +15,13 @@
     }
 
     .metric-icon {
+      flex: 0 0 45px;
       height: 45px;
       width: 45px;
+      min-height: 45px;
+      min-width: 45px;
+      max-height: 45px;
+      max-width: 45px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -45,6 +50,16 @@
     .small-progress {
       height: 6px;
       border-radius: 30px;
+    }
+
+    #filterForm .form-select-sm,
+    #filterForm .form-control-sm {
+      @* height: calc(1.5em + 0.5rem + 2px) !important; *@
+      height: 38px !important;
+    }
+
+    #filterForm .btn-sm {
+      height: auto !important;
     }
   </style>
 }
@@ -156,6 +171,29 @@
 
       const chart = new ApexCharts(document.querySelector("#craneMetricsChart"), options);
       chart.render();
+
+      // Filter logic
+      const monthFilter = document.getElementById('monthFilter');
+      const startDateInput = document.getElementById('startDate');
+      const endDateInput = document.getElementById('endDate');
+      const filterForm = document.getElementById('filterForm');
+
+      // When a month is selected, clear custom dates and submit
+      monthFilter.addEventListener('change', function () {
+        if (this.value) {
+          startDateInput.value = '';
+          endDateInput.value = '';
+          filterForm.submit();
+        }
+      });
+
+      // When custom filter is submitted, clear the month selection
+      filterForm.addEventListener('submit', function (event) {
+        // Check if the submission is for the custom date range
+        if (startDateInput.value && endDateInput.value) {
+          monthFilter.value = '';
+        }
+      });
     });
   </script>
 }
@@ -164,29 +202,46 @@
 <div class="row">
   <div class="col-12 mb-4">
     <div class="card">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">Performa Crane Dashboard</h5>
-        <div class="dropdown">
-          <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="metricDropdown"
-            data-bs-toggle="dropdown" aria-expanded="false">
-            Periode: @(Model.SelectedPeriod == "day" ? "Hari Ini" :
-                        Model.SelectedPeriod == "week" ? "Minggu Ini" : "Bulan Ini")
-          </button>
-          <ul class="dropdown-menu" aria-labelledby="metricDropdown">
-            <li><a class="dropdown-item @(Model.SelectedPeriod == "day" ? "active" : "")"
-                href="@Url.Action("Index", new { period = "day" })">Hari Ini</a></li>
-            <li><a class="dropdown-item @(Model.SelectedPeriod == "week" ? "active" : "")"
-                href="@Url.Action("Index", new { period = "week" })">Minggu Ini</a></li>
-            <li><a class="dropdown-item @(Model.SelectedPeriod == "month" ? "active" : "")"
-                href="@Url.Action("Index", new { period = "month" })">Bulan Ini</a></li>
-          </ul>
-        </div>
+      <div class="card-header d-flex justify-content-between align-items-center flex-column flex-lg-row">
+        <h5 class="mb-0 text-nowrap">Performa Crane Dashboard</h5>
+        <form asp-action="Index" method="get" id="filterForm" class="d-flex align-items-center gap-3 flex-wrap mt-3 mt-lg-0">
+          <!-- Filter by Month -->
+          <div class="d-flex align-items-center gap-2">
+            @* <label for="monthFilter" class="form-label mb-0">Bulan:</label> *@
+            <select name="month" id="monthFilter" class="form-select form-select-sm">
+              <option value="">Pilih Bulan</option>
+              @for (int i = 1; i <= 12; i++)
+              {
+                var culture = System.Globalization.CultureInfo.GetCultureInfo("id-ID");
+                if (Model.SelectedMonth == i)
+                {
+                  <option value="@i" selected>@culture.DateTimeFormat.GetMonthName(i)</option>
+                }
+                else
+                {
+                  <option value="@i">@culture.DateTimeFormat.GetMonthName(i)</option>
+                }
+              }
+            </select>
+          </div>
+
+          <!-- Custom Date Filter -->
+          <div class="d-flex align-items-center gap-2">
+            @* <label class="form-label mb-0">Custom:</label> *@
+            <input type="date" name="startDate" id="startDate" class="form-control form-control-sm"
+              value="@Model.StartDate?.ToString("yyyy-MM-dd")" />
+            <span>-</span>
+            <input type="date" name="endDate" id="endDate" class="form-control form-control-sm"
+              value="@Model.EndDate?.ToString("yyyy-MM-dd")" />
+            <button type="submit" class="btn btn-sm btn-primary">Terapkan</button>
+          </div>
+        </form>
       </div>
       <div class="card-body">
         <div class="row mb-4">
           <!-- Availability Metric Card -->
           <div class="col-md-4 col-12 mb-md-0 mb-4">
-            <div class="card shadow-none border metric-card">
+            <div class="card shadow-none border metric-card h-100">
               <div class="card-body">
                 <div class="d-flex align-items-center mb-3">
                   <div class="metric-icon availability-icon me-3">
@@ -211,7 +266,7 @@
 
           <!-- Utilisation Metric Card -->
           <div class="col-md-4 col-12 mb-md-0 mb-4">
-            <div class="card shadow-none border metric-card">
+            <div class="card shadow-none border metric-card h-100">
               <div class="card-body">
                 <div class="d-flex align-items-center mb-3">
                   <div class="metric-icon utilisation-icon me-3">
@@ -236,7 +291,7 @@
 
           <!-- Usage Metric Card -->
           <div class="col-md-4 col-12">
-            <div class="card shadow-none border metric-card">
+            <div class="card shadow-none border metric-card h-100">
               <div class="card-body">
                 <div class="d-flex align-items-center mb-3">
                   <div class="metric-icon usage-icon me-3">

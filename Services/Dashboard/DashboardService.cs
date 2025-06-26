@@ -23,16 +23,19 @@ namespace AspnetCoreMvcFull.Services.Dashboard
       _logger = logger;
     }
 
-    public async Task<DashboardViewModel> GetDashboardDataAsync(string period)
+    public async Task<DashboardViewModel> GetDashboardDataAsync(string period, int? month, DateTime? startDate, DateTime? endDate)
     {
       // Konversi periode ke range tanggal
-      var (startDate, endDate) = GetDateRangeForPeriod(period);
+      var (dateRangeStart, dateRangeEnd) = GetDateRangeForPeriod(period, month, startDate, endDate);
 
-      _logger.LogInformation($"Fetching dashboard data for period: {period}, date range: {startDate:yyyy-MM-dd} to {endDate:yyyy-MM-dd}");
+      _logger.LogInformation($"Fetching dashboard data for period: {period}, month: {month}, startDate: {startDate}, endDate: {endDate}. Date range: {dateRangeStart:yyyy-MM-dd} to {dateRangeEnd:yyyy-MM-dd}");
 
       var viewModel = new DashboardViewModel
       {
         SelectedPeriod = period,
+        SelectedMonth = month,
+        StartDate = startDate,
+        EndDate = endDate,
         CraneStatistics = new CraneStatisticsViewModel()
       };
 
@@ -49,7 +52,7 @@ namespace AspnetCoreMvcFull.Services.Dashboard
         // Booking statistics
         // ========================
         var bookings = await _context.Bookings
-            .Where(b => b.StartDate.Date >= startDate && b.StartDate.Date <= endDate)
+            .Where(b => b.StartDate.Date >= dateRangeStart && b.StartDate.Date <= dateRangeEnd)
             .ToListAsync();
 
         viewModel.BookingStatistics = new BookingStatisticsViewModel
@@ -110,7 +113,7 @@ namespace AspnetCoreMvcFull.Services.Dashboard
         int craneCount = 0;
 
         // Loop melalui semua tanggal dalam rentang
-        for (DateTime date = startDate; date <= endDate; date = date.AddDays(1))
+        for (DateTime date = dateRangeStart; date <= dateRangeEnd; date = date.AddDays(1))
         {
           // Loop melalui semua crane
           foreach (var crane in cranes)
@@ -121,7 +124,7 @@ namespace AspnetCoreMvcFull.Services.Dashboard
               var visualizationData = await _craneUsageService.GetVisualizationDataAsync(crane.Id, date);
 
               // Jika ini tanggal pertama atau hari ini, tambahkan ke CraneMetrics untuk chart
-              if (date == startDate || date == DateTime.Today)
+              if (date == dateRangeStart || date == DateTime.Today)
               {
                 // Cek jika crane sudah ada di CraneMetrics
                 var existingMetric = viewModel.CraneMetrics.FirstOrDefault(m => m.Code == crane.Code);
@@ -192,7 +195,7 @@ namespace AspnetCoreMvcFull.Services.Dashboard
       }
     }
 
-    private (DateTime startDate, DateTime endDate) GetDateRangeForPeriod(string period)
+    private (DateTime startDate, DateTime endDate) GetDateRangeForPeriod(string period, int? month, DateTime? customStartDate, DateTime? customEndDate)
     {
       DateTime now = DateTime.Now;
       DateTime startDate;
@@ -201,26 +204,33 @@ namespace AspnetCoreMvcFull.Services.Dashboard
       switch (period?.ToLower())
       {
         case "day":
-          // Hari ini
           startDate = now.Date;
-          endDate = startDate; // Tampilkan data satu hari penuh
+          endDate = startDate;
           break;
         case "week":
-          // Minggu ini (mulai dari Senin)
           int diff = (7 + (now.DayOfWeek - DayOfWeek.Monday)) % 7;
           startDate = now.AddDays(-1 * diff).Date;
           endDate = startDate.AddDays(6);
           break;
+        case "by_month":
+          int targetMonth = month ?? now.Month;
+          int year = now.Year; // Selalu tahun ini
+          startDate = new DateTime(year, targetMonth, 1);
+          endDate = startDate.AddMonths(1).AddDays(-1);
+          break;
+        case "custom":
+          startDate = customStartDate ?? now.Date;
+          endDate = customEndDate ?? now.Date;
+          break;
         case "month":
         default:
-          // Bulan ini
           startDate = new DateTime(now.Year, now.Month, 1);
           endDate = startDate.AddMonths(1).AddDays(-1);
           break;
       }
 
-      // Pastikan endDate tidak melebihi hari ini
-      if (endDate > now.Date)
+      // Pastikan endDate tidak melebihi hari ini untuk periode selain custom
+      if (period?.ToLower() != "custom" && endDate > now.Date)
       {
         endDate = now.Date;
       }
