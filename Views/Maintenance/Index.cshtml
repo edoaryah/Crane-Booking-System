@@ -114,7 +114,7 @@
           <!-- Shift Selection Section -->
           <div class="row mt-4">
             <div class="col-12">
-              <h6 class="mb-3">Shift Selection</h6>
+              <h6>Shift Selection</h6>
               <div class="alert alert-info" role="alert">
                 <i class="bx bx-info-circle me-1"></i>
                 Please select shifts for each day in the maintenance period.
@@ -173,8 +173,8 @@
         endDateInput.value = defaultEndDate;
       } *@
 
-          // ✅ PERBAIKAN: Auto-clear TempData untuk alerts
-          const successAlert = document.getElementById('successAlert');
+              // ✅ PERBAIKAN: Auto-clear TempData untuk alerts
+              const successAlert = document.getElementById('successAlert');
       const errorAlert = document.getElementById('errorAlert');
 
       // Function untuk membersihkan TempData
@@ -222,12 +222,12 @@
           <text>
             if (!successAlert && !errorAlert) {
               clearMaintenanceTempData();
-                                  }
+                                          }
           </text>
       }
 
-                  // If no defaults from server, initialize to today and first crane
-                const today = new Date();
+                      // If no defaults from server, initialize to today and first crane
+                    const today = new Date();
       if (!startDateInput.value) {
         startDateInput.value = formatDateForInput(today);
       }
@@ -324,17 +324,17 @@
 
         // Create table HTML
         let tableHtml = `
-                      <div class="table-responsive">
-                        <table class="table table-bordered">
-                          <thead>
-                            <tr>
-                              <th>Date</th>
-                              <th>Day</th>
-                              <th>Shifts</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                    `;
+                          <div class="table-responsive">
+                            <table class="table table-bordered">
+                              <thead>
+                                <tr>
+                                  <th>Date</th>
+                                  <th>Day</th>
+                                  <th>Shifts</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                        `;
 
         // Create rows for each date
         dateRange.forEach((date, index) => {
@@ -348,13 +348,13 @@
           const dateString = formatDateForInput(date);
 
           tableHtml += `
-                        <tr>
-                          <td>${formattedDate}</td>
-                          <td>${dayOfWeek}</td>
-                          <td>
-                            <input type="hidden" name="ShiftSelections[${index}].Date" value="${dateString}">
-                            <div class="row">
-                      `;
+                            <tr>
+                              <td>${formattedDate}</td>
+                              <td>${dayOfWeek}</td>
+                              <td>
+                                <input type="hidden" name="ShiftSelections[${index}].Date" value="${dateString}">
+                                <div class="row">
+                          `;
 
           // Create checkboxes for each shift
           shiftDefinitions.forEach(shift => {
@@ -376,33 +376,33 @@
             }
 
             tableHtml += `
-                          <div class="col-md-4 mb-2">
-                            <div class="form-check d-flex justify-content-center flex-column align-items-center">
-                              <input class="form-check-input" type="checkbox"
-                                id="shift_${index}_${shift.id}"
-                                name="ShiftSelections[${index}].SelectedShiftIds"
-                                value="${shift.id}" ${disabledAttr}>
-                              <span class="shift-status ${statusClass}">${statusText}</span>
-                              <label class="form-check-label" for="shift_${index}_${shift.id}">
-                                ${shift.name} (${shift.formattedStartTime} - ${shift.formattedEndTime})
-                              </label>
-                            </div>
-                          </div>
-                        `;
+                              <div class="col-md-4 mb-2">
+                                <div class="form-check d-flex justify-content-center flex-column align-items-center">
+                                  <input class="form-check-input" type="checkbox"
+                                    id="shift_${index}_${shift.id}"
+                                    name="ShiftSelections[${index}].SelectedShiftIds"
+                                    value="${shift.id}" ${disabledAttr}>
+                                  <span class="shift-status ${statusClass}">${statusText}</span>
+                                  <label class="form-check-label" for="shift_${index}_${shift.id}">
+                                    ${shift.name} (${shift.formattedStartTime} - ${shift.formattedEndTime})
+                                  </label>
+                                </div>
+                              </div>
+                            `;
           });
 
           tableHtml += `
-                            </div>
-                          </td>
-                        </tr>
-                      `;
+                                </div>
+                              </td>
+                            </tr>
+                          `;
         });
 
         tableHtml += `
-                          </tbody>
-                        </table>
-                      </div>
-                    `;
+                              </tbody>
+                            </table>
+                          </div>
+                        `;
 
         // Add table to DOM
         shiftSelectionTable.innerHTML = tableHtml;

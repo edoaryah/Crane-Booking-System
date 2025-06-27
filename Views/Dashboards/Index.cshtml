@@ -349,9 +349,7 @@
             <i class="bx bx-dots-vertical-rounded bx-lg"></i>
           </button>
           <div class="dropdown-menu dropdown-menu-end" aria-labelledby="craneStatistics">
-            <a class="dropdown-item" href="javascript:void(0);">Lihat Detail</a>
-            <a class="dropdown-item" href="javascript:void(0);">Refresh</a>
-            <a class="dropdown-item" href="javascript:void(0);">Export</a>
+            <a class="dropdown-item" href="javascript:void(0);" onclick="location.reload()">Refresh</a>
           </div>
         </div>
       </div>
@@ -419,8 +417,8 @@
             <i class="bx bx-dots-vertical-rounded bx-lg"></i>
           </button>
           <div class="dropdown-menu dropdown-menu-end" aria-labelledby="latestBookings">
-            <a class="dropdown-item" href="javascript:void(0);">Lihat Semua</a>
-            <a class="dropdown-item" href="javascript:void(0);">Refresh</a>
+            <a class="dropdown-item" href="@Url.Action("Index", "BookingList")">Lihat Semua</a>
+            <a class="dropdown-item" href="javascript:void(0);" onclick="location.reload()">Refresh</a>
           </div>
         </div>
       </div>
@@ -431,11 +429,14 @@
           {
             var badgeClass = booking.Status switch
             {
-              BookingStatus.Done => "bg-label-success",
-              BookingStatus.Cancelled => "bg-label-danger",
-              BookingStatus.PendingApproval => "bg-label-warning",
-              BookingStatus.ManagerApproved or BookingStatus.PICApproved => "bg-label-primary",
-              _ => "bg-label-secondary"
+              BookingStatus.PendingApproval => "bg-warning",
+              BookingStatus.ManagerApproved => "bg-info",
+              BookingStatus.ManagerRejected => "bg-danger",
+              BookingStatus.PICApproved => "bg-success",
+              BookingStatus.PICRejected => "bg-danger",
+              BookingStatus.Cancelled => "bg-secondary",
+              BookingStatus.Done => "bg-primary",
+              _ => "bg-light"
             };
             <li class="d-flex mb-4">
               <div class="avatar flex-shrink-0 me-3">
@@ -470,8 +471,8 @@
             <i class="bx bx-dots-vertical-rounded bx-lg"></i>
           </button>
           <div class="dropdown-menu dropdown-menu-end" aria-labelledby="breakdownHistory">
-            <a class="dropdown-item" href="javascript:void(0);">Lihat Semua</a>
-            <a class="dropdown-item" href="javascript:void(0);">Refresh</a>
+            <a class="dropdown-item" href="@Url.Action("Index", "BreakdownHistory")">Lihat Semua</a>
+            <a class="dropdown-item" href="javascript:void(0);" onclick="location.reload()">Refresh</a>
           </div>
         </div>
       </div>

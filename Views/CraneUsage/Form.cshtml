@@ -20,9 +20,11 @@
 }
 
 @section PageStyles {
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" />
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
-  <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+
+  <link rel="stylesheet" href="~/vendor/libs/select2/select2-bootstrap-5-theme.min.css">
+  <link rel="stylesheet" href="~/vendor/libs/select2/select2.min.css">
+  <link rel="stylesheet" href="~/vendor/libs/toastify/toastify.min.css">
+
 }
 
 <!-- <h1>Input Crane Usage</h1>
@@ -135,8 +137,7 @@
                         <button type="button" class="btn btn-sm btn-warning text-white edit-entry" data-id="@entry.Id"
                           data-start="@entry.StartTime.ToString(@"hh\:mm")" data-end="@entry.EndTime.ToString(@"hh\:mm")"
                           data-category="@((int)entry.Category)" data-subcategory="@entry.UsageSubcategoryId"
-                          data-operator="@entry.OperatorName" data-booking="@entry.BookingId"
-                           data-notes="@entry.Notes">
+                          data-operator="@entry.OperatorName" data-booking="@entry.BookingId" data-notes="@entry.Notes">
                           <i class="bx bx-edit"></i>
                         </button>
                         <button type="button" class="btn btn-sm btn-danger delete-entry" data-id="@entry.Id">
@@ -174,7 +175,8 @@
           <a asp-action="Index" class="btn btn-secondary">
             <i class="bx bx-arrow-back me-1"></i> Back to List
           </a>
-          <a asp-controller="CraneUsage" asp-action="Visualization" asp-route-craneId="@Model.CraneId" asp-route-date="@Model.Date.ToString("yyyy-MM-dd")" class="btn btn-info">
+          <a asp-controller="CraneUsage" asp-action="Visualization" asp-route-craneId="@Model.CraneId"
+            asp-route-date="@Model.Date.ToString("yyyy-MM-dd")" class="btn btn-info">
             <i class="bx bx-bar-chart-alt me-1"></i> Visualisasi
           </a>
         </div>
@@ -265,7 +267,8 @@
   </div>
 
   <!-- Delete Confirmation Modal -->
-  <div class="modal fade" id="deleteConfirmationModal" tabindex="-1" aria-labelledby="deleteConfirmationModalLabel" aria-hidden="true">
+  <div class="modal fade" id="deleteConfirmationModal" tabindex="-1" aria-labelledby="deleteConfirmationModalLabel"
+    aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
@@ -284,7 +287,8 @@
   </div>
 
   <!-- Delete Confirmation Modal -->
-  <div class="modal fade" id="deleteConfirmationModal" tabindex="-1" aria-labelledby="deleteConfirmationModalLabel" aria-hidden="true">
+  <div class="modal fade" id="deleteConfirmationModal" tabindex="-1" aria-labelledby="deleteConfirmationModalLabel"
+    aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
@@ -303,7 +307,8 @@
   </div>
 
   <!-- Delete Confirmation Modal -->
-  <div class="modal fade" id="deleteConfirmationModal" tabindex="-1" aria-labelledby="deleteConfirmationModalLabel" aria-hidden="true">
+  <div class="modal fade" id="deleteConfirmationModal" tabindex="-1" aria-labelledby="deleteConfirmationModalLabel"
+    aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
@@ -322,7 +327,8 @@
   </div>
 
   <!-- Delete Confirmation Modal -->
-  <div class="modal fade" id="deleteConfirmationModal" tabindex="-1" aria-labelledby="deleteConfirmationModalLabel" aria-hidden="true">
+  <div class="modal fade" id="deleteConfirmationModal" tabindex="-1" aria-labelledby="deleteConfirmationModalLabel"
+    aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
@@ -341,7 +347,8 @@
   </div>
 
   <!-- Delete Confirmation Modal -->
-  <div class="modal fade" id="deleteConfirmationModal" tabindex="-1" aria-labelledby="deleteConfirmationModalLabel" aria-hidden="true">
+  <div class="modal fade" id="deleteConfirmationModal" tabindex="-1" aria-labelledby="deleteConfirmationModalLabel"
+    aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
@@ -360,7 +367,8 @@
   </div>
 
   <!-- Delete Confirmation Modal -->
-  <div class="modal fade" id="deleteConfirmationModal" tabindex="-1" aria-labelledby="deleteConfirmationModalLabel" aria-hidden="true">
+  <div class="modal fade" id="deleteConfirmationModal" tabindex="-1" aria-labelledby="deleteConfirmationModalLabel"
+    aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
@@ -379,7 +387,8 @@
   </div>
 
   <!-- Delete Confirmation Modal -->
-  <div class="modal fade" id="deleteConfirmationModal" tabindex="-1" aria-labelledby="deleteConfirmationModalLabel" aria-hidden="true">
+  <div class="modal fade" id="deleteConfirmationModal" tabindex="-1" aria-labelledby="deleteConfirmationModalLabel"
+    aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
@@ -436,11 +445,11 @@
   }
 }
 
-
-
 @section PageScripts {
-  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+
+  <script src="~/vendor/libs/toastify/toastify-js.js"></script>
+  <script src="~/vendor/libs/select2/select2.min.js"></script>
+
   <script>
     $(document).ready(function () {
 
@@ -456,9 +465,9 @@
           position: 'right',
           stopOnFocus: true,
           style: {
-            background: type === 'success'
-              ? 'linear-gradient(to right, #00b09b, #96c93d)'
-              : 'linear-gradient(to right, #ff5f6d, #ffc371)',
+            background: type === 'success' ? '#198754' : '#dc3545',
+            borderRadius: '0.5rem',
+            color: '#fff',
           },
         }).showToast();
       }
@@ -514,7 +523,7 @@
           },
           processResults: function (data) {
             return {
-              results: $.map(data, function(item) {
+              results: $.map(data, function (item) {
                 return {
                   id: item.value,
                   text: item.text
@@ -659,14 +668,14 @@
 
         var entryIdVal = $('#entryId').val();
         var entryData = {
-            Id: entryIdVal !== '0' ? parseInt(entryIdVal) : 0,
-            StartTime: $('#startTime').val(),
-            EndTime: $('#endTime').val(),
-            Category: parseInt($('#category').val()),
-            UsageSubcategoryId: parseInt($('#subcategory').val()),
-            OperatorName: $('#operator').val(),
-            BookingId: bookingId,
-            Notes: $('#notes').val()
+          Id: entryIdVal !== '0' ? parseInt(entryIdVal) : 0,
+          StartTime: $('#startTime').val(),
+          EndTime: $('#endTime').val(),
+          Category: parseInt($('#category').val()),
+          UsageSubcategoryId: parseInt($('#subcategory').val()),
+          OperatorName: $('#operator').val(),
+          BookingId: bookingId,
+          Notes: $('#notes').val()
         };
 
         // Validate times
@@ -750,7 +759,7 @@
         $('#deleteConfirmationModal').modal('show');
       });
 
-      $('#confirmDeleteButton').on('click', function() {
+      $('#confirmDeleteButton').on('click', function () {
         if (entryToDelete) {
           var id = entryToDelete.data('id');
           var row = entryToDelete.closest('tr');
@@ -787,8 +796,8 @@
               error: function () {
                 showToast('Error', 'Error deleting entry. Please try again.', 'error');
               },
-              complete: function() {
-                  entryToDelete = null; // Reset for next use
+              complete: function () {
+                entryToDelete = null; // Reset for next use
               }
             });
           } else {
@@ -825,48 +834,48 @@
         }
 
         var newRow = `
-            <tr data-entry-id="${entry.id}">
-              <td>${formatTime(entry.startTime)} - ${formatTime(entry.endTime)}</td>
-              <td>
-                <span class="badge" style="background-color: ${categoryColor}">
-                  ${entry.categoryName}
-                </span>
-              </td>
-              <td>${entry.subcategoryName}</td>
-              <td>${entry.operatorName || ''}</td>
-              <td>${relatedItems}</td>
-              <td>${entry.notes || ''}</td>
-              <td>
-                <div class="btn-group">
-                  <button type="button" class="btn btn-sm btn-warning text-white edit-entry"
-                    data-id="${entry.id}"
-                    data-start="${formatTime(entry.startTime)}"
-                    data-end="${formatTime(entry.endTime)}"
-                    data-category="${entry.category}"
-                    data-subcategory="${entry.usageSubcategoryId}"
+                        <tr data-entry-id="${entry.id}">
+                          <td>${formatTime(entry.startTime)} - ${formatTime(entry.endTime)}</td>
+                          <td>
+                            <span class="badge" style="background-color: ${categoryColor}">
+                              ${entry.categoryName}
+                            </span>
+                          </td>
+                          <td>${entry.subcategoryName}</td>
+                          <td>${entry.operatorName || ''}</td>
+                          <td>${relatedItems}</td>
+                          <td>${entry.notes || ''}</td>
+                          <td>
+                            <div class="btn-group">
+                              <button type="button" class="btn btn-sm btn-warning text-white edit-entry"
+                                data-id="${entry.id}"
+                                data-start="${formatTime(entry.startTime)}"
+                                data-end="${formatTime(entry.endTime)}"
+                                data-category="${entry.category}"
+                                data-subcategory="${entry.usageSubcategoryId}"
 
-                    data-operator="${entry.operatorName || ''}"
-                    data-booking="${entry.bookingId || ''}"
-                    data-notes="${entry.notes || ''}">
-                    <i class="bx bx-edit"></i>
-                  </button>
-                  <button type="button" class="btn btn-sm btn-danger delete-entry" data-id="${entry.id}">
-                    <i class="bx bx-trash"></i>
-                  </button>
-                </div>
-              </td>
+                                data-operator="${entry.operatorName || ''}"
+                                data-booking="${entry.bookingId || ''}"
+                                data-notes="${entry.notes || ''}">
+                                <i class="bx bx-edit"></i>
+                              </button>
+                              <button type="button" class="btn btn-sm btn-danger delete-entry" data-id="${entry.id}">
+                                <i class="bx bx-trash"></i>
+                              </button>
+                            </div>
+                          </td>
 
-              <input type="hidden" name="Entries[${index}].Id" value="${entry.id}" />
-              <input type="hidden" name="Entries[${index}].StartTime" value="${entry.startTime}" />
-              <input type="hidden" name="Entries[${index}].EndTime" value="${entry.endTime}" />
-              <input type="hidden" name="Entries[${index}].Category" value="${entry.category}" />
-              <input type="hidden" name="Entries[${index}].UsageSubcategoryId" value="${entry.usageSubcategoryId}" />
+                          <input type="hidden" name="Entries[${index}].Id" value="${entry.id}" />
+                          <input type="hidden" name="Entries[${index}].StartTime" value="${entry.startTime}" />
+                          <input type="hidden" name="Entries[${index}].EndTime" value="${entry.endTime}" />
+                          <input type="hidden" name="Entries[${index}].Category" value="${entry.category}" />
+                          <input type="hidden" name="Entries[${index}].UsageSubcategoryId" value="${entry.usageSubcategoryId}" />
 
-              <input type="hidden" name="Entries[${index}].OperatorName" value="${entry.operatorName || ''}" />
-              <input type="hidden" name="Entries[${index}].BookingId" value="${entry.bookingId || ''}" />
-              <input type="hidden" name="Entries[${index}].Notes" value="${entry.notes || ''}" />
-            </tr>
-          `;
+                          <input type="hidden" name="Entries[${index}].OperatorName" value="${entry.operatorName || ''}" />
+                          <input type="hidden" name="Entries[${index}].BookingId" value="${entry.bookingId || ''}" />
+                          <input type="hidden" name="Entries[${index}].Notes" value="${entry.notes || ''}" />
+                        </tr>
+                      `;
 
         $('#entriesTableBody').append(newRow);
       }
