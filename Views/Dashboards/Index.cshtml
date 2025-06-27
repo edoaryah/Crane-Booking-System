@@ -209,11 +209,19 @@
           <div class="d-flex align-items-center gap-2">
             @* <label for="monthFilter" class="form-label mb-0">Bulan:</label> *@
             <select name="month" id="monthFilter" class="form-select form-select-sm">
+              @{
+                var currentMonth = DateTime.Now.Month;
+              }
               <option value="">Pilih Bulan</option>
               @for (int i = 1; i <= 12; i++)
               {
                 var culture = System.Globalization.CultureInfo.GetCultureInfo("id-ID");
-                if (Model.SelectedMonth == i)
+                int? selectedMonth = Model.SelectedMonth;
+                if (!selectedMonth.HasValue && Model.StartDate == null && Model.EndDate == null)
+                {
+                  selectedMonth = currentMonth;
+                }
+                if (selectedMonth == i)
                 {
                   <option value="@i" selected>@culture.DateTimeFormat.GetMonthName(i)</option>
                 }
@@ -395,6 +403,7 @@
             </div>
           </li>
         </ul>
+        <small class="text-muted">Statistik dihitung berdasarkan tanggal pembuatan booking</small>
       </div>
     </div>
   </div>

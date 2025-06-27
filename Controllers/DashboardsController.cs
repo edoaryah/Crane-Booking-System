@@ -25,6 +25,13 @@ public class DashboardsController : Controller
   // [RequireRole("admin")]
   public async Task<IActionResult> Index(int? month, DateTime? startDate, DateTime? endDate)
   {
+    // Tentukan periode dan parameter default
+    if (!month.HasValue && !startDate.HasValue && !endDate.HasValue)
+    {
+      // Tidak ada filter, gunakan bulan ini sebagai default
+      month = DateTime.Now.Month;
+    }
+
     string period;
     if (month.HasValue)
     {

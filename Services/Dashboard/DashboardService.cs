@@ -54,8 +54,11 @@ namespace AspnetCoreMvcFull.Services.Dashboard
         // var bookings = await _context.Bookings
         //     .Where(b => b.StartDate.Date >= dateRangeStart && b.StartDate.Date <= dateRangeEnd)
         //     .ToListAsync();
+        // var bookings = await _context.Bookings
+        //     .Where(b => b.StartDate.Date <= dateRangeEnd && b.EndDate.Date >= dateRangeStart)
+        //     .ToListAsync();
         var bookings = await _context.Bookings
-            .Where(b => b.StartDate.Date <= dateRangeEnd && b.EndDate.Date >= dateRangeStart)
+            .Where(b => b.SubmitTime.Date >= dateRangeStart && b.SubmitTime.Date <= dateRangeEnd)
             .ToListAsync();
 
         viewModel.BookingStatistics = new BookingStatisticsViewModel
