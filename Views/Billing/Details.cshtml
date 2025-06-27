@@ -5,6 +5,11 @@
   Layout = "_ContentNavbarLayout";
 }
 
+@section PageStyles {
+  <link rel="stylesheet" href="~/vendor/libs/toastify/toastify.min.css">
+}
+
+@* Legacy alert markup replaced by Toastify notifications
 @if (ViewBag.SuccessMessage != null)
 {
   <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -19,6 +24,8 @@
     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
   </div>
 }
+*@
+
 
 <!-- <h1>Detail Penagihan</h1>
 <p class="lead">Detail penggunaan crane untuk booking @Model.Booking.BookingNumber</p> -->
@@ -108,18 +115,36 @@
       }
       else
       {
-        <form asp-action="UnmarkAsBilled" asp-route-documentNumber="@Model.Booking.DocumentNumber" method="post"
-          class="d-inline"
-          onsubmit="return confirm('Apakah Anda yakin ingin membatalkan status penagihan untuk booking ini?');">
-          @Html.AntiForgeryToken()
-          <button type="submit" class="btn btn-warning">
-            <i class="bx bx-undo me-1"></i> Batalkan Status Penagihan
-          </button>
-        </form>
+        <!-- Button trigger Unmark Billing Modal -->
+        <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#unbillModal">
+          <i class="bx bx-undo me-1"></i> Batalkan Status Penagihan
+        </button>
       }
       <a asp-action="Index" class="btn btn-secondary">
         <i class="bx bx-arrow-back me-1"></i> Kembali
       </a>
+    </div>
+  </div>
+</div>
+
+<!-- Unmark Billing Modal -->
+<div class="modal fade" id="unbillModal" tabindex="-1" aria-labelledby="unbillModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form asp-action="UnmarkAsBilled" asp-route-documentNumber="@Model.Booking.DocumentNumber" method="post">
+        @Html.AntiForgeryToken()
+        <div class="modal-header">
+          <h5 class="modal-title" id="unbillModalLabel">Batalkan Status Penagihan</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>Apakah Anda yakin ingin membatalkan status penagihan untuk booking <strong>@Model.Booking.BookingNumber</strong>?</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+          <button type="submit" class="btn btn-warning">Batalkan Penagihan</button>
+        </div>
+      </form>
     </div>
   </div>
 </div>
@@ -289,8 +314,39 @@
 }
 
 @section PageScripts {
+  <script src="~/vendor/libs/toastify/toastify-js.js"></script>
   <script>
     $(document).ready(function () {
+      // ---------------------------------------------------------------------
+      // Toast Notification (using Toastify-JS)
+      // ---------------------------------------------------------------------
+      function showToast(title, message, type = 'success') {
+        Toastify({
+          text: title + ': ' + message,
+          duration: 5000,
+          close: true,
+          gravity: 'top',
+          position: 'right',
+          stopOnFocus: true,
+          style: {
+            background: type === 'success' ? '#198754' : '#dc3545',
+            borderRadius: '0.5rem',
+            color: '#fff',
+          },
+        }).showToast();
+      }
+
+      // Trigger toast based on server-side messages
+      @if (ViewBag.SuccessMessage != null)
+      {
+        <text>showToast('Success', '@ViewBag.SuccessMessage', 'success');</text>
+      }
+      @if (ViewBag.ErrorMessage != null)
+      {
+        <text>showToast('Error', '@ViewBag.ErrorMessage', 'error');</text>
+      }
+
+      // Initialize DataTable
       $('#entriesTable').DataTable({
         language: {
           url: '/lib/datatables/Indonesian.json'
