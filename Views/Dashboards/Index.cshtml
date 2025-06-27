@@ -450,7 +450,20 @@
                   <small class="text-muted">@booking.Department</small>
                 </div>
                 <div class="user-progress">
-                  <span class="badge @badgeClass">@booking.Status</span>
+                  <span class="badge @badgeClass">
+                      @{ var statusText = booking.Status switch
+                        {
+                          BookingStatus.PendingApproval => "Pending Approval",
+                          BookingStatus.ManagerApproved => "Manager Approved",
+                          BookingStatus.ManagerRejected => "Rejected by Manager",
+                          BookingStatus.PICApproved => "PIC Approved",
+                          BookingStatus.PICRejected => "Rejected by PIC",
+                          BookingStatus.Cancelled => "Cancelled",
+                          BookingStatus.Done => "Completed",
+                          _ => booking.Status.ToString()
+                        }; }
+                      @statusText
+                    </span>
                 </div>
               </div>
             </li>

@@ -52,13 +52,13 @@
 
                 var statusText = booking.Status switch
                 {
-                  AspnetCoreMvcFull.Models.BookingStatus.PendingApproval => "Menunggu Persetujuan",
-                  AspnetCoreMvcFull.Models.BookingStatus.ManagerApproved => "Disetujui Manager",
-                  AspnetCoreMvcFull.Models.BookingStatus.ManagerRejected => "Ditolak Manager",
-                  AspnetCoreMvcFull.Models.BookingStatus.PICApproved => "Disetujui PIC",
-                  AspnetCoreMvcFull.Models.BookingStatus.PICRejected => "Ditolak PIC",
-                  AspnetCoreMvcFull.Models.BookingStatus.Cancelled => "Dibatalkan",
-                  AspnetCoreMvcFull.Models.BookingStatus.Done => "Selesai",
+                  AspnetCoreMvcFull.Models.BookingStatus.PendingApproval => "Pending Approval",
+                  AspnetCoreMvcFull.Models.BookingStatus.ManagerApproved => "Manager Approved",
+                  AspnetCoreMvcFull.Models.BookingStatus.ManagerRejected => "Rejected by Manager",
+                  AspnetCoreMvcFull.Models.BookingStatus.PICApproved => "PIC Approved",
+                  AspnetCoreMvcFull.Models.BookingStatus.PICRejected => "Rejected by PIC",
+                  AspnetCoreMvcFull.Models.BookingStatus.Cancelled => "Cancelled",
+                  AspnetCoreMvcFull.Models.BookingStatus.Done => "Completed",
                   _ => booking.Status.ToString()
                 };
               }

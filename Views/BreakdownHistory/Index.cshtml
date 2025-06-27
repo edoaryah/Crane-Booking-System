@@ -52,71 +52,129 @@
           <th>End Time</th>
           <th>Actual End Time</th>
           <th>Duration</th>
-          <th>Reason</th>
         </tr>
       </thead>
       <tbody class="table-border-bottom-0">
         @if (Model.Any())
         {
-          @functions {
-            private string FormatTimespan(TimeSpan ts)
-            {
-              var parts = new List<string>();
-              if (ts.Days > 0)
-              {
-                parts.Add($"{ts.Days} Day{(ts.Days == 1 ? "" : "s")}");
-              }
-              if (ts.Hours > 0)
-              {
-                parts.Add($"{ts.Hours} Hour{(ts.Hours == 1 ? "" : "s")}");
-              }
-              // Always show minutes, even 0
-              parts.Add($"{ts.Minutes} Minute{(ts.Minutes == 1 ? "" : "s")}");
-              return string.Join(" ", parts);
-            }
-          }
-
-          @foreach (var breakdown in Model)
+        @functions {
+          private string FormatTimespan(TimeSpan ts)
           {
-            var planned = FormatTimespan(breakdown.UrgentEndTime - breakdown.UrgentStartTime);
-            var actual = breakdown.ActualUrgentEndTime.HasValue
-              ? FormatTimespan(breakdown.ActualUrgentEndTime.Value - breakdown.UrgentStartTime)
-              : "Not completed";
-
-            <tr>
-              <td>
-                <a href="@Url.Action("Details", "CraneManagement", new { id = breakdown.CraneId })">
-                  @breakdown.CraneCode
-                </a>
-              </td>
-              <td>@breakdown.CraneCapacity ton</td>
-              <td>@breakdown.UrgentStartTime.ToString("dd/MM/yyyy HH:mm")</td>
-              <td>@breakdown.UrgentEndTime.ToString("dd/MM/yyyy HH:mm")</td>
-              <td>
-                @if (breakdown.ActualUrgentEndTime.HasValue)
-                {
-                  @breakdown.ActualUrgentEndTime.Value.ToString("dd/MM/yyyy HH:mm")
-                }
-                else
-                {
-                  <span class="badge bg-warning">Not completed</span>
-                }
-              </td>
-              <td>
-                <span class="badge bg-primary d-block mb-1">Planned: @planned</span>
-                <span class="badge bg-info d-block">Actual: @actual</span>
-              </td>
-              <td>@breakdown.Reasons</td>
-            </tr>
+            var parts = new List<string>();
+            if (ts.Days > 0)
+            {
+              parts.Add($"{ts.Days} Day{(ts.Days == 1 ? "" : "s")}");
+            }
+            if (ts.Hours > 0)
+            {
+              parts.Add($"{ts.Hours} Hour{(ts.Hours == 1 ? "" : "s")}");
+            }
+            // Always show minutes, even 0
+            parts.Add($"{ts.Minutes} Minute{(ts.Minutes == 1 ? "" : "s")}");
+            return string.Join(" ", parts);
           }
         }
-        else
+
+        @foreach (var breakdown in Model)
+        {
+          var planned = FormatTimespan(breakdown.UrgentEndTime - breakdown.UrgentStartTime);
+          var actual = breakdown.ActualUrgentEndTime.HasValue
+          ? FormatTimespan(breakdown.ActualUrgentEndTime.Value - breakdown.UrgentStartTime)
+          : "Not completed";
+
+          <tr class="breakdown-row" data-start="@breakdown.UrgentStartTime.ToString("dd/MM/yyyy HH:mm")"
+            data-end="@breakdown.UrgentEndTime.ToString("dd/MM/yyyy HH:mm")"
+            data-actual="@((breakdown.ActualUrgentEndTime.HasValue ? breakdown.ActualUrgentEndTime.Value.ToString("dd/MM/yyyy HH:mm") : "Not completed"))"
+            data-reason="@breakdown.Reasons">
+            <td>
+              <a href="@Url.Action("Details", "CraneManagement", new { id = breakdown.CraneId })">
+                @breakdown.CraneCode
+              </a>
+            </td>
+            <td>@breakdown.CraneCapacity ton</td>
+            <td>@breakdown.UrgentStartTime.ToString("dd/MM/yyyy HH:mm")</td>
+            <td>@breakdown.UrgentEndTime.ToString("dd/MM/yyyy HH:mm")</td>
+            <td>
+              @if (breakdown.ActualUrgentEndTime.HasValue)
+              {
+                @breakdown.ActualUrgentEndTime.Value.ToString("dd/MM/yyyy HH:mm")
+              }
+              else
+              {
+                <span class="badge bg-warning">Not completed</span>
+              }
+            </td>
+            <td>
+              <span class="badge bg-primary d-block mb-1">Planned: @planned</span>
+              <span class="badge bg-info d-block">Actual: @actual</span>
+            </td>
+          </tr>
+        }
+                }
+                else
         {
           <tr>
-            <td colspan="7" class="text-center">No breakdown records found</td>
+            <td colspan="6" class="text-center">No breakdown records found</td>
           </tr>
         }
       </tbody>
     </table>
   </div>
 </div>
+
+<!-- Breakdown Detail Modal -->
+<div class="modal fade" id="breakdownDetailModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Breakdown Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Start Time</label>
+          <input type="text" class="form-control" id="bdStart" readonly>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">End Time</label>
+          <input type="text" class="form-control" id="bdEnd" readonly>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Actual End Time</label>
+          <input type="text" class="form-control" id="bdActual" readonly>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Reason</label>
+          <textarea id="bdReason" class="form-control" style="white-space:pre-wrap;overflow:hidden;resize:none" rows="1"
+            readonly data-autoresize></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+@section PageScripts {
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const modalEl = document.getElementById('breakdownDetailModal');
+      const modal = new bootstrap.Modal(modalEl);
+      const resizeTextarea = () => {
+        const ta = modalEl.querySelector('#bdReason');
+        ta.style.height = 'auto';
+        ta.style.height = ta.scrollHeight + 'px';
+      };
+      modalEl.addEventListener('shown.bs.modal', resizeTextarea);
+      document.querySelectorAll('.breakdown-row').forEach(row => {
+        row.style.cursor = 'pointer';
+        row.addEventListener('click', () => {
+          modalEl.querySelector('#bdStart').value = row.dataset.start;
+          modalEl.querySelector('#bdEnd').value = row.dataset.end;
+          modalEl.querySelector('#bdActual').value = row.dataset.actual;
+          const reasonArea = modalEl.querySelector('#bdReason');
+          reasonArea.value = row.dataset.reason || '-';
+          modal.show();
+        });
+      });
+    });
+  </script>
+}

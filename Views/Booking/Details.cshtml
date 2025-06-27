@@ -245,32 +245,32 @@
                     switch (Model.Status)
                     {
                       case BookingStatus.PendingApproval:
-                        statusClass = "bg-warning text-white";
-                        statusText = "Menunggu Persetujuan";
+                        statusClass = "bg-warning";
+                        statusText = "Pending Approval";
                         break;
                       case BookingStatus.ManagerApproved:
-                        statusClass = "bg-info text-white";
-                        statusText = "Disetujui Manager, Menunggu Persetujuan PIC Crane";
+                        statusClass = "bg-info";
+                        statusText = "Manager Approved – Waiting PIC Approval";
                         break;
                       case BookingStatus.PICApproved:
-                        statusClass = "bg-success text-white";
-                        statusText = "Disetujui, Menunggu Penyelesaian";
+                        statusClass = "bg-success";
+                        statusText = "PIC Approved – Waiting Completion";
                         break;
                       case BookingStatus.ManagerRejected:
                         statusClass = "bg-danger text-white";
-                        statusText = "Ditolak oleh Manager";
+                        statusText = "Rejected by Manager";
                         break;
                       case BookingStatus.PICRejected:
                         statusClass = "bg-danger text-white";
-                        statusText = "Ditolak oleh PIC Crane";
+                        statusText = "Rejected by PIC";
                         break;
                       case BookingStatus.Cancelled:
-                        statusClass = "bg-secondary text-white";
-                        statusText = "Dibatalkan";
+                        statusClass = "bg-secondary";
+                        statusText = "Cancelled";
                         break;
                       case BookingStatus.Done:
-                        statusClass = "bg-dark text-white";
-                        statusText = "Selesai";
+                        statusClass = "bg-primary";
+                        statusText = "Completed";
                         break;
                     }
                   }
@@ -305,77 +305,6 @@
                 </div>
               </div>
 
-              @* <!-- Action Buttons Section -->
-              <div class="row mb-4">
-                <div class="col-12">
-                  <!-- Buttons for users who created the booking -->
-                  @if (isBookingCreator && !isPic && !isAdmin) // Tambahkan kondisi !isPic dan !isAdmin
-                  {
-                    @if (Model.Status == BookingStatus.ManagerRejected || Model.Status == BookingStatus.PICRejected)
-                    {
-                      <a href="@Url.Action("Edit", "Booking", new { documentNumber = Model.DocumentNumber })"
-                        class="btn btn-warning me-2">
-                        <i class="bx bx-edit me-1"></i> Edit Booking
-                      </a>
-                    }
-
-                    @if (Model.Status != BookingStatus.Cancelled && Model.Status != BookingStatus.Done)
-                    {
-                      <a href="@Url.Action("Cancel", "BookingAction", new { documentNumber = Model.DocumentNumber })"
-                        class="btn btn-danger me-2">
-                        <i class="bx bx-x-circle me-1"></i> Batalkan Booking
-                      </a>
-                    }
-                  }
-
-                  <!-- Buttons for PIC role -->
-                  @if (isPic || isAdmin)
-                  {
-                    @if (Model.Status == BookingStatus.ManagerApproved)
-                    {
-                      <button type="button" class="btn btn-success me-2" data-bs-toggle="modal"
-                        data-bs-target="#approveModal">
-                        <i class="bx bx-check me-1"></i> Setujui
-                      </button>
-
-                      <button type="button" class="btn btn-danger me-2" data-bs-toggle="modal" data-bs-target="#rejectModal">
-                        <i class="bx bx-x me-1"></i> Tolak
-                      </button>
-                    }
-
-                    @if (Model.Status == BookingStatus.PICApproved)
-                    {
-                      <button type="button" class="btn btn-success me-2" data-bs-toggle="modal"
-                        data-bs-target="#markDoneModal">
-                        <i class="bx bx-check-double me-1"></i> Tandai Selesai
-                      </button>
-                    }
-
-                    @if (Model.Status != BookingStatus.Cancelled && Model.Status != BookingStatus.Done)
-                    {
-                      <a href="@Url.Action("Cancel", "BookingAction", new { documentNumber = Model.DocumentNumber })"
-                        class="btn btn-danger me-2">
-                        <i class="bx bx-x-circle me-1"></i> Batalkan Booking
-                      </a>
-                    }
-                  }
-
-                  <!-- Jika user adalah pembuat booking sekaligus PIC/admin, tampilkan tombol edit jika ditolak -->
-                  @if (isBookingCreator && (isPic || isAdmin) && (Model.Status == BookingStatus.ManagerRejected ||
-                                  Model.Status == BookingStatus.PICRejected))
-                  {
-                    <a href="@Url.Action("Edit", "Booking", new { documentNumber = Model.DocumentNumber })"
-                      class="btn btn-warning me-2">
-                      <i class="bx bx-edit me-1"></i> Edit Booking
-                    </a>
-                  }
-
-                  <!-- Back button for everyone -->
-                  <a href="@Url.Action("Index", "BookingList")" class="btn btn-outline-secondary">
-                    <i class="bx bx-arrow-back me-1"></i> Kembali
-                  </a>
-                </div>
-              </div> *@
               <!-- ✅ ENHANCED ACTION BUTTONS SECTION -->
               <div class="row mb-4">
                 <div class="col-12">
@@ -408,20 +337,20 @@
                     {
                       @if (Model.Status == BookingStatus.ManagerApproved)
                       {
-                        <button type="button" class="btn btn-success me-2" data-bs-toggle="modal"
+                        <button type="button" class="btn btn-success" data-bs-toggle="modal"
                           data-bs-target="#approveModal">
-                          <i class="bx bx-check me-1"></i> Setujui
+                          <i class="bx bx-check me-1"></i> Approve
                         </button>
 
-                        <button type="button" class="btn btn-danger me-2" data-bs-toggle="modal"
+                        <button type="button" class="btn btn-danger" data-bs-toggle="modal"
                           data-bs-target="#rejectModal">
-                          <i class="bx bx-x me-1"></i> Tolak
+                          <i class="bx bx-x me-1"></i> Reject
                         </button>
                       }
 
                       @if (Model.Status == BookingStatus.PICApproved)
                       {
-                        <button type="button" class="btn btn-success me-2" data-bs-toggle="modal"
+                        <button type="button" class="btn btn-success" data-bs-toggle="modal"
                           data-bs-target="#markDoneModal">
                           <i class="bx bx-check-double me-1"></i> Tandai Selesai
                         </button>

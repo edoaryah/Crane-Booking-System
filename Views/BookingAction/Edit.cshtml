@@ -9,6 +9,45 @@
   var documentNumber = ViewBag.DocumentNumber as string ?? "";
   var bookingId = ViewBag.BookingId as int? ?? 0;
   var bookingNumber = ViewBag.BookingNumber as string ?? "";
+
+  // Map booking status to consistent badge color and English text
+  string statusClass = "bg-secondary";
+  string statusText = currentStatus?.ToString() ?? "";
+
+  if (currentStatus.HasValue)
+  {
+      switch (currentStatus.Value)
+      {
+          case AspnetCoreMvcFull.Models.BookingStatus.PendingApproval:
+              statusClass = "bg-warning";
+              statusText = "Pending Approval";
+              break;
+          case AspnetCoreMvcFull.Models.BookingStatus.ManagerApproved:
+              statusClass = "bg-info";
+              statusText = "Manager Approved";
+              break;
+          case AspnetCoreMvcFull.Models.BookingStatus.PICApproved:
+              statusClass = "bg-success";
+              statusText = "PIC Approved";
+              break;
+          case AspnetCoreMvcFull.Models.BookingStatus.ManagerRejected:
+              statusClass = "bg-danger";
+              statusText = "Rejected by Manager";
+              break;
+          case AspnetCoreMvcFull.Models.BookingStatus.PICRejected:
+              statusClass = "bg-danger";
+              statusText = "Rejected by PIC";
+              break;
+          case AspnetCoreMvcFull.Models.BookingStatus.Cancelled:
+              statusClass = "bg-secondary";
+              statusText = "Cancelled";
+              break;
+          case AspnetCoreMvcFull.Models.BookingStatus.Done:
+              statusClass = "bg-primary";
+              statusText = "Completed";
+              break;
+      }
+  }
 }
 
 @section PageStyles {
@@ -194,9 +233,9 @@
               <span class="text-muted">Booking No: @bookingNumber</span>
             }
           </h5>
-          <small class="text-muted mt-1 mt-md-0">
-            Current Status: <span class="badge bg-secondary">@currentStatus</span>
-          </small>
+          <div class="mt-1 mt-md-0 d-flex align-items-center">
+            <span class="badge @statusClass">@statusText</span>
+          </div>
         </div>
       </div>
       <div class="card-body">

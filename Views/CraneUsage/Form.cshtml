@@ -99,11 +99,11 @@
               <th>Category</th>
               <th>Subcategory</th>
               <th>Operator</th>
-              <th>Booking</th>
-              <th>Notes</th>
+              <th class="text-center">Booking</th>
+              <th class="d-none">Notes</th>
               @if (!Model.IsFinalized)
               {
-                <th>Actions</th>
+                <th class="text-center">Actions</th>
               }
             </tr>
           </thead>
@@ -122,25 +122,25 @@
                   </td>
                   <td>@entry.SubcategoryName</td>
                   <td>@entry.OperatorName</td>
-                  <td>
+                  <td class="text-center">
                     @if (!string.IsNullOrEmpty(entry.BookingNumber))
                     {
-                      <span class="badge bg-primary booking-text">@entry.BookingNumber</span>
+                      <span class="badge bg-primary booking-text">Booking: @entry.BookingNumber</span>
                     }
 
                   </td>
-                  <td>@entry.Notes</td>
+                  <td class="d-none">@entry.Notes</td>
                   @if (!Model.IsFinalized)
                   {
-                    <td>
-                      <div class="btn-group">
-                        <button type="button" class="btn btn-sm btn-warning text-white edit-entry" data-id="@entry.Id"
+                    <td class="text-center action-buttons-cell">
+                      <div class="action-buttons d-flex justify-content-center gap-1">
+                        <button type="button" class="btn btn-sm btn-outline-primary edit-entry" data-id="@entry.Id"
                           data-start="@entry.StartTime.ToString(@"hh\:mm")" data-end="@entry.EndTime.ToString(@"hh\:mm")"
                           data-category="@((int)entry.Category)" data-subcategory="@entry.UsageSubcategoryId"
                           data-operator="@entry.OperatorName" data-booking="@entry.BookingId" data-notes="@entry.Notes">
                           <i class="bx bx-edit"></i>
                         </button>
-                        <button type="button" class="btn btn-sm btn-danger delete-entry" data-id="@entry.Id">
+                        <button type="button" class="btn btn-sm btn-outline-danger delete-entry" data-id="@entry.Id">
                           <i class="bx bx-trash"></i>
                         </button>
                       </div>
@@ -167,6 +167,43 @@
                         }
           </tbody>
         </table>
+
+        <!-- Entry Notes Modal -->
+        <div class="modal fade" id="entryNoteModal" tabindex="-1" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title">Entry Notes</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                <div class="row mb-3">
+                  <div class="col-md-6">
+                    <label class="form-label">Time</label>
+                    <input type="text" id="entryModalTime" class="form-control" readonly />
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Category</label>
+                    <input type="text" id="entryModalCategory" class="form-control" readonly />
+                  </div>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Subcategory</label>
+                  <input type="text" id="entryModalSubcategory" class="form-control" readonly />
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Notes</label>
+                  <textarea id="entryNotesText" class="form-control"
+                    style="white-space:pre-wrap;overflow:hidden;resize:none" rows="1" readonly></textarea>
+                </div>
+              </div>
+              @* <div class="modal-body">
+                <textarea id="entryNotesText" class="form-control"
+                  style="white-space:pre-wrap;overflow:hidden;resize:none" rows="1" readonly></textarea>
+              </div> *@
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     <div class="card-footer">
@@ -834,48 +871,48 @@
         }
 
         var newRow = `
-                          <tr data-entry-id="${entry.id}">
-                            <td>${formatTime(entry.startTime)} - ${formatTime(entry.endTime)}</td>
-                            <td>
-                              <span class="badge" style="background-color: ${categoryColor}">
-                                ${entry.categoryName}
-                              </span>
-                            </td>
-                            <td>${entry.subcategoryName}</td>
-                            <td>${entry.operatorName || ''}</td>
-                            <td>${relatedItems}</td>
-                            <td>${entry.notes || ''}</td>
-                            <td>
-                              <div class="btn-group">
-                                <button type="button" class="btn btn-sm btn-warning text-white edit-entry"
-                                  data-id="${entry.id}"
-                                  data-start="${formatTime(entry.startTime)}"
-                                  data-end="${formatTime(entry.endTime)}"
-                                  data-category="${entry.category}"
-                                  data-subcategory="${entry.usageSubcategoryId}"
+                                              <tr data-entry-id="${entry.id}">
+                                                <td>${formatTime(entry.startTime)} - ${formatTime(entry.endTime)}</td>
+                                                <td>
+                                                  <span class="badge" style="background-color: ${categoryColor}">
+                                                    ${entry.categoryName}
+                                                  </span>
+                                                </td>
+                                                <td>${entry.subcategoryName}</td>
+                                                <td>${entry.operatorName || ''}</td>
+                                                <td class="text-center">${relatedItems}</td>
+                                                <td>${entry.notes || ''}</td>
+                                                <td class="text-center action-buttons-cell">
+                                                  <div class="action-buttons d-flex gap-1">
+                                                    <button type="button" class="btn btn-sm btn-outline-primary edit-entry"
+                                                      data-id="${entry.id}"
+                                                      data-start="${formatTime(entry.startTime)}"
+                                                      data-end="${formatTime(entry.endTime)}"
+                                                      data-category="${entry.category}"
+                                                      data-subcategory="${entry.usageSubcategoryId}"
 
-                                  data-operator="${entry.operatorName || ''}"
-                                  data-booking="${entry.bookingId || ''}"
-                                  data-notes="${entry.notes || ''}">
-                                  <i class="bx bx-edit"></i>
-                                </button>
-                                <button type="button" class="btn btn-sm btn-danger delete-entry" data-id="${entry.id}">
-                                  <i class="bx bx-trash"></i>
-                                </button>
-                              </div>
-                            </td>
+                                                      data-operator="${entry.operatorName || ''}"
+                                                      data-booking="${entry.bookingId || ''}"
+                                                      data-notes="${entry.notes || ''}">
+                                                      <i class="bx bx-edit"></i>
+                                                    </button>
+                                                    <button type="button" class="btn btn-sm btn-outline-danger delete-entry" data-id="${entry.id}">
+                                                      <i class="bx bx-trash"></i>
+                                                    </button>
+                                                  </div>
+                                                </td>
 
-                            <input type="hidden" name="Entries[${index}].Id" value="${entry.id}" />
-                            <input type="hidden" name="Entries[${index}].StartTime" value="${entry.startTime}" />
-                            <input type="hidden" name="Entries[${index}].EndTime" value="${entry.endTime}" />
-                            <input type="hidden" name="Entries[${index}].Category" value="${entry.category}" />
-                            <input type="hidden" name="Entries[${index}].UsageSubcategoryId" value="${entry.usageSubcategoryId}" />
+                                                <input type="hidden" name="Entries[${index}].Id" value="${entry.id}" />
+                                                <input type="hidden" name="Entries[${index}].StartTime" value="${entry.startTime}" />
+                                                <input type="hidden" name="Entries[${index}].EndTime" value="${entry.endTime}" />
+                                                <input type="hidden" name="Entries[${index}].Category" value="${entry.category}" />
+                                                <input type="hidden" name="Entries[${index}].UsageSubcategoryId" value="${entry.usageSubcategoryId}" />
 
-                            <input type="hidden" name="Entries[${index}].OperatorName" value="${entry.operatorName || ''}" />
-                            <input type="hidden" name="Entries[${index}].BookingId" value="${entry.bookingId || ''}" />
-                            <input type="hidden" name="Entries[${index}].Notes" value="${entry.notes || ''}" />
-                          </tr>
-                        `;
+                                                <input type="hidden" name="Entries[${index}].OperatorName" value="${entry.operatorName || ''}" />
+                                                <input type="hidden" name="Entries[${index}].BookingId" value="${entry.bookingId || ''}" />
+                                                <input type="hidden" name="Entries[${index}].Notes" value="${entry.notes || ''}" />
+                                              </tr>
+                                            `;
 
         $('#entriesTableBody').append(newRow);
       }
@@ -978,6 +1015,28 @@
       }
 
       // Close booking search results when clicking outside
+      // Row click to show notes modal
+      const noteModalEl = document.getElementById('entryNoteModal');
+      const noteModal = new bootstrap.Modal(noteModalEl);
+      $('#entriesTableBody').on('click', 'tr', function (e) {
+        if ($(e.target).closest('.btn').length) return; // ignore button clicks
+        const notes = $(this).find('td.d-none').text().trim() || '-';
+
+        const timeText = $(this).find('td').eq(0).text().trim();
+        const categoryText = $(this).find('td').eq(1).text().trim();
+        const subcategoryText = $(this).find('td').eq(2).text().trim();
+
+        noteModalEl.querySelector('#entryModalTime').value = timeText;
+        noteModalEl.querySelector('#entryModalCategory').value = categoryText;
+        noteModalEl.querySelector('#entryModalSubcategory').value = subcategoryText;
+
+        const ta = noteModalEl.querySelector('#entryNotesText');
+        ta.value = notes;
+        ta.style.height = 'auto';
+        ta.style.height = ta.scrollHeight + 'px';
+        noteModal.show();
+      });
+
       $(document).on('click', function (e) {
         if (!$(e.target).closest('#bookingSearch, #bookingSearchResults').length) {
           $('#bookingSearchResults').hide();
