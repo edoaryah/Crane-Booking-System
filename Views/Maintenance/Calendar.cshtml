@@ -118,8 +118,8 @@
                         <a href="@Url.Action("Details", "Maintenance", new { documentNumber = ev.DocumentNumber })"
                           class="btn btn-sm bg-@color text-white w-100 text-start">
                           <i class="bx bx-wrench me-1"></i>
-                          <span class="small d-inline-block text-truncate" style="max-width: 120px;">
-                            @ev.Title
+                          <span class="small d-inline-block" style="max-width: 120px;">
+                            @(ev.Title != null && ev.Title.Length > 15 ? ev.Title.Substring(0, 13) + "..." : ev.Title)
                           </span>
                         </a>
                       </div>
@@ -147,6 +147,10 @@
 
 @section PageStyles {
   <style>
+    .maintenance-event {
+      margin: 0.25rem !important;
+    }
+
     .maintenance-event .btn {
       white-space: normal;
     }
