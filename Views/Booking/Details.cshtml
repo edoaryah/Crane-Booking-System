@@ -933,6 +933,7 @@
           @Html.AntiForgeryToken()
           <input type="hidden" name="bookingId" value="@(Model?.Id ?? 0)" />
           <input type="hidden" name="picName" value="@(User.Identity?.Name ?? "")" />
+          <input type="hidden" name="returnToDetails" value="true" />
           <div class="modal-header">
             <h5 class="modal-title">Konfirmasi Persetujuan</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -957,6 +958,7 @@
           @Html.AntiForgeryToken()
           <input type="hidden" name="bookingId" value="@(Model?.Id ?? 0)" />
           <input type="hidden" name="picName" value="@(User.Identity?.Name ?? "")" />
+          <input type="hidden" name="returnToDetails" value="true" />
           <div class="modal-header">
             <h5 class="modal-title">Konfirmasi Penolakan</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>

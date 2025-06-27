@@ -25,7 +25,9 @@ namespace AspnetCoreMvcFull.Controllers
       // Jika pengguna sudah login, redirect ke halaman utama
       if (User.Identity?.IsAuthenticated == true)
       {
-        return Redirect(returnUrl);
+        // return Redirect(returnUrl);
+        string decodedUrl = Uri.UnescapeDataString(returnUrl ?? "/");
+        return LocalRedirect(decodedUrl);
       }
 
       ViewData["ReturnUrl"] = returnUrl;
@@ -106,7 +108,9 @@ namespace AspnetCoreMvcFull.Controllers
         // Security: Validate returnUrl is local
         if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
         {
-          return Redirect(returnUrl);
+          // return Redirect(returnUrl);
+          string decodedUrl = Uri.UnescapeDataString(returnUrl);
+          return LocalRedirect(decodedUrl);
         }
         else
         {

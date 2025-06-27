@@ -284,7 +284,7 @@ namespace AspnetCoreMvcFull.Controllers
     }
 
     [HttpPost]
-    public async Task<IActionResult> ApproveByPic(int bookingId, string picName)
+    public async Task<IActionResult> ApproveByPic(int bookingId, string picName, bool returnToDetails = false)
     {
       try
       {
@@ -319,12 +319,20 @@ namespace AspnetCoreMvcFull.Controllers
           TempData["SuccessMessage"] = "Booking berhasil disetujui.";
           var bookingRedirect = await _bookingService.GetBookingByIdAsync(bookingId);
           TempData["DocumentNumber"] = bookingRedirect.DocumentNumber;
-          return RedirectToAction("Success");
+          if (returnToDetails)
+            return RedirectToAction("Details", "Booking", new { documentNumber = bookingRedirect.DocumentNumber });
+          else
+            return RedirectToAction("Success");
         }
         else
         {
           TempData["SuccessMessage"] = "Booking tidak dapat disetujui karena mungkin sudah diproses oleh PIC lain.";
-          return RedirectToAction("Success");
+          var bookingRedirect = await _bookingService.GetBookingByIdAsync(bookingId);
+          TempData["DocumentNumber"] = bookingRedirect.DocumentNumber;
+          if (returnToDetails)
+            return RedirectToAction("Details", "Booking", new { documentNumber = bookingRedirect.DocumentNumber });
+          else
+            return RedirectToAction("Success");
         }
       }
       catch (KeyNotFoundException)
@@ -341,7 +349,7 @@ namespace AspnetCoreMvcFull.Controllers
     }
 
     [HttpPost]
-    public async Task<IActionResult> RejectByPic(int bookingId, string picName, string rejectReason)
+    public async Task<IActionResult> RejectByPic(int bookingId, string picName, string rejectReason, bool returnToDetails = false)
     {
       try
       {
@@ -384,14 +392,20 @@ namespace AspnetCoreMvcFull.Controllers
           TempData["SuccessMessage"] = "Booking telah ditolak.";
           var bookingRedirect = await _bookingService.GetBookingByIdAsync(bookingId);
           TempData["DocumentNumber"] = bookingRedirect.DocumentNumber;
-          return RedirectToAction("Success");
+          if (returnToDetails)
+            return RedirectToAction("Details", "Booking", new { documentNumber = bookingRedirect.DocumentNumber });
+          else
+            return RedirectToAction("Success");
         }
         else
         {
           TempData["SuccessMessage"] = "Booking tidak dapat ditolak karena mungkin sudah diproses oleh PIC lain.";
           var bookingRedirect = await _bookingService.GetBookingByIdAsync(bookingId);
           TempData["DocumentNumber"] = bookingRedirect.DocumentNumber;
-          return RedirectToAction("Success");
+          if (returnToDetails)
+            return RedirectToAction("Details", "Booking", new { documentNumber = bookingRedirect.DocumentNumber });
+          else
+            return RedirectToAction("Success");
         }
       }
       catch (KeyNotFoundException)
