@@ -13,24 +13,6 @@
     </a>
   </div>
   <div class="card-body">
-    <div id="alertContainer">
-      @if (ViewBag.SuccessMessage != null)
-      {
-        <div class="alert alert-success alert-dismissible fade show auto-close-alert" role="alert">
-          @ViewBag.SuccessMessage
-          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-      }
-
-      @if (ViewBag.ErrorMessage != null)
-      {
-        <div class="alert alert-danger alert-dismissible fade show auto-close-alert" role="alert">
-          @ViewBag.ErrorMessage
-          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-      }
-    </div>
-
     <!-- Crane Cards -->
     <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
       @foreach (var crane in Model)
@@ -121,7 +103,12 @@
 </div>
 
 @section PageStyles {
+  <link rel="stylesheet" href="~/vendor/libs/toastify/toastify.min.css">
   <style>
+    #alertContainer {
+      display: none;
+    }
+
     .crane-card {
       transition: all 0.3s ease;
     }
@@ -152,14 +139,35 @@
 }
 
 @section PageScripts {
+  <script src="~/vendor/libs/toastify/toastify-js.js"></script>
   <script>
-    // Script untuk menghilangkan alert secara otomatis setelah 5 detik
+    // Toast Notification via Toastify-JS
     $(document).ready(function () {
-      setTimeout(function () {
-        $('.auto-close-alert').fadeOut('slow', function () {
-          $(this).remove();
-        });
-      }, 5000); // 5000 milliseconds = 5 detik
+      function showToast(title, message, type = 'success') {
+        Toastify({
+          text: title + ': ' + message,
+          duration: 5000,
+          close: true,
+          gravity: 'top',
+          position: 'right',
+          stopOnFocus: true,
+          style: {
+            background: type === 'success' ? '#198754' : '#dc3545',
+            borderRadius: '0.5rem',
+            color: '#fff',
+          },
+        }).showToast();
+      }
+
+      var successMessage = '@(ViewBag.SuccessMessage ?? "")';
+      var errorMessage = '@(ViewBag.ErrorMessage ?? "")';
+
+      if (successMessage) {
+        showToast('Success', successMessage, 'success');
+      }
+      if (errorMessage) {
+        showToast('Error', errorMessage, 'error');
+      }
     });
   </script>
 }

@@ -27,7 +27,12 @@
 }
 
 @section PageStyles {
+  <link rel="stylesheet" href="~/vendor/libs/toastify/toastify.min.css">
   <style>
+    #alertContainer {
+      display: none;
+    }
+
     .action-buttons .btn {
       margin-right: 0.25rem;
       width: 38px;
@@ -101,24 +106,6 @@
     }
   </style>
 }
-
-<div id="alertContainer">
-  @if (ViewBag.SuccessMessage != null)
-  {
-    <div class="alert alert-success alert-dismissible fade show auto-close-alert" role="alert">
-      @ViewBag.SuccessMessage
-      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-  }
-
-  @if (ViewBag.ErrorMessage != null)
-  {
-    <div class="alert alert-danger alert-dismissible fade show auto-close-alert" role="alert">
-      @ViewBag.ErrorMessage
-      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-  }
-</div>
 
 <!-- Timeline Card -->
 <div class="card mb-4">
@@ -219,17 +206,38 @@
 
 @section PageScripts {
   <script src="~/vendor/libs/jquery/jquery.js"></script>
+  <script src="~/vendor/libs/toastify/toastify-js.js"></script>
   <link href="~/vendor/libs/vis/vis.min.css" rel="stylesheet" type="text/css" />
   <script src="~/vendor/libs/vis/vis.min.js"></script>
 
   <script>
-    // Script untuk menghilangkan alert secara otomatis setelah 5 detik
+    // Toast Notification via Toastify-JS
     $(document).ready(function () {
-      setTimeout(function () {
-        $('.auto-close-alert').fadeOut('slow', function () {
-          $(this).remove();
-        });
-      }, 5000); // 5000 milliseconds = 5 detik
+      function showToast(title, message, type = 'success') {
+        Toastify({
+          text: title + ': ' + message,
+          duration: 5000,
+          close: true,
+          gravity: 'top',
+          position: 'right',
+          stopOnFocus: true,
+          style: {
+            background: type === 'success' ? '#198754' : '#dc3545',
+            borderRadius: '0.5rem',
+            color: '#fff',
+          },
+        }).showToast();
+      }
+
+      var successMessage = '@(ViewBag.SuccessMessage ?? "")';
+      var errorMessage = '@(ViewBag.ErrorMessage ?? "")';
+
+      if (successMessage) {
+        showToast('Success', successMessage, 'success');
+      }
+      if (errorMessage) {
+        showToast('Error', errorMessage, 'error');
+      }
     });
 
     // Panggil hanya sekali - flag untuk mencegah inisialisasi duplikat
