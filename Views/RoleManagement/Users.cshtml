@@ -26,6 +26,7 @@
 }
 
 @section PageStyles {
+  <link rel="stylesheet" href="~/vendor/libs/toastify/toastify.min.css">
   <style>
     .table th,
     .table td {
@@ -79,24 +80,6 @@
     }
   </style>
 }
-
-<div id="alertContainer">
-  @if (ViewBag.ErrorMessage != null)
-  {
-    <div class="alert alert-danger alert-dismissible fade show auto-close-alert" role="alert">
-      @ViewBag.ErrorMessage
-      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-  }
-
-  @if (ViewBag.SuccessMessage != null)
-  {
-    <div class="alert alert-success alert-dismissible fade show auto-close-alert" role="alert">
-      @ViewBag.SuccessMessage
-      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-  }
-</div>
 
 <!-- Content wrapper -->
 <div class="row">
@@ -333,14 +316,36 @@
 </div>
 
 @section PageScripts {
+  <script src="~/vendor/libs/toastify/toastify-js.js"></script>
   <script>
-    // Script untuk menghilangkan alert secara otomatis setelah 5 detik
+    // Toastify helper
+    function showToast(title, message, type = 'success') {
+      Toastify({
+        text: title + ': ' + message,
+        duration: 5000,
+        close: true,
+        gravity: 'top',
+        position: 'right',
+        stopOnFocus: true,
+        style: {
+          background: type === 'success' ? '#198754' : '#dc3545',
+          borderRadius: '0.5rem',
+          color: '#fff',
+        },
+      }).showToast();
+    }
+
+    // Script untuk menghilangkan alert dan trigger toast
     $(document).ready(function () {
-      setTimeout(function () {
-        $('.auto-close-alert').fadeOut('slow', function () {
-          $(this).remove();
-        });
-      }, 5000); // 5000 milliseconds = 5 detik
+      // placeholder
+      @if (ViewBag.SuccessMessage != null)
+      {
+        <text>showToast('Success', '@ViewBag.SuccessMessage', 'success');</text>
+      }
+      @if (ViewBag.ErrorMessage != null)
+      {
+        <text>showToast('Error', '@ViewBag.ErrorMessage', 'error');</text>
+      }
     });
 
     // ✅ TAMBAHAN: Variable untuk menentukan apakah role bisa di-manage
@@ -432,6 +437,10 @@
       });
 
       // Setup delegated event handler for delete buttons
+      $('#addUserModal').on('shown.bs.modal', function () {
+        $('#saveUserBtn').prop('disabled', false).text('Simpan');
+      });
+
       $(document).on('click', '.delete-user-btn', function () {
         const id = $(this).data('id');
         const name = $(this).data('name') || 'pengguna ini';
@@ -581,11 +590,42 @@
         success: function (response) {
           if (response && response.success) {
             $('#addUserModal').modal('hide');
+            $('#saveUserBtn').prop('disabled', false).text('Simpan');
             showAlert('success', response.message || 'Pengguna berhasil ditambahkan.');
-            // Reload page after short delay
-            setTimeout(function () {
-              window.location.reload();
-            }, 1000);
+            // Tambahkan baris baru ke tabel tanpa reload
+            if (response.user) {
+              const u = response.user;
+              const initials = (u.employeeName || u.employee_name || '')
+                                   .split(' ').filter(Boolean).map(w => w[0]).join('').substring(0,2).toUpperCase();
+              let rowHtml = `<tr data-id="${u.id}">
+                                <td>
+                                  <div class="d-flex align-items-center">
+                                    <div class="user-avatar">${initials || '-'}</div>
+                                    <div>
+                                      <strong>${u.employeeName || u.employee_name || '-'}</strong>
+                                      <div class="text-muted small">${u.ldapUser || u.ldap_user || ''}</div>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td>${u.departmentName || u.department || u.department_name || '-'}</td>
+                                <td>${u.positionName || u.position || u.position_name || '-'}</td>`;
+              if (canManageUsers) {
+                rowHtml += `<td>${u.notes || '-'}</td>
+                             <td>
+                               <div class="action-buttons">
+                                 <button type="button" class="btn btn-sm btn-outline-primary edit-user-btn" data-id="${u.id}" title="Edit">
+                                   <i class="bx bx-edit-alt"></i>
+                                 </button>
+                                 <button type="button" class="btn btn-sm btn-outline-danger delete-user-btn" data-id="${u.id}" data-name="${u.employeeName || ''}" title="Delete">
+                                   <i class="bx bx-trash"></i>
+                                 </button>
+                               </div>
+                             </td>`;
+              }
+              rowHtml += '</tr>';
+              $('#usersTable tbody').append(rowHtml);
+              updateTableVisibility();
+            }
           } else {
             showAlert('danger', (response && response.message) || 'Gagal menambahkan pengguna.');
             $('#saveUserBtn').prop('disabled', false).text('Simpan');
@@ -593,6 +633,9 @@
         },
         error: function () {
           showAlert('danger', 'Gagal menambahkan pengguna. Silakan coba lagi.');
+        },
+        complete: function () {
+          // Reset button state regardless of outcome
           $('#saveUserBtn').prop('disabled', false).text('Simpan');
         }
       });
@@ -691,26 +734,9 @@
     }
 
     function showAlert(type, message) {
-      // Create new alert element
-      const alertEl = $(`
-                        <div class="alert alert-${type} alert-dismissible fade show auto-close-alert" role="alert">
-                          ${message}
-                          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                      `);
-
-      // Add to container without removing existing alerts
-      $('#alertContainer').append(alertEl);
-
-      // Auto dismiss after 5 seconds
-      setTimeout(function () {
-        alertEl.alert('close');
-      }, 5000);
-
-      // Scroll to alert
-      $('html, body').animate({
-        scrollTop: $('#alertContainer').offset().top - 100
-      }, 200);
+      const toastType = type === 'success' ? 'success' : 'error';
+      const title = toastType === 'success' ? 'Success' : 'Error';
+      showToast(title, message, toastType);
     }
   </script>
 }
