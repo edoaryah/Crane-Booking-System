@@ -9,6 +9,7 @@
 }
 
 @section PageStyles {
+  <link rel="stylesheet" href="~/vendor/libs/toastify/toastify.min.css">
   <style>
     .required-label:after {
       content: " *";
@@ -457,10 +458,29 @@
 </div>
 
 @section PageScripts {
+  <script src="~/vendor/libs/toastify/toastify-js.js"></script>
   <script>
     let shiftDefinitions = [];
     let bookedShifts = [];
     let maintenanceShifts = [];
+
+    // ------------------------------------------------------------
+    // Toast Notification (using Toastify-JS)
+    // ------------------------------------------------------------
+    function showToast(title, message, type = 'error') {
+      Toastify({
+        text: title + ': ' + message,
+        duration: 5000,
+        close: true,
+        gravity: 'top',
+        position: 'right',
+        style: {
+          background: type === 'success' ? '#198754' : '#dc3545',
+          borderRadius: '0.5rem',
+          color: '#fff',
+        },
+      }).showToast();
+    }
 
     const startDateInput = document.getElementById('startDate');
     const endDateInput = document.getElementById('endDate');
@@ -710,21 +730,21 @@
 
           const cell = document.createElement('td');
           cell.innerHTML = `
-                              <div class="form-check d-flex justify-content-center flex-column align-items-center">
-                                <input type="checkbox" class="form-check-input shift-checkbox"
-                                  id="shift-${shiftId}-${dayShift.date}"
-                                  name="shiftSelections[${index}].selectedShiftIds[]"
-                                  value="${shiftId}"
-                                  data-date="${dayShift.date}"
-                                  data-shift-id="${shiftId}"
-                                  ${isSelected ? 'checked' : ''}
-                                  ${isDisabled ? 'disabled' : ''} />
-                                <span class="shift-status ${statusClass}">
-                                  ${statusText}
-                                </span>
-                                <input type="hidden" name="shiftSelections[${index}].date" value="${dayShift.date}" />
-                              </div>
-                            `;
+                                <div class="form-check d-flex justify-content-center flex-column align-items-center">
+                                  <input type="checkbox" class="form-check-input shift-checkbox"
+                                    id="shift-${shiftId}-${dayShift.date}"
+                                    name="shiftSelections[${index}].selectedShiftIds[]"
+                                    value="${shiftId}"
+                                    data-date="${dayShift.date}"
+                                    data-shift-id="${shiftId}"
+                                    ${isSelected ? 'checked' : ''}
+                                    ${isDisabled ? 'disabled' : ''} />
+                                  <span class="shift-status ${statusClass}">
+                                    ${statusText}
+                                  </span>
+                                  <input type="hidden" name="shiftSelections[${index}].date" value="${dayShift.date}" />
+                                </div>
+                              `;
 
           row.appendChild(cell);
         });
@@ -753,31 +773,31 @@
       const row = document.createElement('tr');
 
       row.innerHTML = `
-                          <td style="min-width: 220px; padding-right: 5px;">
-                            <input type="text" class="form-control item-name"
-                                  name="items[${rowIndex}].itemName" required />
-                          </td>
-                          <td style="min-width: 140px; padding-right: 5px;">
-                            <input type="number" class="form-control item-height"
-                                  name="items[${rowIndex}].height"
-                                  min="0.01" step="0.01" required />
-                          </td>
-                          <td style="min-width: 140px; padding-right: 5px;">
-                            <input type="number" class="form-control item-weight"
-                                  name="items[${rowIndex}].weight"
-                                  min="0.01" step="0.01" required />
-                          </td>
-                          <td style="min-width: 140px; padding-right: 5px;">
-                            <input type="number" class="form-control item-quantity"
-                                  name="items[${rowIndex}].quantity"
-                                  min="1" step="1" value="1" required />
-                          </td>
-                          <td style="width: 1%; white-space: nowrap;">
-                            <button type="button" class="btn btn-outline-danger btn-sm remove-item-btn">
-                              <i class="bx bx-trash"></i>
-                            </button>
-                          </td>
-                        `;
+                            <td style="min-width: 220px; padding-right: 5px;">
+                              <input type="text" class="form-control item-name"
+                                    name="items[${rowIndex}].itemName" required />
+                            </td>
+                            <td style="min-width: 140px; padding-right: 5px;">
+                              <input type="number" class="form-control item-height"
+                                    name="items[${rowIndex}].height"
+                                    min="0.01" step="0.01" required />
+                            </td>
+                            <td style="min-width: 140px; padding-right: 5px;">
+                              <input type="number" class="form-control item-weight"
+                                    name="items[${rowIndex}].weight"
+                                    min="0.01" step="0.01" required />
+                            </td>
+                            <td style="min-width: 140px; padding-right: 5px;">
+                              <input type="number" class="form-control item-quantity"
+                                    name="items[${rowIndex}].quantity"
+                                    min="1" step="1" value="1" required />
+                            </td>
+                            <td style="width: 1%; white-space: nowrap;">
+                              <button type="button" class="btn btn-outline-danger btn-sm remove-item-btn">
+                                <i class="bx bx-trash"></i>
+                              </button>
+                            </td>
+                          `;
 
       const removeBtn = row.querySelector('.remove-item-btn');
       removeBtn.addEventListener('click', function () {
@@ -827,7 +847,7 @@
       }
 
       if (shiftTableContainer && shiftTableContainer.style.display === 'none') {
-        if (shiftTableError) shiftTableError.textContent = 'Please select start and end dates to generate shifts';
+        if (shiftTableError) { shiftTableError.textContent = 'Please select start and end dates to generate shifts'; showToast('Error', 'Please select start and end dates to generate shifts', 'error'); }
         isValid = false;
       } else {
         // Per-date validation: each date row that has at least one ENABLED shift must have >=1 checked
@@ -845,30 +865,23 @@
         });
 
         if (missingSelection) {
-          if (shiftTableError) shiftTableError.textContent = 'Please select at least one shift for each day in the selected period';
+          if (shiftTableError) { shiftTableError.textContent = 'Please select at least one shift for each day in the selected period'; }
+          showToast('Error', 'Please select at least one shift for each day in the selected period', 'error');
           isValid = false;
+        } else {
+          const selectedShifts = document.querySelectorAll('.shift-checkbox:checked');
+          if (selectedShifts.length === 0) {
+            if (shiftTableError) { shiftTableError.textContent = 'Please select at least one shift'; }
+            showToast('Error', 'Please select at least one shift', 'error');
+            isValid = false;
+          }
         }
 
-        const selectedShifts = document.querySelectorAll('.shift-checkbox:checked');
-        if (selectedShifts.length === 0) {
-          if (shiftTableError) shiftTableError.textContent = 'Please select at least one shift';
-          isValid = false;
-        }
-
-        // check for fully booked dates in current range
-        @* const fullyBookedRows = Array.from(document.querySelectorAll('#shiftTableBody tr')).filter(row => {
-          const enabled = row.querySelectorAll('.shift-checkbox:not([disabled])').length;
-          return enabled === 0;
-        }); *@
-            const fullyBookedRows = dateRows.filter(row => row.querySelectorAll('.shift-checkbox:not([disabled])').length === 0);
+        const fullyBookedRows = dateRows.filter(row => row.querySelectorAll('.shift-checkbox:not([disabled])').length === 0);
         if (fullyBookedRows.length > 0) {
           const datesTxt = fullyBookedRows.map(r => r.dataset.date).join(', ');
           if (shiftTableError) shiftTableError.textContent = `All shifts already booked on ${datesTxt}. Please select another date range.`;
-          isValid = false;
-        }
-        if (fullyBookedRows.length > 0) {
-          const datesTxt = fullyBookedRows.map(r => r.dataset.date).join(', ');
-          if (shiftTableError) shiftTableError.textContent = `All shifts already booked on ${datesTxt}. Please select another date range.`;
+          showToast('Error', `All shifts already booked on ${datesTxt}. Please select another date range.`, 'error');
           isValid = false;
         }
       }
@@ -974,16 +987,16 @@
       @if (TempData["BookingFormSuccessMessage"] != null)
         {
           <text>
-                              // ✅ Jika ada success message, tampilkan success modal dan jangan tampilkan error modal
+                                  // ✅ Jika ada success message, tampilkan success modal dan jangan tampilkan error modal
             const successModal = new bootstrap.Modal(document.getElementById('successModal'), {
               backdrop: 'static',
             keyboard: false
-                              });
+                                  });
             successModal.show();
 
             document.querySelector('#successModal .btn-close').addEventListener('click', function() {
               window.location.href = '@(TempData["BookingDocumentNumber"] != null ? $"/Booking/Details?documentNumber={TempData["BookingDocumentNumber"]}" : "/Booking/Calendar")';
-                              });
+                                  });
 
             // ✅ Bersihkan TempData setelah success modal ditampilkan
             fetch('/Booking/ClearTempData', {
@@ -991,14 +1004,14 @@
             headers: {
               'Content-Type': 'application/json',
             'X-CSRF-TOKEN': document.querySelector('input[name="__RequestVerificationToken"]').value
-                                }
-                              });
+                                    }
+                                  });
           </text>
       }
-              else if (TempData["BookingFormErrorMessage"] != null || ViewData["BookingFormErrorMessage"] != null)
+                else if (TempData["BookingFormErrorMessage"] != null || ViewData["BookingFormErrorMessage"] != null)
         {
           <text>
-                              // ✅ Hanya tampilkan error modal jika TIDAK ada success message
+                                  // ✅ Hanya tampilkan error modal jika TIDAK ada success message
             const errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
             errorModal.show();
 
@@ -1011,22 +1024,22 @@
                   'X-CSRF-TOKEN': document.querySelector('input[name="__RequestVerificationToken"]').value
                 }
               });
-                              });
+                                  });
           </text>
       }
-              else if (ViewData["CleanTempData"] != null && ViewData["CleanTempData"] as bool? == true)
+                else if (ViewData["CleanTempData"] != null && ViewData["CleanTempData"] as bool? == true)
         {
           <text>
-                              // ✅ Bersihkan TempData jika tidak ada modal yang ditampilkan tapi ada flag CleanTempData
+                                  // ✅ Bersihkan TempData jika tidak ada modal yang ditampilkan tapi ada flag CleanTempData
             fetch('/Booking/ClearTempData', {
               method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             'X-CSRF-TOKEN': document.querySelector('input[name="__RequestVerificationToken"]').value
-                                }
-                              });
+                                    }
+                                  });
           </text>
       }
-            });
+              });
   </script>
 }
