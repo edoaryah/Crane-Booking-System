@@ -107,34 +107,34 @@ namespace AspnetCoreMvcFull.Controllers
     }
 
     // GET: /Maintenance/List - Admin, PIC, MSD can view
-    [RequireRole("admin")]
-    [RequireRole("pic")]
-    [RequireRole("msd")]
-    public async Task<IActionResult> List()
-    {
-      try
-      {
-        var schedules = await _maintenanceService.GetAllMaintenanceSchedulesAsync();
+    // [RequireRole("admin")]
+    // [RequireRole("pic")]
+    // [RequireRole("msd")]
+    // public async Task<IActionResult> List()
+    // {
+    //   try
+    //   {
+    //     var schedules = await _maintenanceService.GetAllMaintenanceSchedulesAsync();
 
-        var viewModel = new MaintenanceListViewModel
-        {
-          Schedules = schedules,
-          SuccessMessage = TempData["MaintenanceSuccessMessage"] as string,
-          ErrorMessage = TempData["MaintenanceErrorMessage"] as string
-        };
+    //     var viewModel = new MaintenanceListViewModel
+    //     {
+    //       Schedules = schedules,
+    //       SuccessMessage = TempData["MaintenanceSuccessMessage"] as string,
+    //       ErrorMessage = TempData["MaintenanceErrorMessage"] as string
+    //     };
 
-        TempData.Remove("MaintenanceSuccessMessage");
-        TempData.Remove("MaintenanceErrorMessage");
+    //     TempData.Remove("MaintenanceSuccessMessage");
+    //     TempData.Remove("MaintenanceErrorMessage");
 
-        return View(viewModel);
-      }
-      catch (Exception ex)
-      {
-        _logger.LogError(ex, "Error loading maintenance schedules");
-        TempData["MaintenanceErrorMessage"] = "Error loading maintenance schedules: " + ex.Message;
-        return View(new MaintenanceListViewModel { ErrorMessage = ex.Message });
-      }
-    }
+    //     return View(viewModel);
+    //   }
+    //   catch (Exception ex)
+    //   {
+    //     _logger.LogError(ex, "Error loading maintenance schedules");
+    //     TempData["MaintenanceErrorMessage"] = "Error loading maintenance schedules: " + ex.Message;
+    //     return View(new MaintenanceListViewModel { ErrorMessage = ex.Message });
+    //   }
+    // }
 
     // GET: /Maintenance/Details/{documentNumber} - Admin, PIC, MSD can view
     [RequireRole("admin")]
