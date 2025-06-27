@@ -97,7 +97,7 @@
   flex: 1 1 0;
   border-bottom: 1px dashed #dbdade;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .shift-slot:last-child {
@@ -105,11 +105,12 @@
 }
 
 .booking-card {
+  transition: all 0.3s ease;
   margin: 0;
   padding: 6px 8px;
   border-radius: 0;
   font-size: 14px;
-  overflow: hidden;
+  overflow: visible;
   height: 100%;
   position: relative;
   font-weight: 500;
@@ -122,7 +123,7 @@
   transform: translateY(-50%);
   width: 100%;
   text-overflow: ellipsis;
-  overflow: hidden;
+  overflow: visible;
 }
 
 /* Department-based styling */
@@ -184,7 +185,7 @@
 .booking-card .booking-dept {
   font-weight: 600;
   white-space: nowrap;
-  overflow: hidden;
+  overflow: visible;
   text-overflow: ellipsis;
 }
 .booking-card .booking-name {
@@ -194,7 +195,7 @@
 .booking-card .booking-dept {
   font-weight: 600;
   white-space: nowrap;
-  overflow: hidden;
+  overflow: visible;
   text-overflow: ellipsis;
 }
 .booking-card .booking-name {
@@ -229,6 +230,7 @@
 
 /* Maintenance Card Styles */
 .maintenance-card {
+  transition: all 0.3s ease;
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -239,7 +241,7 @@
   z-index: 1;
   height: 100%;
   padding: 6px 8px;
-  overflow: hidden;
+  overflow: visible;
   position: relative;
 }
 
@@ -274,6 +276,16 @@
 
 .schedule-cell {
   min-width: 150px;
+}
+
+.booking-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.maintenance-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
 }
 
 /* Tooltip styles */
