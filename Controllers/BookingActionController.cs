@@ -154,6 +154,7 @@ namespace AspnetCoreMvcFull.Controllers
         ViewBag.CurrentStatus = booking.Status;
         ViewBag.DocumentNumber = documentNumber;
         ViewBag.BookingId = booking.Id;
+        ViewBag.BookingNumber = booking.BookingNumber; // Pass booking number for display
 
         // Load necessary data for the form
         await PopulateViewBagForEdit();
@@ -204,7 +205,7 @@ namespace AspnetCoreMvcFull.Controllers
         var currentImagePaths = bookingForState.ImagePaths?.ToList() ?? new List<string>();
         if (model.ImagesToDelete != null && model.ImagesToDelete.Any())
         {
-            currentImagePaths.RemoveAll(p => model.ImagesToDelete.Contains(p));
+          currentImagePaths.RemoveAll(p => model.ImagesToDelete.Contains(p));
         }
         model.ExistingImagePaths = currentImagePaths;
 

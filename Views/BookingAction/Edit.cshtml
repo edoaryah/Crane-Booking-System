@@ -8,6 +8,7 @@
   var currentStatus = ViewBag.CurrentStatus as AspnetCoreMvcFull.Models.BookingStatus?;
   var documentNumber = ViewBag.DocumentNumber as string ?? "";
   var bookingId = ViewBag.BookingId as int? ?? 0;
+  var bookingNumber = ViewBag.BookingNumber as string ?? "";
 }
 
 @section PageStyles {
@@ -75,6 +76,9 @@
     }
 
     #shiftTableContainer .form-check {
+      display: flex;
+      justify-content: flex-start;
+      margin: 0;
       display: flex;
       justify-content: center;
       margin: 0;
@@ -158,11 +162,11 @@
             <h6 class="mb-1">
               @if (isPicEdit)
               {
-                <text>🔧 <strong>PIC Edit Mode</strong></text>
+                <text><strong>PIC Edit Mode</strong></text>
               }
               else
               {
-                <text>📝 <strong>Revision Mode</strong></text>
+                <text><strong>Revision Mode</strong></text>
               }
             </h6>
             <p class="mb-0 text-muted">
@@ -185,9 +189,9 @@
         <div class="d-flex flex-column flex-md-row justify-content-md-between align-items-md-center">
           <h5 class="mb-0">
             Edit Booking
-            @if (!string.IsNullOrEmpty(documentNumber))
+            @if (!string.IsNullOrEmpty(bookingNumber))
             {
-              <span class="text-muted">(#@documentNumber)</span>
+              <span class="text-muted">Booking No: @bookingNumber</span>
             }
           </h5>
           <small class="text-muted mt-1 mt-md-0">
@@ -296,7 +300,7 @@
                           {
                             @foreach (var shift in ((IEnumerable<AspnetCoreMvcFull.ViewModels.ShiftManagement.ShiftViewModel>)ViewBag.ShiftDefinitions).Where(s => s.IsActive).OrderBy(s => s.StartTime))
                             {
-                              <th data-shift-id="@shift.Id" data-shift-name="@shift.Name"
+                              <th class="text-start ps-3" data-shift-id="@shift.Id" data-shift-name="@shift.Name"
                                 data-shift-start="@shift.FormattedStartTime" data-shift-end="@shift.FormattedEndTime"
                                 data-shift-is-active="@shift.IsActive.ToString().ToLower()">
                                 @shift.Name<br /><small class="text-muted">@shift.TimeRange</small>
@@ -311,7 +315,7 @@
                     </table>
                   </div>
                 </div>
-                <span class="text-danger" id="shiftTableError"></span>
+                <span class="text-danger d-none" id="shiftTableError"></span>
               </div>
             </div>
           </div>
@@ -359,14 +363,14 @@
                     </table>
                   </div>
                 </div>
-                <span class="text-danger" id="liftedItemsError"></span>
+                <span class="text-danger d-none" id="liftedItemsError"></span>
               </div>
             </div>
           </div>
 
           <!-- Photo Upload Section -->
           <div class="form-section">
-            <h6 class="form-section-title">Photo Evidence</h6>
+            <h6 class="form-section-title">Area/Item Photos</h6>
             <div class="row mb-3">
               <div class="col-12">
                 <label class="form-label">Existing Photos</label>
@@ -447,7 +451,7 @@
                     </div>
                   </div>
                 </div>
-                <span class="text-danger" id="hazardsError"></span>
+                <span class="text-danger d-none" id="hazardsError"></span>
               </div>
             </div>
 
@@ -499,6 +503,24 @@
 </div>
 
 @section PageScripts {
+  <!-- Toastify CSS & JS -->
+  <link rel="stylesheet" href="~/vendor/libs/toastify/toastify.min.css">
+  <script src="~/vendor/libs/toastify/toastify-js.js"></script>
+  <script>
+    function showToast(title, message, type = 'error') {
+      Toastify({
+        text: title + ': ' + message,
+        duration: 5000,
+        close: true,
+        gravity: 'top',
+        position: 'right',
+        style: {
+          background: type === 'success' ? '#198754' : '#dc3545',
+          borderRadius: '0.5rem'
+        }
+      }).showToast();
+    }
+  </script>
   <script>
     let shiftDefinitions = [];
     let bookedShifts = [];
@@ -746,7 +768,7 @@
 
           const cell = document.createElement('td');
           cell.innerHTML = `
-            <div class="form-check d-flex justify-content-center flex-column align-items-center">
+            <div class="form-check d-flex align-items-center gap-1 justify-content-start ps-3">
               <input type="checkbox" class="form-check-input shift-checkbox"
                 id="shift-${shiftId}-${dayShift.date}"
                 name="shiftSelections[${index}].selectedShiftIds[]"
@@ -755,7 +777,7 @@
                 data-shift-id="${shiftId}"
                 ${isSelected ? 'checked' : ''}
                 ${isDisabled ? 'disabled' : ''} />
-              <span class="shift-status ${statusClass}">
+              <span class="shift-status ms-1 ${statusClass}">
                 ${statusText}
               </span>
               <input type="hidden" name="shiftSelections[${index}].date" value="${dayShift.date}" />
@@ -857,13 +879,48 @@
     }
 
     function validateForm() {
+      let toastShown = false;
       let isValid = true;
 
       if (!validateDates()) isValid = false;
 
+      // Per-date validation – each date row with enabled shifts must have ≥1 checked
+      // Clear previous highlights
+      document.querySelectorAll('#shiftTableBody tr').forEach(r => r.classList.remove('table-danger'));
+
+      let missingSelection = false;
+      const fullyBookedRows = [];
+      const dateRows = Array.from(document.querySelectorAll('#shiftTableBody tr'));
+      dateRows.forEach(row => {
+        const enabledCheckboxes = row.querySelectorAll('.shift-checkbox:not([disabled])');
+        // we already have enabledCheckboxes variable above
+        const checkedCheckboxes = row.querySelectorAll('.shift-checkbox:checked');
+        if (enabledCheckboxes.length === 0) {
+          fullyBookedRows.push(row);
+        } else if (checkedCheckboxes.length === 0) {
+          missingSelection = true;
+          row.classList.add('table-danger');
+        }
+      });
+
+      if (fullyBookedRows.length > 0) {
+        const datesTxt = fullyBookedRows.map(r => r.dataset.date).join(', ');
+        document.getElementById('shiftTableError').textContent = `All shifts already booked on ${datesTxt}. Please select another date range.`;
+        if (!toastShown) { showToast('Error', `All shifts already booked on ${datesTxt}. Please select another date range.`, 'error'); toastShown = true; }
+        fullyBookedRows.forEach(r => r.classList.add('table-danger'));
+        isValid = false;
+      }
+
+      if (missingSelection) {
+        document.getElementById('shiftTableError').textContent = 'Please select at least one shift for each day in the selected period';
+        if (!toastShown) { showToast('Error', 'Please select at least one shift for each day in the selected period', 'error'); toastShown = true; }
+        isValid = false;
+      }
+
       const selectedShifts = document.querySelectorAll('.shift-checkbox:checked');
       if (selectedShifts.length === 0) {
         document.getElementById('shiftTableError').textContent = 'Please select at least one shift';
+        if(!toastShown){showToast('Error','Please select at least one shift','error');toastShown=true;}
         isValid = false;
       } else {
         document.getElementById('shiftTableError').textContent = '';
@@ -886,6 +943,7 @@
 
       if (!hasValidItem) {
         document.getElementById('liftedItemsError').textContent = 'Please provide at least one item to be lifted';
+        if(!toastShown){showToast('Error','Please provide at least one item to be lifted','error');toastShown=true;}
         isValid = false;
       } else {
         document.getElementById('liftedItemsError').textContent = '';
@@ -894,6 +952,7 @@
       const selectedHazards = document.querySelectorAll('.hazard-checkbox:checked');
       if (selectedHazards.length === 0) {
         document.getElementById('hazardsError').textContent = 'Please select at least one potential hazard';
+        if(!toastShown){showToast('Error','Please select at least one potential hazard','error');toastShown=true;}
         isValid = false;
       } else {
         document.getElementById('hazardsError').textContent = '';
@@ -994,8 +1053,7 @@
         editBookingForm.addEventListener('submit', function (event) {
           if (!validateForm()) {
             event.preventDefault();
-            const firstError = document.querySelector('.text-danger:not(:empty)');
-            if (firstError) {
+const firstError = document.querySelector('.table-danger') || document.querySelector('.text-danger:not(:empty)') || document.getElementById('shiftTableContainer');            if (firstError) {
               firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
           }

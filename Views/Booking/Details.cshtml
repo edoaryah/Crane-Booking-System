@@ -769,7 +769,7 @@
                             @foreach (var dateGroup in shiftsByDate)
                             {
                               <tr>
-                                <td>@dateGroup.Key.ToString("dd-MM-yyyy")</td>
+                                <td>@dateGroup.Key.ToString("ddd, MMM dd yyyy")</td>
                                 @foreach (var shiftDef in shiftDefinitions)
                                 {
                                   bool isSelected = dateGroup.Any(s => s.ShiftDefinitionId == shiftDef.ShiftDefinitionId);
