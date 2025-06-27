@@ -146,6 +146,7 @@ namespace AspnetCoreMvcFull.Controllers
       {
         // ✅ Cek status booking terlebih dahulu
         var booking = await _bookingService.GetBookingByIdAsync(bookingId);
+        TempData["DocumentNumber"] = booking.DocumentNumber;
 
         // ✅ Handle jika booking sudah di-approve oleh manager lain
         if (booking.Status == BookingStatus.ManagerApproved)
@@ -185,11 +186,15 @@ namespace AspnetCoreMvcFull.Controllers
         if (result)
         {
           TempData["SuccessMessage"] = "Booking berhasil disetujui sebagai Manager.";
+          var bookingRedirect = await _bookingService.GetBookingByIdAsync(bookingId);
+          TempData["DocumentNumber"] = bookingRedirect.DocumentNumber;
           return RedirectToAction("Success");
         }
         else
         {
           TempData["SuccessMessage"] = "Booking tidak dapat disetujui karena mungkin sudah diproses oleh Manager lain.";
+          var bookingRedirect = await _bookingService.GetBookingByIdAsync(bookingId);
+          TempData["DocumentNumber"] = bookingRedirect.DocumentNumber;
           return RedirectToAction("Success");
         }
       }
@@ -221,6 +226,7 @@ namespace AspnetCoreMvcFull.Controllers
 
         // ✅ Cek status booking terlebih dahulu
         var booking = await _bookingService.GetBookingByIdAsync(bookingId);
+        TempData["DocumentNumber"] = booking.DocumentNumber;
 
         // ✅ Handle jika booking sudah di-approve oleh manager lain
         if (booking.Status == BookingStatus.ManagerApproved)
@@ -254,6 +260,8 @@ namespace AspnetCoreMvcFull.Controllers
         if (result)
         {
           TempData["SuccessMessage"] = "Booking telah ditolak sebagai Manager.";
+          var bookingRedirect = await _bookingService.GetBookingByIdAsync(bookingId);
+          TempData["DocumentNumber"] = bookingRedirect.DocumentNumber;
           return RedirectToAction("Success");
         }
         else
@@ -282,6 +290,7 @@ namespace AspnetCoreMvcFull.Controllers
       {
         // ✅ Cek status booking terlebih dahulu
         var booking = await _bookingService.GetBookingByIdAsync(bookingId);
+        TempData["DocumentNumber"] = booking.DocumentNumber;
 
         // ✅ Handle jika booking sudah di-approve oleh PIC lain
         if (booking.Status == BookingStatus.PICApproved)
@@ -308,6 +317,8 @@ namespace AspnetCoreMvcFull.Controllers
         if (result)
         {
           TempData["SuccessMessage"] = "Booking berhasil disetujui.";
+          var bookingRedirect = await _bookingService.GetBookingByIdAsync(bookingId);
+          TempData["DocumentNumber"] = bookingRedirect.DocumentNumber;
           return RedirectToAction("Success");
         }
         else
@@ -344,6 +355,7 @@ namespace AspnetCoreMvcFull.Controllers
 
         // ✅ Cek status booking terlebih dahulu
         var booking = await _bookingService.GetBookingByIdAsync(bookingId);
+        TempData["DocumentNumber"] = booking.DocumentNumber;
 
         // ✅ Handle jika booking sudah di-approve oleh PIC lain
         if (booking.Status == BookingStatus.PICApproved)
@@ -370,11 +382,15 @@ namespace AspnetCoreMvcFull.Controllers
         if (result)
         {
           TempData["SuccessMessage"] = "Booking telah ditolak.";
+          var bookingRedirect = await _bookingService.GetBookingByIdAsync(bookingId);
+          TempData["DocumentNumber"] = bookingRedirect.DocumentNumber;
           return RedirectToAction("Success");
         }
         else
         {
           TempData["SuccessMessage"] = "Booking tidak dapat ditolak karena mungkin sudah diproses oleh PIC lain.";
+          var bookingRedirect = await _bookingService.GetBookingByIdAsync(bookingId);
+          TempData["DocumentNumber"] = bookingRedirect.DocumentNumber;
           return RedirectToAction("Success");
         }
       }
@@ -400,8 +416,10 @@ namespace AspnetCoreMvcFull.Controllers
         var result = await _approvalService.MarkAsDoneAsync(bookingId, picName);
         if (result)
         {
-          TempData["SuccessMessage"] = "Booking telah ditandai sebagai selesai.";
-          return RedirectToAction("Success");
+          TempData["BookingSuccessMessage"] = "Booking telah ditandai sebagai selesai.";
+          var booking = await _bookingService.GetBookingByIdAsync(bookingId);
+          TempData["DocumentNumber"] = booking.DocumentNumber;
+          return RedirectToAction("Details", "Booking", new { documentNumber = booking.DocumentNumber });
         }
         else
         {
