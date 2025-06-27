@@ -51,8 +51,11 @@ namespace AspnetCoreMvcFull.Services.Dashboard
         // ========================
         // Booking statistics
         // ========================
+        // var bookings = await _context.Bookings
+        //     .Where(b => b.StartDate.Date >= dateRangeStart && b.StartDate.Date <= dateRangeEnd)
+        //     .ToListAsync();
         var bookings = await _context.Bookings
-            .Where(b => b.StartDate.Date >= dateRangeStart && b.StartDate.Date <= dateRangeEnd)
+            .Where(b => b.StartDate.Date <= dateRangeEnd && b.EndDate.Date >= dateRangeStart)
             .ToListAsync();
 
         viewModel.BookingStatistics = new BookingStatisticsViewModel
@@ -235,7 +238,8 @@ namespace AspnetCoreMvcFull.Services.Dashboard
       }
 
       // Pastikan endDate tidak melebihi hari ini untuk periode selain custom
-      if (period?.ToLower() != "custom" && endDate > now.Date)
+      // if (period?.ToLower() != "custom" && endDate > now.Date)
+      if (period?.ToLower() == "month" && endDate > now.Date)
       {
         endDate = now.Date;
       }
