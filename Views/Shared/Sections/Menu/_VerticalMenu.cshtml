@@ -179,8 +179,7 @@
       @* Maintenance Form - Only for MSD *@
       @if (canAccessMaintenanceForm)
       {
-        <li class='menu-item@(currentPage.StartsWith("/Maintenance") && !currentPage.StartsWith("/Maintenance/Calendar") && !currentPage.StartsWith("/MaintenanceHistory") ? " active" : "")'>
-          <a asp-controller="Maintenance" asp-action="Index" class="menu-link">
+        <li class='menu-item@((currentPage == "/Maintenance" || currentPage == "/Maintenance/Index") ? " active" : "")'>          <a asp-controller="Maintenance" asp-action="Index" class="menu-link">
             <i class="menu-icon tf-icons bx bx-detail"></i>
             <div class="text-truncate" data-i18n="Cards">Form Maintenance</div>
           </a>

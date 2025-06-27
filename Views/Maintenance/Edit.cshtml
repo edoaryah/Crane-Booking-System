@@ -1,10 +1,32 @@
 @model AspnetCoreMvcFull.ViewModels.MaintenanceManagement.MaintenanceScheduleUpdateViewModel
 @section PageStyles {
   <style>
-    .shift-status {font-size:0.75rem;margin-top:2px;}
-    .shift-status.available{color:green;}
-    .shift-status.booked{color:red;}
-    .shift-status.maintenance{color:orange;}
+    .shift-status {
+      font-size: 0.75rem;
+      margin-top: 2px;
+    }
+
+    .shift-status.available {
+      color: green;
+    }
+
+    .shift-status.booked {
+      color: red;
+    }
+
+    .shift-status.maintenance {
+      color: orange;
+    }
+
+    /* Shift selection table tweaks */
+    .shift-selection .form-check {
+      flex-direction: row !important;
+      gap: 0.25rem;
+    }
+
+    .shift-selection .form-check-label {
+      display: none;
+    }
   </style>
 }
 
@@ -81,7 +103,7 @@
           <!-- Shift Selection Section -->
           <div class="row mt-4">
             <div class="col-12">
-              <h6 class="mb-3">Shift Selection</h6>
+              <h6>Shift Selection</h6>
               <div class="alert alert-info" role="alert">
                 <i class="bx bx-info-circle me-1"></i>
                 Please select shifts for each day in the maintenance period.
@@ -90,7 +112,7 @@
                 <p id="dateRangeMessage" class="text-muted mb-3" style="display: none;">
                   Select date range to display shift selection
                 </p>
-                <div id="shiftSelectionTable">
+                <div id="shiftSelectionTable" class="shift-selection">
                   <!-- Will be filled dynamically -->
                 </div>
               </div>
@@ -109,6 +131,22 @@
             </div>
           </div>
         </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Validation Modal -->
+<div class="modal fade" id="validationModal" tabindex="-1" aria-labelledby="validationModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="validationModalLabel">Validation Error</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">Please select at least one shift for each day in the maintenance period.</div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">OK</button>
       </div>
     </div>
   </div>
@@ -174,13 +212,21 @@
       // Form submission handler
       maintenanceForm.addEventListener('submit', validateForm);
 
-      // Initialize the shift selection table
-      updateShiftSelectionTable();
-
-      // Function to update the shift selection table
       async function updateShiftSelectionTable() {
         const startDate = new Date(startDateInput.value);
         const endDate = new Date(endDateInput.value);
+
+        // Validate date range
+        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+          dateRangeMessage.textContent = 'Please select valid dates';
+          shiftSelectionTable.style.display = 'none';
+          return;
+        }
+        if (startDate > endDate) {
+          dateRangeMessage.textContent = 'Start date must be before or equal to end date';
+          shiftSelectionTable.style.display = 'none';
+          return;
+        }
 
         // Fetch latest availability
         const craneId = craneIdSelect ? craneIdSelect.value : '';
@@ -188,28 +234,13 @@
           const bookedRes = await fetch(`/Booking/GetBookedShifts?craneId=${craneId}&startDate=${startDateInput.value}&endDate=${endDateInput.value}`);
           bookedShifts = bookedRes.ok ? await bookedRes.json() : [];
           const maintRes = await fetch(`/Booking/GetMaintenanceShifts?craneId=${craneId}&startDate=${startDateInput.value}&endDate=${endDateInput.value}`);
-          maintenanceShifts = maintRes.ok ? (await maintRes.json()).filter(m => (m.id ?? m.Id) !== currentScheduleId) : [];
-        } catch { bookedShifts = []; maintenanceShifts = []; }
-
-        // Validate date range
-        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-          dateRangeMessage.style.display = 'block';
-          dateRangeMessage.textContent = 'Please select valid dates';
-          shiftSelectionTable.innerHTML = '';
-          return;
+          maintenanceShifts = maintRes.ok ? await maintRes.json() : [];
+        } catch (error) {
+          bookedShifts = [];
+          maintenanceShifts = [];
         }
 
-        if (startDate > endDate) {
-          dateRangeMessage.style.display = 'block';
-          dateRangeMessage.textContent = 'Start date must be before or equal to end date';
-          shiftSelectionTable.innerHTML = '';
-          return;
-        }
-
-        // Hide message
-        dateRangeMessage.style.display = 'none';
-
-        // Create date range
+        // Build date range
         const dateRange = [];
         let currentDate = new Date(startDate);
         while (currentDate <= endDate) {
@@ -217,24 +248,29 @@
           currentDate.setDate(currentDate.getDate() + 1);
         }
 
-        // Create table HTML
-        let tableHtml = `
-                            <div class="table-responsive">
-                                <table class="table table-bordered">
-                                    <thead>
-                                        <tr>
-                                            <th>Date</th>
-                                            <th>Day</th>
-                                            <th>Shifts</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                        `;
+        // Build dynamic header columns for each shift
+        const headerShiftCols = shiftDefinitions.map(shift => `<th>${shift.name}<br><small>${shift.formattedStartTime} - ${shift.formattedEndTime}</small></th>`).join('');
 
-        // Create rows for each date
+        // Hide info message and show table
+        dateRangeMessage.style.display = 'none';
+        shiftSelectionTable.style.display = 'block';
+
+        // Start table HTML
+        let tableHtml = `
+              <div class="table-responsive">
+                <table class="table table-bordered align-middle text-center">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Day</th>
+                      ${headerShiftCols}
+                    </tr>
+                  </thead>
+                  <tbody>`;
+
+        // Rows per date
         dateRange.forEach((date, index) => {
           const formattedDate = date.toLocaleDateString('en-US', {
-            weekday: 'long',
             year: 'numeric',
             month: 'long',
             day: 'numeric'
@@ -242,58 +278,58 @@
           const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'long' });
           const dateString = dateKeyFromDate(date);
 
-          // Check if we have existing selections for this date
-          const dateKey = dateString;
-          const selectedShifts = existingDates[dateKey] || [];
+          const selectedShifts = existingDates[dateString] || [];
 
           tableHtml += `
-                                <tr>
-                                    <td>${formattedDate}</td>
-                                    <td>${dayOfWeek}</td>
-                                    <td>
-                                        <input type="hidden" name="ShiftSelections[${index}].Date" value="${dateString}">
-                                        <div class="row">
-                            `;
+                    <tr>
+                      <td>${formattedDate}<input type="hidden" name="ShiftSelections[${index}].Date" value="${dateString}"></td>
+                      <td>${dayOfWeek}</td>`;
 
-          // Create checkboxes for each shift
           shiftDefinitions.forEach(shift => {
+            const isBooked = isShiftBooked(craneId, dateString, shift.id);
+            const isMaintenance = isShiftMaintenance(craneId, dateString, shift.id);
             const isChecked = selectedShifts.includes(shift.id);
 
+            let statusText = 'Available';
+            let statusClass = 'available';
+            let disabledAttr = '';
+
+            if (isBooked) {
+              statusText = 'Booked';
+              statusClass = 'booked';
+              if (!isChecked) disabledAttr = 'disabled';
+            } else if (isMaintenance) {
+              statusText = 'Maintenance';
+              statusClass = 'maintenance';
+              if (!isChecked) disabledAttr = 'disabled';
+            }
+
             tableHtml += `
-                                    <div class="col-md-4 mb-2">
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox"
-                                                id="shift_${index}_${shift.id}"
-                                                name="ShiftSelections[${index}].SelectedShiftIds"
-                                                value="${shift.id}"
-                                                ${isChecked ? 'checked' : ''} ${((isShiftBooked(craneIdSelect.value, dateString, shift.id) || isShiftMaintenance(craneIdSelect.value, dateString, shift.id)) && !isChecked) ? 'disabled' : ''}>
-                                            <span class="shift-status ${isShiftBooked(craneIdSelect.value, dateString, shift.id) ? 'booked' : (isShiftMaintenance(craneIdSelect.value, dateString, shift.id) ? 'maintenance' : 'available')}">
-                                                ${isShiftBooked(craneIdSelect.value, dateString, shift.id) ? 'Booked' : (isShiftMaintenance(craneIdSelect.value, dateString, shift.id) ? 'Maintenance' : 'Available')}
-                                              </span>
-                                            <label class="form-check-label" for="shift_${index}_${shift.id}">
-                                                ${shift.name} (${shift.formattedStartTime} - ${shift.formattedEndTime})
-                                            </label>
-                                        </div>
-                                    </div>
-                                `;
+                      <td>
+                        <div class="form-check d-flex justify-content-center align-items-center gap-1">
+                          <input class="form-check-input" type="checkbox"
+                            id="shift_${index}_${shift.id}"
+                            name="ShiftSelections[${index}].SelectedShiftIds"
+                            value="${shift.id}"
+                            ${isChecked ? 'checked' : ''} ${disabledAttr}>
+                          <span class="shift-status ${statusClass}">${statusText}</span>
+                        </div>
+                      </td>`;
           });
 
-          tableHtml += `
-                                        </div>
-                                    </td>
-                                </tr>
-                            `;
+          tableHtml += '</tr>';
         });
 
         tableHtml += `
-                                    </tbody>
-                                </table>
-                            </div>
-                        `;
+                  </tbody>
+                </table>
+              </div>`;
 
-        // Add table to DOM
         shiftSelectionTable.innerHTML = tableHtml;
-      }
+      };
+
+      // Call the new version to render table with dynamic columns
+      updateShiftSelectionTable();
 
       // Function to format date for input field
       function formatDateForInput(date) {
@@ -323,7 +359,7 @@
 
         if (!valid) {
           event.preventDefault();
-          alert('Please select at least one shift for each day in the maintenance period');
+          const validationModal = new bootstrap.Modal(document.getElementById('validationModal')); validationModal.show();
         }
       }
 
