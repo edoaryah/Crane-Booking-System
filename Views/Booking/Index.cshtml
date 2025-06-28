@@ -20,8 +20,8 @@
       margin-right: 5px;
     }
 
-    .form-section {
-      margin-bottom: 2rem;
+    .form-section+.form-section {
+      margin-top: 2rem;
     }
 
     .form-section-title {
@@ -168,25 +168,25 @@
           <!-- Requestor Information Section -->
           <div class="form-section">
             <h6 class="form-section-title">Requestor Information</h6>
-            <div class="row mb-3">
-              <div class="col-md-6">
+            <div class="row">
+              <div class="col-md-6 mb-3">
                 <label class="form-label required-label">Requestor Name</label>
                 <input id="name" class="form-control" value="@userName" required readonly />
                 <small class="text-muted">Automatically filled based on your login information</small>
               </div>
-              <div class="col-md-6">
+              <div class="col-md-6 mb-3">
                 <label class="form-label required-label">Department Name</label>
                 <input id="department" class="form-control" value="@userDepartment" required readonly />
                 <small class="text-muted">Automatically filled based on your login information</small>
               </div>
             </div>
 
-            <div class="row mb-3">
-              <div class="col-md-6">
+            <div class="row">
+              <div class="col-md-6 mb-3">
                 <label class="form-label required-label">Supervisor Name</label>
                 <input id="projectSupervisor" name="projectSupervisor" class="form-control" required />
               </div>
-              <div class="col-md-6">
+              <div class="col-md-6 mb-3">
                 <label class="form-label required-label">Phone Number</label>
                 <input id="phoneNumber" name="phoneNumber" class="form-control" placeholder="e.g. 081242005757" required
                   type="tel" pattern="[0-9]*" inputmode="numeric"
@@ -194,7 +194,7 @@
               </div>
             </div>
 
-            <div class="row mb-3">
+            <div class="row">
               <div class="col-md-6">
                 <label class="form-label required-label">Cost Code</label>
                 <input id="costCode" name="costCode" class="form-control" required />
@@ -205,21 +205,21 @@
           <!-- Booking Details Section -->
           <div class="form-section">
             <h6 class="form-section-title">Booking Details</h6>
-            <div class="row mb-3">
-              <div class="col-md-6">
+            <div class="row">
+              <div class="col-md-6 mb-3">
                 <label for="startDate" class="form-label required-label">Start Date</label>
                 <input type="date" id="startDate" name="startDate" class="form-control" required />
                 <span class="text-danger" id="startDateError"></span>
               </div>
-              <div class="col-md-6">
+              <div class="col-md-6 mb-3">
                 <label for="endDate" class="form-label required-label">End Date</label>
                 <input type="date" id="endDate" name="endDate" class="form-control" required />
                 <span class="text-danger" id="endDateError"></span>
               </div>
             </div>
 
-            <div class="row mb-3">
-              <div class="col-md-6">
+            <div class="row">
+              <div class="col-md-6 mb-3">
                 <label class="form-label required-label">Crane</label>
                 <select id="craneId" name="craneId" class="form-select" required>
                   <option value="">Select a Crane</option>
@@ -236,14 +236,14 @@
                   }
                 </select>
               </div>
-              <div class="col-md-6">
+              <div class="col-md-6 mb-3">
                 <label class="form-label required-label">Location</label>
                 <input id="location" name="location" class="form-control" required />
               </div>
             </div>
 
             <!-- Shift Selection Table - Using newer template -->
-            <div class="row mb-3">
+            <div class="row">
               <div class="col-12">
                 <label id="shiftLabel" class="form-label required-label" style="display: none;">Shift Selections</label>
                 <div id="shiftTableContainer" class="card" style="display: none;">
@@ -279,7 +279,7 @@
           <!-- Job Details Section -->
           <div class="form-section">
             <h6 class="form-section-title">Job Details</h6>
-            <div class="row mb-3">
+            <div class="row">
               <div class="col-12">
                 <label for="description" class="form-label">Description</label>
                 <textarea id="description" name="description" class="form-control" rows="3"></textarea>
@@ -290,7 +290,7 @@
           <!-- Items to be Lifted Section -->
           <div class="form-section">
             <h6 class="form-section-title">Items to be Lifted</h6>
-            <div class="row mb-3">
+            <div class="row">
               <div class="col-12">
                 <div id="itemsTableContainer" class="card">
                   <div class="table-responsive text-nowrap">
@@ -327,7 +327,7 @@
           <!-- Image Upload Section -->
           <div class="form-section">
             <h6 class="form-section-title">Area/Item Photos</h6>
-            <div class="row mb-3">
+            <div class="row">
               <div class="col-12">
                 <label for="images" class="form-label">Upload Images (PNG, JPG, JPEG)</label>
                 <input class="form-control" type="file" id="images" name="Images" multiple accept=".png,.jpg,.jpeg">
@@ -339,7 +339,7 @@
           </div>
 
           <!-- Replace the current hazards section with this code -->
-          <div class="row mb-3">
+          <div class="row">
             <div class="col-12 mb-6">
               <label class="form-label required-label">Potential Hazards</label>
               <div id="hazardsCardContainer" class="card">
@@ -734,21 +734,21 @@
 
           const cell = document.createElement('td');
           cell.innerHTML = `
-                                                  <div class="form-check d-flex align-items-center gap-1 justify-content-start ps-3">
-                                                    <input type="checkbox" class="form-check-input shift-checkbox"
-                                                      id="shift-${shiftId}-${dayShift.date}"
-                                                      name="shiftSelections[${index}].selectedShiftIds[]"
-                                                      value="${shiftId}"
-                                                      data-date="${dayShift.date}"
-                                                      data-shift-id="${shiftId}"
-                                                      ${isSelected ? 'checked' : ''}
-                                                      ${isDisabled ? 'disabled' : ''} />
-                                                    <span class="shift-status ms-1 ${statusClass}">
-                                                      ${statusText}
-                                                    </span>
-                                                    <input type="hidden" name="shiftSelections[${index}].date" value="${dayShift.date}" />
-                                                  </div>
-                                                `;
+                                                                          <div class="form-check d-flex align-items-center gap-1 justify-content-start ps-3">
+                                                                            <input type="checkbox" class="form-check-input shift-checkbox"
+                                                                              id="shift-${shiftId}-${dayShift.date}"
+                                                                              name="shiftSelections[${index}].selectedShiftIds[]"
+                                                                              value="${shiftId}"
+                                                                              data-date="${dayShift.date}"
+                                                                              data-shift-id="${shiftId}"
+                                                                              ${isSelected ? 'checked' : ''}
+                                                                              ${isDisabled ? 'disabled' : ''} />
+                                                                            <span class="shift-status ms-1 ${statusClass}">
+                                                                              ${statusText}
+                                                                            </span>
+                                                                            <input type="hidden" name="shiftSelections[${index}].date" value="${dayShift.date}" />
+                                                                          </div>
+                                                                        `;
 
           row.appendChild(cell);
         });
@@ -777,31 +777,31 @@
       const row = document.createElement('tr');
 
       row.innerHTML = `
-                                              <td style="min-width: 220px; padding-right: 5px;">
-                                                <input type="text" class="form-control item-name"
-                                                      name="items[${rowIndex}].itemName" required />
-                                              </td>
-                                              <td style="min-width: 140px; padding-right: 5px;">
-                                                <input type="number" class="form-control item-height"
-                                                      name="items[${rowIndex}].height"
-                                                      min="0.01" step="0.01" required />
-                                              </td>
-                                              <td style="min-width: 140px; padding-right: 5px;">
-                                                <input type="number" class="form-control item-weight"
-                                                      name="items[${rowIndex}].weight"
-                                                      min="0.01" step="0.01" required />
-                                              </td>
-                                              <td style="min-width: 140px; padding-right: 5px;">
-                                                <input type="number" class="form-control item-quantity"
-                                                      name="items[${rowIndex}].quantity"
-                                                      min="1" step="1" value="1" required />
-                                              </td>
-                                              <td style="width: 1%; white-space: nowrap;">
-                                                <button type="button" class="btn btn-outline-danger btn-sm remove-item-btn">
-                                                  <i class="bx bx-trash"></i>
-                                                </button>
-                                              </td>
-                                            `;
+                                                                      <td style="min-width: 220px; padding-right: 5px;">
+                                                                        <input type="text" class="form-control item-name"
+                                                                              name="items[${rowIndex}].itemName" required />
+                                                                      </td>
+                                                                      <td style="min-width: 140px; padding-right: 5px;">
+                                                                        <input type="number" class="form-control item-height"
+                                                                              name="items[${rowIndex}].height"
+                                                                              min="0.01" step="0.01" required />
+                                                                      </td>
+                                                                      <td style="min-width: 140px; padding-right: 5px;">
+                                                                        <input type="number" class="form-control item-weight"
+                                                                              name="items[${rowIndex}].weight"
+                                                                              min="0.01" step="0.01" required />
+                                                                      </td>
+                                                                      <td style="min-width: 140px; padding-right: 5px;">
+                                                                        <input type="number" class="form-control item-quantity"
+                                                                              name="items[${rowIndex}].quantity"
+                                                                              min="1" step="1" value="1" required />
+                                                                      </td>
+                                                                      <td style="width: 1%; white-space: nowrap;">
+                                                                        <button type="button" class="btn btn-outline-danger btn-sm remove-item-btn">
+                                                                          <i class="bx bx-trash"></i>
+                                                                        </button>
+                                                                      </td>
+                                                                    `;
 
       const removeBtn = row.querySelector('.remove-item-btn');
       removeBtn.addEventListener('click', function () {
@@ -993,16 +993,16 @@
       @if (TempData["BookingFormSuccessMessage"] != null)
         {
           <text>
-                                                                      // ✅ Jika ada success message, tampilkan success modal dan jangan tampilkan error modal
+                                                                                                                      // ✅ Jika ada success message, tampilkan success modal dan jangan tampilkan error modal
             const successModal = new bootstrap.Modal(document.getElementById('successModal'), {
               backdrop: 'static',
             keyboard: false
-                                                                      });
+                                                                                                                      });
             successModal.show();
 
             document.querySelector('#successModal .btn-close').addEventListener('click', function() {
               window.location.href = '@(TempData["BookingDocumentNumber"] != null ? $"/Booking/Details?documentNumber={TempData["BookingDocumentNumber"]}" : "/Booking/Calendar")';
-                                                                      });
+                                                                                                                      });
 
             // ✅ Bersihkan TempData setelah success modal ditampilkan
             fetch('/Booking/ClearTempData', {
@@ -1010,14 +1010,14 @@
             headers: {
               'Content-Type': 'application/json',
             'X-CSRF-TOKEN': document.querySelector('input[name="__RequestVerificationToken"]').value
-                                                                        }
-                                                                      });
+                                                                                                                        }
+                                                                                                                      });
           </text>
       }
-                                  else if (TempData["BookingFormErrorMessage"] != null || ViewData["BookingFormErrorMessage"] != null)
+                                                          else if (TempData["BookingFormErrorMessage"] != null || ViewData["BookingFormErrorMessage"] != null)
         {
           <text>
-                                                                      // ✅ Hanya tampilkan error modal jika TIDAK ada success message
+                                                                                                                      // ✅ Hanya tampilkan error modal jika TIDAK ada success message
             const errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
             errorModal.show();
 
@@ -1030,22 +1030,22 @@
                   'X-CSRF-TOKEN': document.querySelector('input[name="__RequestVerificationToken"]').value
                 }
               });
-                                                                      });
+                                                                                                                      });
           </text>
       }
-                                  else if (ViewData["CleanTempData"] != null && ViewData["CleanTempData"] as bool? == true)
+                                                          else if (ViewData["CleanTempData"] != null && ViewData["CleanTempData"] as bool? == true)
         {
           <text>
-                                                                      // ✅ Bersihkan TempData jika tidak ada modal yang ditampilkan tapi ada flag CleanTempData
+                                                                                                                      // ✅ Bersihkan TempData jika tidak ada modal yang ditampilkan tapi ada flag CleanTempData
             fetch('/Booking/ClearTempData', {
               method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             'X-CSRF-TOKEN': document.querySelector('input[name="__RequestVerificationToken"]').value
-                                                                        }
-                                                                      });
+                                                                                                                        }
+                                                                                                                      });
           </text>
       }
-                                });
+                                                        });
   </script>
 }

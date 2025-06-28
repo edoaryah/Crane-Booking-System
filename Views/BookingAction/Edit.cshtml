@@ -61,8 +61,8 @@
       margin-right: 5px;
     }
 
-    .form-section {
-      margin-bottom: 2rem;
+    .form-section+.form-section {
+      margin-top: 2rem;
     }
 
     .form-section-title {
@@ -252,25 +252,25 @@
           <!-- Requestor Information Section -->
           <div class="form-section">
             <h6 class="form-section-title">Requestor Information</h6>
-            <div class="row mb-3">
-              <div class="col-md-6">
+            <div class="row">
+              <div class="col-md-6 mb-3">
                 <label class="form-label required-label">Requestor Name</label>
                 <input asp-for="Name" class="form-control" required readonly />
                 <small class="text-muted">Tidak dapat diubah</small>
               </div>
-              <div class="col-md-6">
+              <div class="col-md-6 mb-3">
                 <label class="form-label required-label">Department Name</label>
                 <input asp-for="Department" class="form-control" required readonly />
                 <small class="text-muted">Tidak dapat diubah</small>
               </div>
             </div>
 
-            <div class="row mb-3">
-              <div class="col-md-6">
+            <div class="row">
+              <div class="col-md-6 mb-3">
                 <label class="form-label required-label">Supervisor Name</label>
                 <input asp-for="ProjectSupervisor" class="form-control" required />
               </div>
-              <div class="col-md-6">
+              <div class="col-md-6 mb-3">
                 <label class="form-label required-label">Phone Number</label>
                 <input asp-for="PhoneNumber" class="form-control" placeholder="e.g. 081242005757" required
                   type="tel" pattern="[0-9]*" inputmode="numeric"
@@ -278,7 +278,7 @@
               </div>
             </div>
 
-            <div class="row mb-3">
+            <div class="row">
               <div class="col-md-6">
                 <label class="form-label required-label">Cost Code</label>
                 <input asp-for="CostCode" class="form-control" required />
@@ -289,21 +289,21 @@
           <!-- Booking Details Section -->
           <div class="form-section">
             <h6 class="form-section-title">Booking Details</h6>
-            <div class="row mb-3">
-              <div class="col-md-6">
+            <div class="row">
+              <div class="col-md-6 mb-3">
                 <label for="StartDate" class="form-label required-label">Start Date</label>
                 <input asp-for="StartDate" type="date" class="form-control" required />
                 <span asp-validation-for="StartDate" class="text-danger"></span>
               </div>
-              <div class="col-md-6">
+              <div class="col-md-6 mb-3">
                 <label for="EndDate" class="form-label required-label">End Date</label>
                 <input asp-for="EndDate" type="date" class="form-control" required />
                 <span asp-validation-for="EndDate" class="text-danger"></span>
               </div>
             </div>
 
-            <div class="row mb-3">
-              <div class="col-md-6">
+            <div class="row">
+              <div class="col-md-6 mb-3">
                 <label class="form-label required-label">Crane</label>
                 <select asp-for="CraneId" class="form-select" required>
                   <option value="">Select a Crane</option>
@@ -323,14 +323,14 @@
                   }
                 </select>
               </div>
-              <div class="col-md-6">
+              <div class="col-md-6 mb-3">
                 <label class="form-label required-label">Location</label>
                 <input asp-for="Location" class="form-control" required />
               </div>
             </div>
 
             <!-- Shift Selection Table -->
-            <div class="row mb-3">
+            <div class="row">
               <div class="col-12">
                 <label id="shiftLabel" class="form-label required-label">Shift Selections</label>
                 <div id="shiftTableContainer" class="card">
@@ -366,7 +366,7 @@
           <!-- Job Details Section -->
           <div class="form-section">
             <h6 class="form-section-title">Job Details</h6>
-            <div class="row mb-3">
+            <div class="row">
               <div class="col-12">
                 <label class="form-label required-label">Job Description</label>
                 <textarea asp-for="Description" class="form-control" rows="3" required></textarea>
@@ -377,7 +377,7 @@
           <!-- Items to be Lifted Section -->
           <div class="form-section">
             <h6 class="form-section-title">Items to be Lifted</h6>
-            <div class="row mb-3">
+            <div class="row">
               <div class="col-12">
                 <div id="itemsTableContainer" class="card">
                   <div class="table-responsive text-nowrap">
@@ -414,7 +414,7 @@
           <!-- Photo Upload Section -->
           <div class="form-section">
             <h6 class="form-section-title">Area/Item Photos</h6>
-            <div class="row mb-3">
+            <div class="row">
               <div class="col-12">
                 <label class="form-label">Existing Photos</label>
                 <!-- <div id="existingImagesContainer" class="image-management-container">
@@ -452,7 +452,7 @@
                 <p id="no-existing-images-msg" style="@(Model.ExistingImagePaths == null || !Model.ExistingImagePaths.Any() ? "" : "display: none;")">No existing photos.</p>
               </div>
             </div>
-            <div class="row mb-3">
+            <div class="row">
               <div class="col-12">
                 <label for="newImages" class="form-label">Add New Photos</label>
                 <input asp-for="NewImages" type="file" class="form-control" multiple id="newImages" accept="image/*" />
@@ -464,7 +464,7 @@
           <!-- Hazards Section -->
           <div class="form-section">
             <h6 class="form-section-title">Potential Hazards</h6>
-            <div class="row mb-3">
+            <div class="row">
               <div class="col-12 mb-6">
                 <div id="hazardsCardContainer" class="card">
                   <div class="table-responsive">
