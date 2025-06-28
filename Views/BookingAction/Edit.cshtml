@@ -993,9 +993,17 @@
       }
 
       const selectedHazards = document.querySelectorAll('.hazard-checkbox:checked');
-      if (selectedHazards.length === 0) {
-        document.getElementById('hazardsError').textContent = 'Please select at least one potential hazard';
-        if(!toastShown){showToast('Error','Please select at least one potential hazard','error');toastShown=true;}
+      const customHazardInput = document.getElementById('CustomHazard');
+      const customHazardValue = (customHazardInput && customHazardInput.value) ? customHazardInput.value.trim() : '';
+
+      const hazardsValid = selectedHazards.length > 0 || customHazardValue.length > 0;
+
+      if (!hazardsValid) {
+        document.getElementById('hazardsError').textContent = 'Please select at least one potential hazard or specify a custom hazard';
+        if (!toastShown) {
+          showToast('Error', 'Please select at least one potential hazard or specify a custom hazard', 'error');
+          toastShown = true;
+        }
         isValid = false;
       } else {
         document.getElementById('hazardsError').textContent = '';
