@@ -210,6 +210,10 @@
     .booking-image-gallery img:hover {
         transform: scale(1.05);
     }
+
+    #description.form-control {
+      height: auto;
+    }
   </style>
 }
 
@@ -731,7 +735,7 @@
               <div class="row mb-3">
                 <div class="col-12">
                   <label class="form-label">Job Description</label>
-                  <textarea class="form-control" rows="3" readonly>@Model.Description</textarea>
+                  <textarea id="description" class="form-control" rows="3" readonly>@Model.Description</textarea>
                 </div>
               </div>
 

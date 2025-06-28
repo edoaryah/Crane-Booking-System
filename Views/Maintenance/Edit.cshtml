@@ -27,6 +27,10 @@
     .shift-selection .form-check-label {
       display: none;
     }
+
+    #description.form-control {
+      height: auto;
+    }
   </style>
 }
 
@@ -257,16 +261,16 @@
 
         // Start table HTML
         let tableHtml = `
-              <div class="table-responsive">
-                <table class="table table-bordered align-middle text-center">
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Day</th>
-                      ${headerShiftCols}
-                    </tr>
-                  </thead>
-                  <tbody>`;
+                  <div class="table-responsive">
+                    <table class="table table-bordered align-middle text-center">
+                      <thead>
+                        <tr>
+                          <th>Date</th>
+                          <th>Day</th>
+                          ${headerShiftCols}
+                        </tr>
+                      </thead>
+                      <tbody>`;
 
         // Rows per date
         dateRange.forEach((date, index) => {
@@ -281,9 +285,9 @@
           const selectedShifts = existingDates[dateString] || [];
 
           tableHtml += `
-                    <tr>
-                      <td>${formattedDate}<input type="hidden" name="ShiftSelections[${index}].Date" value="${dateString}"></td>
-                      <td>${dayOfWeek}</td>`;
+                        <tr>
+                          <td>${formattedDate}<input type="hidden" name="ShiftSelections[${index}].Date" value="${dateString}"></td>
+                          <td>${dayOfWeek}</td>`;
 
           shiftDefinitions.forEach(shift => {
             const isBooked = isShiftBooked(craneId, dateString, shift.id);
@@ -305,25 +309,25 @@
             }
 
             tableHtml += `
-                      <td>
-                        <div class="form-check d-flex justify-content-center align-items-center gap-1">
-                          <input class="form-check-input" type="checkbox"
-                            id="shift_${index}_${shift.id}"
-                            name="ShiftSelections[${index}].SelectedShiftIds"
-                            value="${shift.id}"
-                            ${isChecked ? 'checked' : ''} ${disabledAttr}>
-                          <span class="shift-status ${statusClass}">${statusText}</span>
-                        </div>
-                      </td>`;
+                          <td>
+                            <div class="form-check d-flex justify-content-center align-items-center gap-1">
+                              <input class="form-check-input" type="checkbox"
+                                id="shift_${index}_${shift.id}"
+                                name="ShiftSelections[${index}].SelectedShiftIds"
+                                value="${shift.id}"
+                                ${isChecked ? 'checked' : ''} ${disabledAttr}>
+                              <span class="shift-status ${statusClass}">${statusText}</span>
+                            </div>
+                          </td>`;
           });
 
           tableHtml += '</tr>';
         });
 
         tableHtml += `
-                  </tbody>
-                </table>
-              </div>`;
+                      </tbody>
+                    </table>
+                  </div>`;
 
         shiftSelectionTable.innerHTML = tableHtml;
       };
