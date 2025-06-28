@@ -139,6 +139,18 @@
       padding: 5px;
     }
 
+    .img-wrapper {
+      position: relative;
+      display: inline-block;
+    }
+
+    .delete-image-btn {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      padding: 2px 6px;
+    }
+
     #description.form-control {
       height: auto;
     }
@@ -734,21 +746,21 @@
 
           const cell = document.createElement('td');
           cell.innerHTML = `
-                                                                          <div class="form-check d-flex align-items-center gap-1 justify-content-start ps-3">
-                                                                            <input type="checkbox" class="form-check-input shift-checkbox"
-                                                                              id="shift-${shiftId}-${dayShift.date}"
-                                                                              name="shiftSelections[${index}].selectedShiftIds[]"
-                                                                              value="${shiftId}"
-                                                                              data-date="${dayShift.date}"
-                                                                              data-shift-id="${shiftId}"
-                                                                              ${isSelected ? 'checked' : ''}
-                                                                              ${isDisabled ? 'disabled' : ''} />
-                                                                            <span class="shift-status ms-1 ${statusClass}">
-                                                                              ${statusText}
-                                                                            </span>
-                                                                            <input type="hidden" name="shiftSelections[${index}].date" value="${dayShift.date}" />
-                                                                          </div>
-                                                                        `;
+                                                                                  <div class="form-check d-flex align-items-center gap-1 justify-content-start ps-3">
+                                                                                    <input type="checkbox" class="form-check-input shift-checkbox"
+                                                                                      id="shift-${shiftId}-${dayShift.date}"
+                                                                                      name="shiftSelections[${index}].selectedShiftIds[]"
+                                                                                      value="${shiftId}"
+                                                                                      data-date="${dayShift.date}"
+                                                                                      data-shift-id="${shiftId}"
+                                                                                      ${isSelected ? 'checked' : ''}
+                                                                                      ${isDisabled ? 'disabled' : ''} />
+                                                                                    <span class="shift-status ms-1 ${statusClass}">
+                                                                                      ${statusText}
+                                                                                    </span>
+                                                                                    <input type="hidden" name="shiftSelections[${index}].date" value="${dayShift.date}" />
+                                                                                  </div>
+                                                                                `;
 
           row.appendChild(cell);
         });
@@ -777,31 +789,31 @@
       const row = document.createElement('tr');
 
       row.innerHTML = `
-                                                                      <td style="min-width: 220px; padding-right: 5px;">
-                                                                        <input type="text" class="form-control item-name"
-                                                                              name="items[${rowIndex}].itemName" required />
-                                                                      </td>
-                                                                      <td style="min-width: 140px; padding-right: 5px;">
-                                                                        <input type="number" class="form-control item-height"
-                                                                              name="items[${rowIndex}].height"
-                                                                              min="0.01" step="0.01" required />
-                                                                      </td>
-                                                                      <td style="min-width: 140px; padding-right: 5px;">
-                                                                        <input type="number" class="form-control item-weight"
-                                                                              name="items[${rowIndex}].weight"
-                                                                              min="0.01" step="0.01" required />
-                                                                      </td>
-                                                                      <td style="min-width: 140px; padding-right: 5px;">
-                                                                        <input type="number" class="form-control item-quantity"
-                                                                              name="items[${rowIndex}].quantity"
-                                                                              min="1" step="1" value="1" required />
-                                                                      </td>
-                                                                      <td style="width: 1%; white-space: nowrap;">
-                                                                        <button type="button" class="btn btn-outline-danger btn-sm remove-item-btn">
-                                                                          <i class="bx bx-trash"></i>
-                                                                        </button>
-                                                                      </td>
-                                                                    `;
+                                                                              <td style="min-width: 220px; padding-right: 5px;">
+                                                                                <input type="text" class="form-control item-name"
+                                                                                      name="items[${rowIndex}].itemName" required />
+                                                                              </td>
+                                                                              <td style="min-width: 140px; padding-right: 5px;">
+                                                                                <input type="number" class="form-control item-height"
+                                                                                      name="items[${rowIndex}].height"
+                                                                                      min="0.01" step="0.01" required />
+                                                                              </td>
+                                                                              <td style="min-width: 140px; padding-right: 5px;">
+                                                                                <input type="number" class="form-control item-weight"
+                                                                                      name="items[${rowIndex}].weight"
+                                                                                      min="0.01" step="0.01" required />
+                                                                              </td>
+                                                                              <td style="min-width: 140px; padding-right: 5px;">
+                                                                                <input type="number" class="form-control item-quantity"
+                                                                                      name="items[${rowIndex}].quantity"
+                                                                                      min="1" step="1" value="1" required />
+                                                                              </td>
+                                                                              <td style="width: 1%; white-space: nowrap;">
+                                                                                <button type="button" class="btn btn-outline-danger btn-sm remove-item-btn">
+                                                                                  <i class="bx bx-trash"></i>
+                                                                                </button>
+                                                                              </td>
+                                                                            `;
 
       const removeBtn = row.querySelector('.remove-item-btn');
       removeBtn.addEventListener('click', function () {
@@ -934,27 +946,85 @@
       // Image Preview Handler
       const imageInput = document.getElementById('images');
       const imagePreviewContainer = document.getElementById('imagePreviewContainer');
+      const selectedImages = [];
 
       if (imageInput && imagePreviewContainer) {
         imageInput.addEventListener('change', function () {
-          imagePreviewContainer.innerHTML = ''; // Clear previous previews
-          const files = this.files;
-          if (files) {
-            Array.from(files).forEach(file => {
-              if (file.type.startsWith('image/')) {
-                const reader = new FileReader();
-                reader.onload = function (e) {
-                  const img = document.createElement('img');
-                  img.src = e.target.result;
-                  img.classList.add('img-preview');
-                  imagePreviewContainer.appendChild(img);
-                }
-                reader.readAsDataURL(file);
-              }
+          const newFiles = Array.from(this.files || []);
+
+          newFiles.forEach(file => {
+            if (file.type.startsWith('image/')) {
+              selectedImages.push(file);
+            }
+          });
+
+          renderImagePreviews();
+
+          // reset input so the same file can be re-selected if needed
+          this.value = '';
+        });
+      }
+
+      function renderImagePreviews() {
+        imagePreviewContainer.innerHTML = '';
+
+        selectedImages.forEach((file, index) => {
+          const wrapper = document.createElement('div');
+          wrapper.classList.add('img-wrapper');
+
+          const img = document.createElement('img');
+          img.classList.add('img-preview');
+
+          const reader = new FileReader();
+          reader.onload = e => (img.src = e.target.result);
+          reader.readAsDataURL(file);
+
+          const delBtn = document.createElement('button');
+          delBtn.type = 'button';
+          delBtn.className = 'btn btn-sm btn-danger delete-image-btn';
+          delBtn.innerHTML = '<i class="bx bx-trash"></i>';
+          delBtn.addEventListener('click', () => {
+            selectedImages.splice(index, 1);
+            renderImagePreviews();
+          });
+
+          wrapper.appendChild(img);
+          wrapper.appendChild(delBtn);
+          imagePreviewContainer.appendChild(wrapper);
+        });
+      }
+      // Intercept form submission to include all selected images
+      const bookingForm = document.getElementById('craneBookingForm');
+      if (bookingForm) {
+        bookingForm.addEventListener('submit', async function (e) {
+          if (selectedImages.length === 0) return; // let normal submit if no extra images
+
+          e.preventDefault();
+
+          const formData = new FormData(bookingForm);
+          selectedImages.forEach(f => formData.append('Images', f));
+
+          try {
+            const response = await fetch(bookingForm.action, {
+              method: 'POST',
+              body: formData,
             });
+
+            if (response.redirected) {
+              window.location.href = response.url;
+            } else {
+              const html = await response.text();
+              document.open();
+              document.write(html);
+              document.close();
+            }
+          } catch (err) {
+            console.error('Error submitting form with images', err);
+            showToast('Error', 'Failed to submit booking. Please try again.', 'error');
           }
         });
       }
+
       loadShiftDefinitions();
       loadBookedShifts();
       initLiftedItemsTable();
@@ -993,16 +1063,16 @@
       @if (TempData["BookingFormSuccessMessage"] != null)
         {
           <text>
-                                                                                                                      // ✅ Jika ada success message, tampilkan success modal dan jangan tampilkan error modal
+                                                                                                                                      // ✅ Jika ada success message, tampilkan success modal dan jangan tampilkan error modal
             const successModal = new bootstrap.Modal(document.getElementById('successModal'), {
               backdrop: 'static',
             keyboard: false
-                                                                                                                      });
+                                                                                                                                      });
             successModal.show();
 
             document.querySelector('#successModal .btn-close').addEventListener('click', function() {
               window.location.href = '@(TempData["BookingDocumentNumber"] != null ? $"/Booking/Details?documentNumber={TempData["BookingDocumentNumber"]}" : "/Booking/Calendar")';
-                                                                                                                      });
+                                                                                                                                      });
 
             // ✅ Bersihkan TempData setelah success modal ditampilkan
             fetch('/Booking/ClearTempData', {
@@ -1010,14 +1080,14 @@
             headers: {
               'Content-Type': 'application/json',
             'X-CSRF-TOKEN': document.querySelector('input[name="__RequestVerificationToken"]').value
-                                                                                                                        }
-                                                                                                                      });
+                                                                                                                                        }
+                                                                                                                                      });
           </text>
       }
-                                                          else if (TempData["BookingFormErrorMessage"] != null || ViewData["BookingFormErrorMessage"] != null)
+                                                                  else if (TempData["BookingFormErrorMessage"] != null || ViewData["BookingFormErrorMessage"] != null)
         {
           <text>
-                                                                                                                      // ✅ Hanya tampilkan error modal jika TIDAK ada success message
+                                                                                                                                      // ✅ Hanya tampilkan error modal jika TIDAK ada success message
             const errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
             errorModal.show();
 
@@ -1030,22 +1100,22 @@
                   'X-CSRF-TOKEN': document.querySelector('input[name="__RequestVerificationToken"]').value
                 }
               });
-                                                                                                                      });
+                                                                                                                                      });
           </text>
       }
-                                                          else if (ViewData["CleanTempData"] != null && ViewData["CleanTempData"] as bool? == true)
+                                                                  else if (ViewData["CleanTempData"] != null && ViewData["CleanTempData"] as bool? == true)
         {
           <text>
-                                                                                                                      // ✅ Bersihkan TempData jika tidak ada modal yang ditampilkan tapi ada flag CleanTempData
+                                                                                                                                      // ✅ Bersihkan TempData jika tidak ada modal yang ditampilkan tapi ada flag CleanTempData
             fetch('/Booking/ClearTempData', {
               method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             'X-CSRF-TOKEN': document.querySelector('input[name="__RequestVerificationToken"]').value
-                                                                                                                        }
-                                                                                                                      });
+                                                                                                                                        }
+                                                                                                                                      });
           </text>
       }
-                                                        });
+                                                                });
   </script>
 }
