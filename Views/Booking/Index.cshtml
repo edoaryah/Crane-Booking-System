@@ -124,19 +124,18 @@
     }
 
     /* Styles for image preview */
-    #imagePreviewContainer {
+    @* #imagePreviewContainer {
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
-    }
+    } *@
 
     .img-preview {
-      width: 150px;
+      @* width: 150px; *@
+      width: 100%;
       height: 150px;
       object-fit: cover;
-      border: 1px solid #ddd;
       border-radius: 4px;
-      padding: 5px;
       cursor: pointer;
       transition: transform 0.2s;
     }
@@ -152,8 +151,8 @@
 
     .delete-image-btn {
       position: absolute;
-      top: 4px;
-      right: 4px;
+      top: 8px;
+      right: 12px;
       padding: 2px 6px;
     }
 
@@ -161,6 +160,7 @@
       height: auto;
     }
 
+    /* Limit modal preview image size */
     #imageModal img {
       max-width: 100%;
       max-height: 80vh;
@@ -233,12 +233,12 @@
               <div class="col-md-6 mb-3">
                 <label for="startDate" class="form-label required-label">Start Date</label>
                 <input type="date" id="startDate" name="startDate" class="form-control" required />
-                <span class="text-danger" id="startDateError"></span>
+                <span class="invalid-feedback" id="startDateError"></span>
               </div>
               <div class="col-md-6 mb-3">
                 <label for="endDate" class="form-label required-label">End Date</label>
                 <input type="date" id="endDate" name="endDate" class="form-control" required />
-                <span class="text-danger" id="endDateError"></span>
+                <span class="invalid-feedback" id="endDateError"></span>
               </div>
             </div>
 
@@ -355,7 +355,7 @@
               <div class="col-12">
                 <label for="images" class="form-label">Upload Images (PNG, JPG, JPEG)</label>
                 <input class="form-control" type="file" id="images" name="Images" multiple accept=".png,.jpg,.jpeg">
-                <div id="imagePreviewContainer" class="mt-3 mb-3">
+                <div id="imagePreviewContainer" class="row g-4 booking-image-gallery mt-3 mb-3">
                   <!-- Image previews will be shown here -->
                 </div>
               </div>
@@ -391,7 +391,7 @@
                   </div>
                 </div>
               </div>
-              <span class="text-danger" id="hazardsError"></span>
+              <span class="text-danger d-none" id="hazardsError"></span>
             </div>
           </div>
 
@@ -537,16 +537,23 @@
     const bookingForm = document.getElementById('craneBookingForm');
 
     const today = new Date();
-    const formattedToday = today.toISOString().split('T')[0];
+    function formatDateLocal(d) {
+      const yr = d.getFullYear();
+      const mo = String(d.getMonth() + 1).padStart(2, '0');
+      const da = String(d.getDate()).padStart(2, '0');
+      return `${yr}-${mo}-${da}`;
+    }
+
+    const formattedToday = formatDateLocal(today);
 
     if (startDateInput) {
       startDateInput.min = formattedToday;
-      startDateInput.addEventListener('change', generateShiftTable);
+      startDateInput.addEventListener('change', () => { validateDates(); generateShiftTable(); });
     }
 
     if (endDateInput) {
       endDateInput.min = formattedToday;
-      endDateInput.addEventListener('change', generateShiftTable);
+      endDateInput.addEventListener('change', () => { validateDates(); generateShiftTable(); });
     }
 
     if (craneIdSelect) {
@@ -630,20 +637,34 @@
       const endDateError = document.getElementById('endDateError');
 
       if (startDateError) startDateError.textContent = '';
+      startDateInput.classList.remove('is-invalid');
       if (endDateError) endDateError.textContent = '';
+      endDateInput.classList.remove('is-invalid');
 
       if (!startDateInput.value) {
         if (startDateError) startDateError.textContent = 'Start date is required';
+        startDateInput.classList.add('is-invalid');
         return false;
       }
 
       if (!endDateInput.value) {
         if (endDateError) endDateError.textContent = 'End date is required';
+        endDateInput.classList.add('is-invalid');
+        return false;
+      }
+
+      // Validate start date not before today
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (startDate < today) {
+        if (startDateError) startDateError.textContent = 'Start date cannot be before today';
+        startDateInput.classList.add('is-invalid');
         return false;
       }
 
       if (startDate > endDate) {
         if (endDateError) endDateError.textContent = 'End date cannot be before start date';
+        endDateInput.classList.add('is-invalid');
         return false;
       }
 
@@ -772,21 +793,21 @@
 
           const cell = document.createElement('td');
           cell.innerHTML = `
-                                                                                                  <div class="form-check d-flex align-items-center gap-1 justify-content-start ps-3">
-                                                                                                    <input type="checkbox" class="form-check-input shift-checkbox"
-                                                                                                      id="shift-${shiftId}-${dayShift.date}"
-                                                                                                      name="shiftSelections[${index}].selectedShiftIds[]"
-                                                                                                      value="${shiftId}"
-                                                                                                      data-date="${dayShift.date}"
-                                                                                                      data-shift-id="${shiftId}"
-                                                                                                      ${isSelected ? 'checked' : ''}
-                                                                                                      ${isDisabled ? 'disabled' : ''} />
-                                                                                                    <span class="shift-status ms-1 ${statusClass}">
-                                                                                                      ${statusText}
-                                                                                                    </span>
-                                                                                                    <input type="hidden" name="shiftSelections[${index}].date" value="${dayShift.date}" />
-                                                                                                  </div>
-                                                                                                `;
+                                                                                          <div class="form-check d-flex align-items-center gap-1 justify-content-start ps-3">
+                                                                                            <input type="checkbox" class="form-check-input shift-checkbox"
+                                                                                              id="shift-${shiftId}-${dayShift.date}"
+                                                                                              name="shiftSelections[${index}].selectedShiftIds[]"
+                                                                                              value="${shiftId}"
+                                                                                              data-date="${dayShift.date}"
+                                                                                              data-shift-id="${shiftId}"
+                                                                                              ${isSelected ? 'checked' : ''}
+                                                                                              ${isDisabled ? 'disabled' : ''} />
+                                                                                            <span class="shift-status ms-1 ${statusClass}">
+                                                                                              ${statusText}
+                                                                                            </span>
+                                                                                            <input type="hidden" name="shiftSelections[${index}].date" value="${dayShift.date}" />
+                                                                                          </div>
+                                                                                        `;
 
           row.appendChild(cell);
         });
@@ -815,31 +836,31 @@
       const row = document.createElement('tr');
 
       row.innerHTML = `
-                                                                                              <td style="min-width: 220px; padding-right: 5px;">
-                                                                                                <input type="text" class="form-control item-name"
-                                                                                                      name="items[${rowIndex}].itemName" required />
-                                                                                              </td>
-                                                                                              <td style="min-width: 140px; padding-right: 5px;">
-                                                                                                <input type="number" class="form-control item-height"
-                                                                                                      name="items[${rowIndex}].height"
-                                                                                                      min="0.01" step="0.01" required />
-                                                                                              </td>
-                                                                                              <td style="min-width: 140px; padding-right: 5px;">
-                                                                                                <input type="number" class="form-control item-weight"
-                                                                                                      name="items[${rowIndex}].weight"
-                                                                                                      min="0.01" step="0.01" required />
-                                                                                              </td>
-                                                                                              <td style="min-width: 140px; padding-right: 5px;">
-                                                                                                <input type="number" class="form-control item-quantity"
-                                                                                                      name="items[${rowIndex}].quantity"
-                                                                                                      min="1" step="1" value="1" required />
-                                                                                              </td>
-                                                                                              <td style="width: 1%; white-space: nowrap;">
-                                                                                                <button type="button" class="btn btn-outline-danger btn-sm remove-item-btn">
-                                                                                                  <i class="bx bx-trash"></i>
-                                                                                                </button>
-                                                                                              </td>
-                                                                                            `;
+                                                                                      <td style="min-width: 220px; padding-right: 5px;">
+                                                                                        <input type="text" class="form-control item-name"
+                                                                                              name="items[${rowIndex}].itemName" required />
+                                                                                      </td>
+                                                                                      <td style="min-width: 140px; padding-right: 5px;">
+                                                                                        <input type="number" class="form-control item-height"
+                                                                                              name="items[${rowIndex}].height"
+                                                                                              min="0.01" step="0.01" required />
+                                                                                      </td>
+                                                                                      <td style="min-width: 140px; padding-right: 5px;">
+                                                                                        <input type="number" class="form-control item-weight"
+                                                                                              name="items[${rowIndex}].weight"
+                                                                                              min="0.01" step="0.01" required />
+                                                                                      </td>
+                                                                                      <td style="min-width: 140px; padding-right: 5px;">
+                                                                                        <input type="number" class="form-control item-quantity"
+                                                                                              name="items[${rowIndex}].quantity"
+                                                                                              min="1" step="1" value="1" required />
+                                                                                      </td>
+                                                                                      <td style="width: 1%; white-space: nowrap;">
+                                                                                        <button type="button" class="btn btn-outline-danger btn-sm remove-item-btn">
+                                                                                          <i class="bx bx-trash"></i>
+                                                                                        </button>
+                                                                                      </td>
+                                                                                    `;
 
       const removeBtn = row.querySelector('.remove-item-btn');
       removeBtn.addEventListener('click', function () {
@@ -1002,10 +1023,10 @@
 
         selectedImages.forEach((file, index) => {
           const wrapper = document.createElement('div');
-          wrapper.classList.add('img-wrapper');
+          wrapper.classList.add('img-wrapper', 'col-md-3');
 
           const img = document.createElement('img');
-          img.classList.add('img-preview');
+          img.classList.add('img-preview', 'img-fluid', 'rounded');
 
           const reader = new FileReader();
           reader.onload = e => (img.src = e.target.result);
@@ -1045,6 +1066,16 @@
           if (selectedImages.length === 0) return; // let normal submit if no extra images
 
           e.preventDefault();
+          e.stopImmediatePropagation();
+
+          // re-run validation to prevent submission if form invalid
+          if (!validateForm()) {
+            const firstError = document.querySelector('.table-danger') || document.querySelector('.text-danger:not(:empty)') || document.querySelector('.is-invalid') || document.getElementById('shiftTableContainer');
+            if (firstError) {
+              firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            return;
+          }
 
           const formData = new FormData(bookingForm);
           selectedImages.forEach(f => formData.append('Images', f));
@@ -1081,7 +1112,7 @@
       if (endDateInput) {
         const tomorrow = new Date();
         tomorrow.setDate(today.getDate() + 1);
-        endDateInput.value = tomorrow.toISOString().split('T')[0];
+        endDateInput.value = formatDateLocal(tomorrow);
       }
 
       setTimeout(() => {
@@ -1108,16 +1139,16 @@
       @if (TempData["BookingFormSuccessMessage"] != null)
         {
           <text>
-                                                                                                                                                                      // ✅ Jika ada success message, tampilkan success modal dan jangan tampilkan error modal
+                                                                                                                                                      // ✅ Jika ada success message, tampilkan success modal dan jangan tampilkan error modal
             const successModal = new bootstrap.Modal(document.getElementById('successModal'), {
               backdrop: 'static',
             keyboard: false
-                                                                                                                                                                      });
+                                                                                                                                                      });
             successModal.show();
 
             document.querySelector('#successModal .btn-close').addEventListener('click', function() {
               window.location.href = '@(TempData["BookingDocumentNumber"] != null ? $"/Booking/Details?documentNumber={TempData["BookingDocumentNumber"]}" : "/Booking/Calendar")';
-                                                                                                                                                                      });
+                                                                                                                                                      });
 
             // ✅ Bersihkan TempData setelah success modal ditampilkan
             fetch('/Booking/ClearTempData', {
@@ -1125,14 +1156,14 @@
             headers: {
               'Content-Type': 'application/json',
             'X-CSRF-TOKEN': document.querySelector('input[name="__RequestVerificationToken"]').value
-                                                                                                                                                                        }
-                                                                                                                                                                      });
+                                                                                                                                                        }
+                                                                                                                                                      });
           </text>
       }
-                                                                                  else if (TempData["BookingFormErrorMessage"] != null || ViewData["BookingFormErrorMessage"] != null)
+                                                                          else if (TempData["BookingFormErrorMessage"] != null || ViewData["BookingFormErrorMessage"] != null)
         {
           <text>
-                                                                                                                                                                      // ✅ Hanya tampilkan error modal jika TIDAK ada success message
+                                                                                                                                                      // ✅ Hanya tampilkan error modal jika TIDAK ada success message
             const errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
             errorModal.show();
 
@@ -1145,22 +1176,22 @@
                   'X-CSRF-TOKEN': document.querySelector('input[name="__RequestVerificationToken"]').value
                 }
               });
-                                                                                                                                                                      });
+                                                                                                                                                      });
           </text>
       }
-                                                                                  else if (ViewData["CleanTempData"] != null && ViewData["CleanTempData"] as bool? == true)
+                                                                          else if (ViewData["CleanTempData"] != null && ViewData["CleanTempData"] as bool? == true)
         {
           <text>
-                                                                                                                                                                      // ✅ Bersihkan TempData jika tidak ada modal yang ditampilkan tapi ada flag CleanTempData
+                                                                                                                                                      // ✅ Bersihkan TempData jika tidak ada modal yang ditampilkan tapi ada flag CleanTempData
             fetch('/Booking/ClearTempData', {
               method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             'X-CSRF-TOKEN': document.querySelector('input[name="__RequestVerificationToken"]').value
-                                                                                                                                                                        }
-                                                                                                                                                                      });
+                                                                                                                                                        }
+                                                                                                                                                      });
           </text>
       }
-                                                                                });
+                                                                        });
   </script>
 }
