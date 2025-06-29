@@ -179,13 +179,35 @@
         z-index: 10;
     }
 
-    #newImagePreviewContainer .img-preview {
-        width: 150px;
-        height: 150px;
-        object-fit: cover;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        padding: 5px;
+    .img-preview {
+      width: 100%;
+      height: 150px;
+      object-fit: cover;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .img-preview:hover {
+      transform: scale(1.05);
+    }
+
+    .img-wrapper {
+      position: relative;
+      display: inline-block;
+    }
+
+    .delete-image-btn {
+      position: absolute;
+      top: 8px;
+      right: 12px;
+      padding: 2px 6px;
+    }
+
+    #imageModal img {
+      max-width: 100%;
+      max-height: 80vh;
+      object-fit: contain;
     }
 
     #Description.form-control {
@@ -416,47 +438,20 @@
             <h6 class="form-section-title">Area/Item Photos</h6>
             <div class="row">
               <div class="col-12">
-                <label class="form-label">Existing Photos</label>
-                <!-- <div id="existingImagesContainer" class="image-management-container">
-                  @if (Model.ExistingImagePaths != null && Model.ExistingImagePaths.Any())
+                <label for="images" class="form-label">Upload Images (PNG, JPG, JPEG)</label>
+                <input type="file" id="images" name="NewImages" multiple accept=".png,.jpg,.jpeg" class="form-control" />
+                <div id="imagePreviewContainer" class="row g-4 booking-image-gallery mt-3 mb-3">
+                  @if (Model.ExistingImagePaths != null)
                   {
                     foreach (var imagePath in Model.ExistingImagePaths)
                     {
-                      <div class="existing-image-wrapper" data-image-path="@imagePath">
-                        <img src="@Url.Content(imagePath)" alt="Existing Image" class="img-thumbnail" />
-                        <button type="button" class="btn btn-danger btn-sm remove-image-btn" data-bs-toggle="modal" data-bs-target="#deleteConfirmationModal" data-image-path="@imagePath">
-                          <i class="bx bx-trash"></i>
-                        </button>
+                      <div class="img-wrapper col-md-3" data-image-path="@imagePath">
+                        <img src="@Url.Content(imagePath)" class="img-preview img-fluid rounded" />
+                        <button type="button" class="btn btn-sm btn-danger delete-image-btn" data-bs-toggle="modal" data-bs-target="#deleteConfirmationModal" data-image-path="@imagePath"><i class="bx bx-trash"></i></button>
                       </div>
                     }
                   }
-                  else
-                  {
-                    <p id="no-existing-images-msg">No existing photos.</p>
-                  }
-                </div> -->
-                <div id="existingImagesContainer" class="image-management-container">
-                @if (Model.ExistingImagePaths != null)
-                    {
-                        foreach (var imagePath in Model.ExistingImagePaths)
-                        {
-                            <div class="existing-image-wrapper" data-image-path="@imagePath">
-                                <img src="@Url.Content(imagePath)" alt="Existing Image" class="img-thumbnail" />
-                                <button type="button" class="btn btn-danger btn-sm remove-image-btn" data-bs-toggle="modal" data-bs-target="#deleteConfirmationModal" data-image-path="@imagePath">
-                                    <i class="bx bx-trash"></i>
-                                </button>
-                            </div>
-                        }
-                    }
                 </div>
-                <p id="no-existing-images-msg" style="@(Model.ExistingImagePaths == null || !Model.ExistingImagePaths.Any() ? "" : "display: none;")">No existing photos.</p>
-              </div>
-            </div>
-            <div class="row">
-              <div class="col-12">
-                <label for="newImages" class="form-label">Add New Photos</label>
-                <input asp-for="NewImages" type="file" class="form-control" multiple id="newImages" accept="image/*" />
-                <div id="newImagePreviewContainer" class="mt-2"></div>
               </div>
             </div>
           </div>
@@ -526,6 +521,20 @@
   </div>
 </div>
 
+<!-- Image Modal -->
+<div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center">
+        <img src="" id="modalImage" class="img-fluid">
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Delete Confirmation Modal -->
 <div class="modal fade" id="deleteConfirmationModal" tabindex="-1" aria-labelledby="deleteConfirmationModalLabel" aria-hidden="true">
   <div class="modal-dialog">
@@ -580,6 +589,8 @@
     const addItemBtn = document.getElementById('addItemBtn');
     const editBookingForm = document.getElementById('editBookingForm');
     const shiftLabel = document.getElementById('shiftLabel');
+
+    const docNumber = "@documentNumber";
 
     // Ambil booking ID yang sedang diedit
     const currentBookingId = @(ViewBag.BookingId ?? 0);
@@ -1013,35 +1024,134 @@
     }
 
     document.addEventListener('DOMContentLoaded', function () {
-        // New Image Preview Handler
-        const newImagesInput = document.getElementById('newImages');
-        const newImagePreviewContainer = document.getElementById('newImagePreviewContainer');
+        // === Image Upload & Preview (same as Booking/Index) ===
+      const imageInput = document.getElementById('images');
+      const imagePreviewContainer = document.getElementById('imagePreviewContainer');
+      const selectedImages = [];
 
-        if (newImagesInput && newImagePreviewContainer) {
-            newImagesInput.addEventListener('change', function () {
-                newImagePreviewContainer.innerHTML = ''; // Clear previous previews
-                const files = this.files;
-                if (files) {
-                    Array.from(files).forEach(file => {
-                        if (file.type.startsWith('image/')) {
-                            const reader = new FileReader();
-                            reader.onload = function (e) {
-                                const img = document.createElement('img');
-                                img.src = e.target.result;
-                                img.classList.add('img-preview');
-                                newImagePreviewContainer.appendChild(img);
-                            }
-                            reader.readAsDataURL(file);
-                        }
-                    });
-                }
-            });
+      // Helper to open the image preview modal for a given source
+      function openImageModal(src) {
+        const modalImage = document.getElementById('modalImage');
+        if (!modalImage) return;
+        modalImage.src = src;
+        const modalEl = document.getElementById('imageModal');
+        if (modalEl) {
+          const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
+          modalInstance.show();
         }
+      }
 
-        // Numeric input normalization and validation for height & weight
-        document.addEventListener('input', function (e) {
+      // Attach click listener to existing images rendered on first load
+      document.querySelectorAll('#imagePreviewContainer .img-wrapper .img-preview').forEach(img => {
+        img.addEventListener('click', () => openImageModal(img.src));
+      });
+
+      function renderImagePreviews() {
+        if (!imagePreviewContainer) return;
+        imagePreviewContainer.querySelectorAll('.img-wrapper.temp').forEach(el => el.remove());
+        selectedImages.forEach((file, index) => {
+          const wrapper = document.createElement('div');
+          wrapper.classList.add('img-wrapper', 'col-md-3', 'temp'); // temp = new file
+
+          const img = document.createElement('img');
+          img.classList.add('img-preview', 'img-fluid', 'rounded');
+
+          const reader = new FileReader();
+          reader.onload = e => (img.src = e.target.result);
+          reader.readAsDataURL(file);
+
+          const delBtn = document.createElement('button');
+          delBtn.type = 'button';
+          delBtn.className = 'btn btn-sm btn-danger delete-image-btn';
+          delBtn.innerHTML = '<i class="bx bx-trash"></i>';
+          delBtn.addEventListener('click', () => {
+            selectedImages.splice(index, 1);
+            renderImagePreviews();
+          });
+
+          img.addEventListener('click', () => {
+            const modalImage = document.getElementById('modalImage');
+            if (modalImage) {
+              modalImage.src = img.src;
+              const imageModalEl = document.getElementById('imageModal');
+              if (imageModalEl) {
+                const imageModal = new bootstrap.Modal(imageModalEl);
+                imageModal.show();
+              }
+            }
+          });
+
+          wrapper.appendChild(img);
+          wrapper.appendChild(delBtn);
+          imagePreviewContainer.appendChild(wrapper);
+        });
+      }
+
+      if (imageInput && imagePreviewContainer) {
+        imageInput.addEventListener('change', function () {
+          const newFiles = Array.from(this.files || []);
+          newFiles.forEach(file => {
+            if (file.type.startsWith('image/')) selectedImages.push(file);
+          });
+          renderImagePreviews();
+          this.value = '';
+        });
+      }
+
+      if (editBookingForm) {
+        editBookingForm.addEventListener('submit', async function (e) {
+          const deletedImages = document.querySelectorAll('input[name="ImagesToDelete"]');
+          @* if (selectedImages.length === 0 && deletedImages.length === 0) return; // no new or deleted images → let normal submit *@
+
+          if (!validateForm()) {
+            e.preventDefault();
+            const firstError = document.querySelector('.table-danger') || document.querySelector('.text-danger:not(:empty)') || document.getElementById('shiftTableContainer');
+            if (firstError) firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+          }
+
+          e.preventDefault();
+          e.stopImmediatePropagation();
+
+          const formData = new FormData(editBookingForm);
+          selectedImages.forEach(file => formData.append('NewImages', file));
+
+          try {
+            const response = await fetch(editBookingForm.action, {
+              method: 'POST',
+              headers: { 'X-Requested-With': 'XMLHttpRequest' },
+              body: formData,
+            });
+
+            const redirectHeader = response.headers.get('X-Redirect');
+            if (redirectHeader) {
+              window.location.href = redirectHeader;
+              return;
+            }
+
+            if (response.redirected) {
+              window.location.href = response.url;
+              return;
+            } else if (response.ok) {
+              window.location.href = `/Booking/Details?documentNumber=${docNumber}`;
+              return;
+            } else {
+              const html = await response.text();
+              document.open();
+              document.write(html);
+              document.close();
+            }
+          } catch (err) {
+            console.error('Error submitting form with images', err);
+            if (typeof showToast === 'function') showToast('Error', 'Failed to submit booking. Please try again.', 'error');
+          }
+        });
+      }
+
+      // Numeric input normalization and validation for height & weight
+      document.addEventListener('input', function (e) {
         if (e.target.classList.contains('item-height') || e.target.classList.contains('item-weight')) {
-          // keep only digits, comma or dot and ensure only one dot
+        // keep only digits, comma or dot and ensure only one dot
         let cleaned = e.target.value.replace(/[^0-9.,]/g, '');
         cleaned = cleaned.replace(/,/g, '.');
         const parts = cleaned.split('.');
@@ -1049,55 +1159,55 @@
           cleaned = parts[0] + '.' + parts.slice(1).join('');
         }
         e.target.value = cleaned;
+        }
+      });
+
+      document.addEventListener('keydown', function (e) {
+        if (e.target.classList.contains('item-height') || e.target.classList.contains('item-weight')) {
+          if (e.key === 'e' || e.key === 'E' || e.key === '+' || e.key === '-') {
+            e.preventDefault();
           }
-        });
+        }
+      });
 
-        document.addEventListener('keydown', function (e) {
-          if (e.target.classList.contains('item-height') || e.target.classList.contains('item-weight')) {
-            if (e.key === 'e' || e.key === 'E' || e.key === '+' || e.key === '-') {
-              e.preventDefault();
-            }
+      // Image Deletion Modal Handler
+      const deleteModal = document.getElementById('deleteConfirmationModal');
+      let imagePathToDelete = null;
+
+      deleteModal.addEventListener('show.bs.modal', function (event) {
+          const button = event.relatedTarget;
+          imagePathToDelete = button.getAttribute('data-image-path');
+      });
+
+      document.getElementById('confirmDeleteBtn').addEventListener('click', function () {
+          if (imagePathToDelete) {
+              // Create a hidden input to hold the path of the image to be deleted
+              const hiddenInput = document.createElement('input');
+              hiddenInput.type = 'hidden';
+              hiddenInput.name = 'ImagesToDelete';
+              hiddenInput.value = imagePathToDelete;
+              editBookingForm.appendChild(hiddenInput);
+
+              // Hide the image wrapper from the view
+              const imageWrapper = document.querySelector(`.img-wrapper[data-image-path="${imagePathToDelete}"]`);
+              if (imageWrapper) {
+                  imageWrapper.remove();
+              }
+
+              // Hide the modal
+              const modalInstance = bootstrap.Modal.getInstance(deleteModal);
+              modalInstance.hide();
+
+              // Check if any existing images are left
+              const remainingImages = document.querySelectorAll('.img-wrapper[data-image-path]');
+              if (remainingImages.length === 0) {
+                  const msgEl = document.getElementById('no-existing-images-msg');
+                  if (msgEl) msgEl.style.display = 'block';
+              }
+
+              imagePathToDelete = null; // Reset for next deletion
           }
-        });
-
-        // Image Deletion Modal Handler
-        const deleteModal = document.getElementById('deleteConfirmationModal');
-        let imagePathToDelete = null;
-
-        deleteModal.addEventListener('show.bs.modal', function (event) {
-            const button = event.relatedTarget;
-            imagePathToDelete = button.getAttribute('data-image-path');
-        });
-
-        document.getElementById('confirmDeleteBtn').addEventListener('click', function () {
-            if (imagePathToDelete) {
-                // Create a hidden input to hold the path of the image to be deleted
-                const hiddenInput = document.createElement('input');
-                hiddenInput.type = 'hidden';
-                hiddenInput.name = 'ImagesToDelete';
-                hiddenInput.value = imagePathToDelete;
-                editBookingForm.appendChild(hiddenInput);
-
-                // Hide the image wrapper from the view
-                const imageWrapper = document.querySelector(`.existing-image-wrapper[data-image-path="${imagePathToDelete}"]`);
-                if (imageWrapper) {
-                    imageWrapper.style.display = 'none';
-                }
-
-                // Hide the modal
-                const modalInstance = bootstrap.Modal.getInstance(deleteModal);
-                modalInstance.hide();
-
-                // Check if any existing images are left
-                const remainingImages = document.querySelectorAll('.existing-image-wrapper[style*="display: none;"]');
-                const totalImages = document.querySelectorAll('.existing-image-wrapper');
-                if (remainingImages.length === totalImages.length) {
-                    document.getElementById('no-existing-images-msg').style.display = 'block';
-                }
-
-                imagePathToDelete = null; // Reset for next deletion
-            }
-        });
+      });
 
       loadShiftDefinitions();
       initLiftedItemsTable();
@@ -1120,17 +1230,6 @@
 
       if (addItemBtn) {
         addItemBtn.addEventListener('click', () => addLiftedItemRow());
-      }
-
-      if (editBookingForm) {
-        editBookingForm.addEventListener('submit', function (event) {
-          if (!validateForm()) {
-            event.preventDefault();
-const firstError = document.querySelector('.table-danger') || document.querySelector('.text-danger:not(:empty)') || document.getElementById('shiftTableContainer');            if (firstError) {
-              firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-          }
-        });
       }
     });
   </script>
